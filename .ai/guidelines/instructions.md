@@ -14,3 +14,8 @@ Use for db structure
 * `docs/04-database-structure-mvp.md`
 
 Keep all implementations within the documented MVP scope. Do not introduce undocumented product features or architectural changes without being explicitly asked.
+
+## Tests
+
+Do not create, modify, or add test cases unless the prompt explicitly asks for tests.
+
