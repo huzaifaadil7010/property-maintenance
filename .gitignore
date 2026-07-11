@@ -27,3 +27,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+.junie
+.codex
+.agents
+AGENTS.md
+boost.json
+storage/wayfinder-cache
