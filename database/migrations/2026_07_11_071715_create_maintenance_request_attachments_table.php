@@ -15,7 +15,9 @@ return new class extends Migration
         Schema::create('maintenance_request_attachments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('maintenance_request_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('maintenance_request_id')
+                ->constrained(indexName: 'mra_request_id_foreign')
+                ->cascadeOnDelete();
             $table->foreignId('uploaded_by')->constrained('users');
             $table->string('type')->default(AttachmentType::ISSUE->value);
             $table->string('file_path');
@@ -24,7 +26,7 @@ return new class extends Migration
             $table->unsignedBigInteger('size')->nullable();
             $table->timestamps();
 
-            $table->index(['maintenance_request_id', 'type']);
+            $table->index(['maintenance_request_id', 'type'], 'mra_request_type_index');
             $table->index('organization_id');
         });
     }

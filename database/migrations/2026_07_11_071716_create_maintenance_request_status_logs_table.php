@@ -14,14 +14,16 @@ return new class extends Migration
         Schema::create('maintenance_request_status_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('maintenance_request_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('maintenance_request_id')
+                ->constrained(indexName: 'mrsl_request_id_foreign')
+                ->cascadeOnDelete();
             $table->foreignId('changed_by')->constrained('users');
             $table->string('from_status')->nullable();
             $table->string('to_status');
             $table->text('notes')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['maintenance_request_id', 'created_at']);
+            $table->index(['maintenance_request_id', 'created_at'], 'mrsl_request_created_index');
             $table->index('organization_id');
         });
     }

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'email', 'phone'])]
+#[Fillable(['uuid', 'name', 'slug', 'email', 'phone'])]
 class Organization extends Model
 {
     public function users(): BelongsToMany
