@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
-import { edit } from '@/routes/profile';
-import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
+import { edit as editAppearance } from '@/wayfinder/routes/appearance';
+import { edit } from '@/wayfinder/routes/profile';
+import { edit as editSecurity } from '@/wayfinder/routes/security';
 
 const sidebarNavItems: NavItem[] = [
     {
