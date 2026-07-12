@@ -25,43 +25,69 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        Validator::make($input, [
-            ...$this->profileRules(),
-            'organization_name' => ['required', 'string', 'max:255'],
-            'password' => $this->passwordRules(),
-        ])->validate();
+        self::validateUser($input, $this->profileRules(), $this->passwordRules());
 
         return DB::transaction(function () use ($input): User {
-            $user = User::create([
-                'name' => $input['name'],
-                'email' => $input['email'],
-                'password' => $input['password'],
-            ]);
+            $user = self::createUser($input);
+            $organization = self::createOrganization($input['organization_name']);
 
-            $organizationUuid = (string) Str::uuid();
-
-            $organization = Organization::create([
-                'uuid' => $organizationUuid,
-                'name' => $input['organization_name'],
-                'slug' => Str::slug($input['organization_name']).'-'.Str::before($organizationUuid, '-'),
-            ]);
-
-            $user->update([
-                'current_organization_id' => $organization->id,
-            ]);
-
-            $user->organizations()->syncWithoutDetaching([
-                $organization->id => ['is_active' => true],
-            ]);
-
-            $permissionRegistrar = app(PermissionRegistrar::class);
-            $permissionRegistrar->setPermissionsTeamId($organization->id);
-
-            $ownerRole = Role::findByName(UserRole::OWNER, 'web');
-
-            $user->assignRole($ownerRole);
+            self::updateCurrentOrganization($user, $organization);
+            self::attachOrganization($user, $organization);
+            self::assignOwnerRole($user, $organization);
 
             return $user;
         });
+    }
+
+    private static function validateUser(array $input, array $profileRules, array $passwordRules): void
+    {
+        Validator::make($input, [
+            ...$profileRules,
+            'organization_name' => ['required', 'string', 'max:255'],
+            'password' => $passwordRules,
+        ])->validate();
+    }
+
+    private static function createUser(array $input): User
+    {
+        return User::create([
+            'name' => $input['name'],
+            'email' => $input['email'],
+            'password' => $input['password'],
+        ]);
+    }
+
+    private static function createOrganization(string $name): Organization
+    {
+        $uuid = (string) Str::uuid();
+
+        return Organization::create([
+            'uuid' => $uuid,
+            'name' => $name,
+            'slug' => Str::slug($name),
+        ]);
+    }
+
+    private static function updateCurrentOrganization(User $user, Organization $organization): void
+    {
+        $user->update([
+            'current_organization_id' => $organization->id,
+        ]);
+    }
+
+    private static function attachOrganization(User $user, Organization $organization): void
+    {
+        $user->organizations()->syncWithoutDetaching([
+            $organization->id => ['is_active' => true],
+        ]);
+    }
+
+    private static function assignOwnerRole(User $user, Organization $organization): void
+    {
+        app(PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+
+        $ownerRole = Role::findByName(UserRole::OWNER, 'web');
+
+        $user->assignRole($ownerRole);
     }
 }
