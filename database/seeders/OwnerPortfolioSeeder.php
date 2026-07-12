@@ -46,7 +46,7 @@ class OwnerPortfolioSeeder extends Seeder
 
                     $permissionRegistrar->setPermissionsTeamId($organization->id);
 
-                    $ownerRole = Role::findOrCreate(UserRole::OWNER, 'web');
+                    $ownerRole = Role::findByName(UserRole::OWNER, 'web');
 
                     $user->assignRole($ownerRole);
 
