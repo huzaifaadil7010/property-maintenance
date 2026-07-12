@@ -10,6 +10,7 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Middleware\RoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,15 +18,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            Route::middleware(['web', 'auth', 'current.organization'])
-                ->prefix('organization/{organization}')
-                ->name('organization.')
-                ->group(base_path('routes/organization.php'));
+            Route::middleware(['web'])->group(base_path('routes/organization.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'current.organization' => SetCurrentOrganization::class,
+            'role' => RoleMiddleware::class,
         ]);
 
         $middleware->prependToPriorityList(

@@ -30,6 +30,10 @@ class SetCurrentOrganization
             abort_unless(hash_equals($currentOrganization->uuid, $routeOrganizationUuid), 404);
         }
 
+        setPermissionsTeamId($currentOrganization->id);
+
+        $request->user()->unsetRelation('roles')->unsetRelation('permissions');
+
         return $next($request);
     }
 }

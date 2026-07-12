@@ -1,10 +1,17 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PropertiesController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
+    ->prefix('organization/{organization}')
+    ->as('organization.')
     ->group(function () {
-        Route::inertia('dashboard', 'organization/dashboard/index')->name('dashboard');
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('properties', [PropertiesController::class, 'index'])->name('properties');
+
     });

@@ -12,6 +12,10 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            currentOrganization: Pick<
+                App.Models.Organization,
+                'uuid' | 'name'
+            > | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };
