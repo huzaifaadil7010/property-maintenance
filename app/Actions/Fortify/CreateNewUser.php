@@ -55,17 +55,11 @@ class CreateNewUser implements CreatesNewUsers
             ]);
 
             $permissionRegistrar = app(PermissionRegistrar::class);
-            $originalOrganizationId = $permissionRegistrar->getPermissionsTeamId();
+            $permissionRegistrar->setPermissionsTeamId($organization->id);
 
-            try {
-                $permissionRegistrar->setPermissionsTeamId($organization->id);
+            $ownerRole = Role::findByName(UserRole::OWNER, 'web');
 
-                $ownerRole = Role::findByName(UserRole::OWNER, 'web');
-
-                $user->assignRole($ownerRole);
-            } finally {
-                $permissionRegistrar->setPermissionsTeamId($originalOrganizationId);
-            }
+            $user->assignRole($ownerRole);
 
             return $user;
         });
