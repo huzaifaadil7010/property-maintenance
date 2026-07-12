@@ -6,5 +6,5 @@ Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])
     ->group(function () {
-        Route::inertia('dashboard', 'organization/dashboard')->name('dashboard');
+        Route::inertia('dashboard', 'organization/dashboard/index')->name('dashboard');
     });
