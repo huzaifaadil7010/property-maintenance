@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['uuid', 'name', 'slug', 'email', 'phone'])]
 class Organization extends Model
 {
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->using(OrganizationUser::class)->withPivot(['id', 'is_active'])->withTimestamps();

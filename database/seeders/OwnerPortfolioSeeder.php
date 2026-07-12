@@ -10,6 +10,7 @@ use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -96,7 +97,7 @@ class OwnerPortfolioSeeder extends Seeder
                     'phone' => '+92 300 1111111',
                 ],
                 'organization' => [
-                    'uuid' => '10000000-0000-4000-8000-000000000001',
+                    'uuid' => Str::uuid()->toString(),
                     'name' => 'Horizon Property Management',
                     'slug' => 'horizon-property-management',
                     'email' => 'contact@horizon.example.com',
@@ -123,7 +124,7 @@ class OwnerPortfolioSeeder extends Seeder
                     'phone' => '+92 300 2222222',
                 ],
                 'organization' => [
-                    'uuid' => '20000000-0000-4000-8000-000000000002',
+                    'uuid' => Str::uuid()->toString(),
                     'name' => 'Summit Property Care',
                     'slug' => 'summit-property-care',
                     'email' => 'contact@summit.example.com',
