@@ -12,6 +12,7 @@ class GetProperties
     {
         return Property::query()
             ->latest('id')
+            ->when($filters->search, fn ($query, $search) => $query->whereAny(['name', 'type', 'address', 'city'], 'like', "%{$search}%"))
             ->paginate(
                 perPage: $filters->resolvedPerPage(),
                 page: $filters->resolvedPage(),

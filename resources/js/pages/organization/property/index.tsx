@@ -1,7 +1,10 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
+import debounce from 'lodash.debounce';
+import { useEffect, useRef, useState } from 'react';
 import { DataTable } from '@/components/ui/data-table';
+import { Input } from '@/components/ui/input';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.Property.Index;
@@ -17,6 +20,27 @@ export default function Index(props: GeneratedPageProps) {
     };
     const queryParameters = new URLSearchParams(url.split('?')[1] ?? '');
     const requestedPerPage = Number(queryParameters.get('perPage'));
+    const [search, setSearch] = useState(queryParameters.get('search') ?? '');
+    const isInitialRender = useRef(true);
+
+    useEffect(() => {
+        if (isInitialRender.current) {
+            isInitialRender.current = false;
+
+            return;
+        }
+
+        const reloadProperties = debounce(() => {
+            router.reload({
+                data: { search, page: 1 },
+                only: ['properties'],
+            });
+        }, 300);
+
+        reloadProperties();
+
+        return () => reloadProperties.cancel();
+    }, [search]);
 
     const columns: ColumnDef<GeneratedPageProps['properties'][number]>[] = [
         {
@@ -61,6 +85,19 @@ export default function Index(props: GeneratedPageProps) {
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">
+                        <div className="flex w-full justify-end p-3 sm:p-4">
+                            <Input
+                                type="search"
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                                placeholder="Search properties..."
+                                aria-label="Search properties"
+                                className="w-full sm:max-w-sm"
+                            />
+                        </div>
+
                         <DataTable
                             columns={columns}
                             data={properties.data}
