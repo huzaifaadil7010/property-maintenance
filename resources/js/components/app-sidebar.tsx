@@ -5,6 +5,7 @@ import {
     DoorOpen,
     FolderGit2,
     LayoutGrid,
+    Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
 import PropertiesController from '@/wayfinder/App/Http/Controllers/PropertiesController';
+import ResidentsController from '@/wayfinder/App/Http/Controllers/ResidentsController';
 import UnitsController from '@/wayfinder/App/Http/Controllers/UnitsController';
 import { dashboard } from '@/wayfinder/routes';
 
@@ -57,6 +59,11 @@ export function AppSidebar() {
                       title: 'Units',
                       href: UnitsController.index(currentOrganization.uuid).url,
                       icon: DoorOpen,
+                  },
+                  {
+                      title: 'Residents',
+                      href: ResidentsController.index(currentOrganization.uuid).url,
+                      icon: Users,
                   },
               ]
             : []),

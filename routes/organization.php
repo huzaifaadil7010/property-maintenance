@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PropertiesController;
+use App\Http\Controllers\ResidentsController;
 use App\Http\Controllers\UnitsController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +17,6 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::get('properties', [PropertiesController::class, 'index'])->name('properties');
 
         Route::get('units', [UnitsController::class, 'index'])->name('units');
+
+        Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
     });
