@@ -1,5 +1,11 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Building2, FolderGit2, LayoutGrid } from 'lucide-react';
+import {
+    BookOpen,
+    Building2,
+    DoorOpen,
+    FolderGit2,
+    LayoutGrid,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,8 +20,9 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
-import { dashboard } from '@/wayfinder/routes';
 import PropertiesController from '@/wayfinder/App/Http/Controllers/PropertiesController';
+import UnitsController from '@/wayfinder/App/Http/Controllers/UnitsController';
+import { dashboard } from '@/wayfinder/routes';
 
 const footerNavItems: NavItem[] = [
     {
@@ -45,6 +52,11 @@ export function AppSidebar() {
                       title: 'Properties',
                       href: PropertiesController.index(currentOrganization.uuid).url,
                       icon: Building2,
+                  },
+                  {
+                      title: 'Units',
+                      href: UnitsController.index(currentOrganization.uuid).url,
+                      icon: DoorOpen,
                   },
               ]
             : []),
