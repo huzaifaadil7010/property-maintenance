@@ -5,19 +5,25 @@ import {
     CircleCheckBig,
     Clock3,
     DoorOpen,
+    KeyRound,
+    UsersRound,
 } from 'lucide-react';
 import { StatCard } from '@/components/organization/dashboard/stat-card';
 import { StatCardSkeleton } from '@/components/organization/dashboard/stat-card-skeleton';
 import { dashboard } from '@/wayfinder/routes';
 
 type DashboardProps = {
+    totalOccupiedUnits: number;
     totalProperties: number;
     totalUnits: number;
+    totalVacantUnits: number;
 };
 
 export default function Dashboard({
+    totalOccupiedUnits,
     totalProperties,
     totalUnits,
+    totalVacantUnits,
 }: DashboardProps) {
     return (
         <>
@@ -33,7 +39,7 @@ export default function Dashboard({
                     </p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     <Deferred
                         data="totalProperties"
                         fallback={<StatCardSkeleton />}
@@ -52,6 +58,30 @@ export default function Dashboard({
                             value={totalUnits}
                             description="Units across all properties"
                             icon={DoorOpen}
+                        />
+                    </Deferred>
+
+                    <Deferred
+                        data="totalVacantUnits"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Total vacant units"
+                            value={totalVacantUnits}
+                            description="Units currently available"
+                            icon={KeyRound}
+                        />
+                    </Deferred>
+
+                    <Deferred
+                        data="totalOccupiedUnits"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Total occupied units"
+                            value={totalOccupiedUnits}
+                            description="Units currently occupied"
+                            icon={UsersRound}
                         />
                     </Deferred>
 
