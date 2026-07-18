@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\Dashboard\GetTotalOccupiedUnits;
 use App\Actions\Organization\Dashboard\GetTotalProperties;
 use App\Actions\Organization\Dashboard\GetTotalUnits;
 use App\Actions\Organization\Dashboard\GetTotalVacantUnits;
+use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Inertia\Response;
 

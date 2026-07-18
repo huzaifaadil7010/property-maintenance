@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PropertiesController;
-use App\Http\Controllers\ResidentsController;
-use App\Http\Controllers\UnitsController;
+use App\Http\Controllers\Organization\DashboardController;
+use App\Http\Controllers\Organization\PropertiesController;
+use App\Http\Controllers\Organization\ResidentsController;
+use App\Http\Controllers\Organization\UnitsController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');

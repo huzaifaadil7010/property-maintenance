@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Organization;
 
 use App\Actions\GetUnits;
 use App\Data\UnitFilterData;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\UnitResource;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

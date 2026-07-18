@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Organization;
 
 use App\Actions\GetProperties;
 use App\Data\PropertyFilterData;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\PropertyResource;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

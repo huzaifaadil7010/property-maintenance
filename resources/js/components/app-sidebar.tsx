@@ -13,9 +13,9 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
-import PropertiesController from '@/wayfinder/App/Http/Controllers/PropertiesController';
-import ResidentsController from '@/wayfinder/App/Http/Controllers/ResidentsController';
-import UnitsController from '@/wayfinder/App/Http/Controllers/UnitsController';
+import PropertiesController from '@/wayfinder/App/Http/Controllers/Organization/PropertiesController';
+import ResidentsController from '@/wayfinder/App/Http/Controllers/Organization/ResidentsController';
+import UnitsController from '@/wayfinder/App/Http/Controllers/Organization/UnitsController';
 import { dashboard } from '@/wayfinder/routes';
 
 export function AppSidebar() {

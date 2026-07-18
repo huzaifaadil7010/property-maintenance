@@ -65,7 +65,7 @@ export default function Index(props: GeneratedPageProps) {
             header: 'Created At',
             cell: ({ row }) =>
                 row.original.created_at
-                    ? format(row.original.created_at, 'yyyy-MM-dd')
+                    ? format(String(row.original.created_at), 'yyyy-MM-dd')
                     : '—',
         },
     ];
