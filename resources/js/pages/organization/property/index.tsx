@@ -91,7 +91,7 @@ export default function Index(props: GeneratedPageProps) {
                             </p>
                         </div>
 
-                        <CreatePropertyDialogue />
+                        <CreatePropertyDialogue only={['properties']} />
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">

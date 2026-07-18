@@ -8,6 +8,7 @@ import {
     KeyRound,
     UsersRound,
 } from 'lucide-react';
+import CreatePropertyDialogue from '@/components/organization/common/create-property-dialogue';
 import { StatCard } from '@/components/organization/dashboard/stat-card';
 import { StatCardSkeleton } from '@/components/organization/dashboard/stat-card-skeleton';
 import { dashboard } from '@/wayfinder/routes';
@@ -29,14 +30,18 @@ export default function Dashboard({
         <>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                <div className="grid gap-1">
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Organization dashboard
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        An overview of your properties, units, and maintenance
-                        activity.
-                    </p>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="grid gap-1">
+                        <h1 className="text-2xl font-semibold tracking-tight">
+                            Organization dashboard
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            An overview of your properties, units, and
+                            maintenance activity.
+                        </p>
+                    </div>
+
+                    <CreatePropertyDialogue only={['totalProperties']} />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

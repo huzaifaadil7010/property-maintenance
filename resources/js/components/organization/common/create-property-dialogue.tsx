@@ -37,7 +37,13 @@ type CreatePropertyFormData = {
     city: string;
 };
 
-export default function CreatePropertyDialogue() {
+type CreatePropertyDialogueProps = {
+    only: Array<'properties' | 'totalProperties'>;
+};
+
+export default function CreatePropertyDialogue({
+    only,
+}: CreatePropertyDialogueProps) {
     const [open, setOpen] = useState(false);
     const { currentOrganization } = usePage().props;
     const form = useForm<CreatePropertyFormData>({
@@ -55,6 +61,7 @@ export default function CreatePropertyDialogue() {
         }
 
         form.submit(store(currentOrganization.uuid), {
+            only,
             preserveScroll: true,
             onSuccess: () => {
                 form.resetAndClearErrors();
