@@ -18,7 +18,8 @@ class PropertyResource extends JsonResource
             ],
             'address' => $this->address,
             'city' => $this->city,
-            'created_at' => $this->created_at
+            'created_at' => $this->created_at,
+            'units_count' => $this->whenCounted('units'),
         ];
     }
 }

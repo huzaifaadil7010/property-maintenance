@@ -60,6 +60,10 @@ export default function Index(props: GeneratedPageProps) {
             header: 'Address',
         },
         {
+            accessorKey: 'units_count',
+            header: 'Total Units',
+        },
+        {
             accessorKey: 'created_at',
             header: 'Created At',
             cell: ({ row }) =>
