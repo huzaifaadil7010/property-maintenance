@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
 import { useEffect, useRef, useState } from 'react';
+import CreatePropertyDialogue from '@/components/organization/common/create-property-dialogue';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import type { Inertia } from '@/wayfinder/types';
@@ -79,13 +80,18 @@ export default function Index(props: GeneratedPageProps) {
 
             <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
                 <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Properties
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            View and manage the properties in your organization.
-                        </p>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl font-semibold tracking-tight">
+                                Properties
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                View and manage the properties in your
+                                organization.
+                            </p>
+                        </div>
+
+                        <CreatePropertyDialogue />
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">
