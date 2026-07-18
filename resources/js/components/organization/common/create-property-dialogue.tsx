@@ -1,7 +1,9 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -22,7 +24,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import PropertyType from '@/wayfinder/App/Enums/PropertyType';
+import { store } from '@/wayfinder/App/Http/Controllers/Organization/PropertiesController';
 
 type PropertyTypeValue = (typeof PropertyType)[keyof typeof PropertyType];
 
@@ -34,6 +38,8 @@ type CreatePropertyFormData = {
 };
 
 export default function CreatePropertyDialogue() {
+    const [open, setOpen] = useState(false);
+    const { currentOrganization } = usePage().props;
     const form = useForm<CreatePropertyFormData>({
         name: '',
         type: PropertyType.APARTMENT,
@@ -43,10 +49,30 @@ export default function CreatePropertyDialogue() {
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
+        if (!currentOrganization) {
+            return;
+        }
+
+        form.submit(store(currentOrganization.uuid), {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.resetAndClearErrors();
+                setOpen(false);
+            },
+        });
+    }
+
+    function handleOpenChange(nextOpen: boolean) {
+        setOpen(nextOpen);
+
+        if (!nextOpen) {
+            form.resetAndClearErrors();
+        }
     }
 
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button className="w-full sm:w-auto">
                     <Plus />
@@ -58,8 +84,7 @@ export default function CreatePropertyDialogue() {
                 <DialogHeader>
                     <DialogTitle>Create property</DialogTitle>
                     <DialogDescription>
-                        Add the property details below. Saving will be connected
-                        in a later step.
+                        Add a property to your current organization.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -74,7 +99,17 @@ export default function CreatePropertyDialogue() {
                             }
                             placeholder="Green View Apartments"
                             autoComplete="organization"
+                            aria-invalid={Boolean(form.errors.name)}
+                            aria-describedby={
+                                form.errors.name
+                                    ? 'property-name-error'
+                                    : undefined
+                            }
                             required
+                        />
+                        <InputError
+                            id="property-name-error"
+                            message={form.errors.name}
                         />
                     </div>
 
@@ -89,6 +124,12 @@ export default function CreatePropertyDialogue() {
                             <SelectTrigger
                                 id="property-type"
                                 className="w-full"
+                                aria-invalid={Boolean(form.errors.type)}
+                                aria-describedby={
+                                    form.errors.type
+                                        ? 'property-type-error'
+                                        : undefined
+                                }
                             >
                                 <SelectValue placeholder="Select a type" />
                             </SelectTrigger>
@@ -98,6 +139,10 @@ export default function CreatePropertyDialogue() {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                        <InputError
+                            id="property-type-error"
+                            message={form.errors.type}
+                        />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -111,7 +156,17 @@ export default function CreatePropertyDialogue() {
                                 }
                                 placeholder="12 Garden Road"
                                 autoComplete="street-address"
+                                aria-invalid={Boolean(form.errors.address)}
+                                aria-describedby={
+                                    form.errors.address
+                                        ? 'property-address-error'
+                                        : undefined
+                                }
                                 required
+                            />
+                            <InputError
+                                id="property-address-error"
+                                message={form.errors.address}
                             />
                         </div>
 
@@ -125,7 +180,17 @@ export default function CreatePropertyDialogue() {
                                 }
                                 placeholder="Lahore"
                                 autoComplete="address-level2"
+                                aria-invalid={Boolean(form.errors.city)}
+                                aria-describedby={
+                                    form.errors.city
+                                        ? 'property-city-error'
+                                        : undefined
+                                }
                                 required
+                            />
+                            <InputError
+                                id="property-city-error"
+                                message={form.errors.city}
                             />
                         </div>
                     </div>
@@ -135,12 +200,22 @@ export default function CreatePropertyDialogue() {
                             <Button
                                 type="button"
                                 variant="secondary"
-                                onClick={() => form.reset()}
+                                disabled={form.processing}
                             >
                                 Cancel
                             </Button>
                         </DialogClose>
-                        <Button type="submit">Create property</Button>
+                        <Button
+                            type="submit"
+                            disabled={
+                                form.processing || currentOrganization === null
+                            }
+                        >
+                            {form.processing && <Spinner />}
+                            {form.processing
+                                ? 'Creating property'
+                                : 'Create property'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

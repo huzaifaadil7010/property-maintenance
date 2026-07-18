@@ -15,6 +15,7 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::get('properties', [PropertiesController::class, 'index'])->name('properties');
+        Route::post('properties', [PropertiesController::class, 'store'])->name('properties.store');
 
         Route::get('units', [UnitsController::class, 'index'])->name('units');
 
