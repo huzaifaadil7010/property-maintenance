@@ -18,6 +18,7 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::get('properties', [PropertiesController::class, 'index'])->name('properties');
         Route::post('properties', [PropertiesController::class, 'store'])->name('properties.store');
         Route::patch('properties/{property}', [PropertiesController::class, 'update'])->name('properties.update');
+        Route::delete('properties/{property}', [PropertiesController::class, 'destroy'])->name('properties.destroy');
 
         Route::get('units', [UnitsController::class, 'index'])->name('units');
 

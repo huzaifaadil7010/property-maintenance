@@ -48,4 +48,11 @@ class PropertiesController extends Controller
 
         return Inertia::flash('success', 'Property updated successfully.')->back();
     }
+
+    public function destroy(Organization $organization, Property $property): RedirectResponse
+    {
+        $property->delete();
+
+        return Inertia::flash('success', 'Property deleted successfully.')->back();
+    }
 }

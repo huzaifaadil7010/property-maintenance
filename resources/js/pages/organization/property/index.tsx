@@ -1,9 +1,10 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import ConfirmationDialogue from '@/components/organization/common/confirmation-dialogue';
 import CreatePropertyDialogue from '@/components/organization/common/create-property-dialogue';
 import EditPropertyDialogue from '@/components/organization/common/edit-property-dialogue';
 import type { EditableProperty } from '@/components/organization/common/edit-property-dialogue';
@@ -15,6 +16,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { destroy } from '@/wayfinder/App/Http/Controllers/Organization/PropertiesController';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.Property.Index;
@@ -25,7 +27,7 @@ type PropertyTableRow = EditableProperty & {
 };
 
 export default function Index(props: GeneratedPageProps) {
-    const { url } = usePage();
+    const { url, props: pageProps } = usePage();
     const properties = props.properties as unknown as {
         data: PropertyTableRow[];
         meta: Record<
@@ -38,6 +40,9 @@ export default function Index(props: GeneratedPageProps) {
     const [search, setSearch] = useState(queryParameters.get('search') ?? '');
     const [propertyBeingEdited, setPropertyBeingEdited] =
         useState<PropertyTableRow | null>(null);
+    const [propertyBeingDeleted, setPropertyBeingDeleted] =
+        useState<PropertyTableRow | null>(null);
+    const deleteForm = useForm({});
     const isInitialRender = useRef(true);
 
     useEffect(() => {
@@ -61,6 +66,28 @@ export default function Index(props: GeneratedPageProps) {
 
     function onEdit(property: PropertyTableRow) {
         setPropertyBeingEdited(property);
+    }
+
+    function onDelete(property: PropertyTableRow) {
+        setPropertyBeingDeleted(property);
+    }
+
+    function deleteProperty() {
+        if (!pageProps.currentOrganization || !propertyBeingDeleted) {
+            return;
+        }
+
+        deleteForm.submit(
+            destroy({
+                organization: pageProps.currentOrganization.uuid,
+                property: propertyBeingDeleted.id,
+            }),
+            {
+                only: ['properties'],
+                preserveScroll: true,
+                onSuccess: () => setPropertyBeingDeleted(null),
+            },
+        );
     }
 
     const columns: ColumnDef<PropertyTableRow>[] = [
@@ -111,7 +138,7 @@ export default function Index(props: GeneratedPageProps) {
             id: 'actions',
             header: () => <span className="sr-only">Actions</span>,
             cell: ({ row }) => (
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-1">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -127,6 +154,23 @@ export default function Index(props: GeneratedPageProps) {
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>Edit property</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-destructive hover:text-destructive"
+                                aria-label="Delete property"
+                                onClick={() => onDelete(row.original)}
+                            >
+                                <Trash2 />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Delete property</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -200,6 +244,33 @@ export default function Index(props: GeneratedPageProps) {
                             setPropertyBeingEdited(null);
                         }
                     }}
+                />
+            )}
+
+            {propertyBeingDeleted && (
+                <ConfirmationDialogue
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setPropertyBeingDeleted(null);
+                        }
+                    }}
+                    onSubmit={deleteProperty}
+                    title="Delete property"
+                    description={
+                        <>
+                            Are you sure you want to delete{' '}
+                            <span className="font-medium text-foreground">
+                                {propertyBeingDeleted.name}
+                            </span>
+                            ? This action cannot be undone.
+                        </>
+                    }
+                    submitLabel="Delete property"
+                    submittingLabel="Deleting property"
+                    submitVariant="destructive"
+                    processing={deleteForm.processing}
+                    disabled={pageProps.currentOrganization === null}
                 />
             )}
         </>
