@@ -47,6 +47,11 @@ export default function Index(props: GeneratedPageProps) {
         {
             accessorKey: 'name',
             header: 'Name',
+            cell: ({ row }) => (
+                <div className="max-w-xs wrap-anywhere whitespace-normal">
+                    {row.original.name}
+                </div>
+            ),
         },
         {
             accessorKey: 'type.label',
@@ -55,10 +60,20 @@ export default function Index(props: GeneratedPageProps) {
         {
             accessorKey: 'city',
             header: 'City',
+            cell: ({ row }) => (
+                <div className="max-w-xs wrap-anywhere whitespace-normal">
+                    {row.original.city}
+                </div>
+            ),
         },
         {
             accessorKey: 'address',
             header: 'Address',
+            cell: ({ row }) => (
+                <div className="max-w-xs wrap-anywhere whitespace-normal">
+                    {row.original.address}
+                </div>
+            ),
         },
         {
             accessorKey: 'units_count',
