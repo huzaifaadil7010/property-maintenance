@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Organization;
 
 use App\Actions\CreateProperty;
 use App\Actions\GetProperties;
+use App\Actions\UpdateProperty;
 use App\Data\PropertyData;
 use App\Data\PropertyFilterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PropertiesRequest;
 use App\Http\Resources\PropertyResource;
+use App\Models\Organization;
+use App\Models\Property;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,5 +35,17 @@ class PropertiesController extends Controller
         CreateProperty::handle($data);
 
         return Inertia::flash('success', 'Property created successfully.')->back();
+    }
+
+    public function update(
+        PropertiesRequest $request,
+        Organization $organization,
+        Property $property,
+    ): RedirectResponse {
+        $data = PropertyData::from($request->validated());
+
+        UpdateProperty::handle($property, $data);
+
+        return Inertia::flash('success', 'Property updated successfully.')->back();
     }
 }

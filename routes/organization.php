@@ -11,11 +11,13 @@ Route::inertia('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
     ->prefix('organization/{organization}')
     ->as('organization.')
+    ->scopeBindings()
     ->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::get('properties', [PropertiesController::class, 'index'])->name('properties');
         Route::post('properties', [PropertiesController::class, 'store'])->name('properties.store');
+        Route::patch('properties/{property}', [PropertiesController::class, 'update'])->name('properties.update');
 
         Route::get('units', [UnitsController::class, 'index'])->name('units');
 
