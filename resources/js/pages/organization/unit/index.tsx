@@ -1,9 +1,10 @@
-import { Deferred, Head, router, usePage } from '@inertiajs/react';
+import { Deferred, Head, router, useForm, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import ConfirmationDialogue from '@/components/organization/common/confirmation-dialogue';
 import CreateUnitDialogue from '@/components/organization/common/create-unit-dialogue';
 import type {
     PropertyOption,
@@ -20,6 +21,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { destroy } from '@/wayfinder/App/Http/Controllers/Organization/UnitsController';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.Unit.Index;
@@ -29,7 +31,7 @@ type UnitTableRow = EditableUnit & {
 };
 
 export default function Index(props: GeneratedPageProps) {
-    const { url } = usePage();
+    const { url, props: pageProps } = usePage();
     const units = props.units as unknown as {
         data: UnitTableRow[];
         meta: Record<
@@ -45,6 +47,9 @@ export default function Index(props: GeneratedPageProps) {
     const [unitBeingEdited, setUnitBeingEdited] = useState<UnitTableRow | null>(
         null,
     );
+    const [unitBeingDeleted, setUnitBeingDeleted] =
+        useState<UnitTableRow | null>(null);
+    const deleteForm = useForm({});
     const isInitialRender = useRef(true);
 
     useEffect(() => {
@@ -68,6 +73,28 @@ export default function Index(props: GeneratedPageProps) {
 
     function onEdit(unit: UnitTableRow) {
         setUnitBeingEdited(unit);
+    }
+
+    function onDelete(unit: UnitTableRow) {
+        setUnitBeingDeleted(unit);
+    }
+
+    function deleteUnit() {
+        if (!pageProps.currentOrganization || !unitBeingDeleted) {
+            return;
+        }
+
+        deleteForm.submit(
+            destroy({
+                organization: pageProps.currentOrganization.uuid,
+                unit: unitBeingDeleted.id,
+            }),
+            {
+                only: ['units'],
+                preserveScroll: true,
+                onSuccess: () => setUnitBeingDeleted(null),
+            },
+        );
     }
 
     const columns: ColumnDef<UnitTableRow>[] = [
@@ -100,7 +127,7 @@ export default function Index(props: GeneratedPageProps) {
             id: 'actions',
             header: () => <span className="sr-only">Actions</span>,
             cell: ({ row }) => (
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-1">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -116,6 +143,23 @@ export default function Index(props: GeneratedPageProps) {
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>Edit unit</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-destructive hover:text-destructive"
+                                aria-label="Delete unit"
+                                onClick={() => onDelete(row.original)}
+                            >
+                                <Trash2 />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Delete unit</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -202,6 +246,33 @@ export default function Index(props: GeneratedPageProps) {
                             setUnitBeingEdited(null);
                         }
                     }}
+                />
+            )}
+
+            {unitBeingDeleted && (
+                <ConfirmationDialogue
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setUnitBeingDeleted(null);
+                        }
+                    }}
+                    onSubmit={deleteUnit}
+                    title="Delete unit"
+                    description={
+                        <>
+                            Are you sure you want to delete{' '}
+                            <span className="font-medium text-foreground">
+                                {unitBeingDeleted.name}
+                            </span>
+                            ? This action cannot be undone.
+                        </>
+                    }
+                    submitLabel="Delete unit"
+                    submittingLabel="Deleting unit"
+                    submitVariant="destructive"
+                    processing={deleteForm.processing}
+                    disabled={pageProps.currentOrganization === null}
                 />
             )}
         </>

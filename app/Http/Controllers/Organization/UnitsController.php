@@ -57,4 +57,11 @@ class UnitsController extends Controller
 
         return Inertia::flash('success', 'Unit updated successfully.')->back();
     }
+
+    public function destroy(Organization $organization, Unit $unit): RedirectResponse
+    {
+        $unit->delete();
+
+        return Inertia::flash('success', 'Unit deleted successfully.')->back();
+    }
 }

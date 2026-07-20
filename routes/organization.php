@@ -23,6 +23,7 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::get('units', [UnitsController::class, 'index'])->name('units');
         Route::post('units', [UnitsController::class, 'store'])->name('units.store');
         Route::patch('units/{unit}', [UnitsController::class, 'update'])->name('units.update');
+        Route::delete('units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
 
         Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
     });
