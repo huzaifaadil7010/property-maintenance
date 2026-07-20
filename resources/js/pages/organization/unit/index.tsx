@@ -1,10 +1,17 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Deferred, Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
 import { useEffect, useRef, useState } from 'react';
+import CreateUnitDialogue from '@/components/organization/common/create-unit-dialogue';
+import type {
+    PropertyOption,
+    UnitStatusOption,
+} from '@/components/organization/common/create-unit-dialogue';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.Unit.Index;
@@ -18,6 +25,8 @@ export default function Index(props: GeneratedPageProps) {
             number
         >;
     };
+    const properties = props.properties as PropertyOption[] | undefined;
+    const unitStatuses = props.unitStatuses as unknown as UnitStatusOption[];
     const queryParameters = new URLSearchParams(url.split('?')[1] ?? '');
     const requestedPerPage = Number(queryParameters.get('perPage'));
     const [search, setSearch] = useState(queryParameters.get('search') ?? '');
@@ -76,13 +85,30 @@ export default function Index(props: GeneratedPageProps) {
 
             <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
                 <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Units
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            View and manage the units in your organization.
-                        </p>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl font-semibold tracking-tight">
+                                Units
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                View and manage the units in your organization.
+                            </p>
+                        </div>
+
+                        <Deferred
+                            data="properties"
+                            fallback={
+                                <Button className="w-full sm:w-auto" disabled>
+                                    <Spinner />
+                                    Create unit
+                                </Button>
+                            }
+                        >
+                            <CreateUnitDialogue
+                                properties={properties ?? []}
+                                unitStatuses={unitStatuses}
+                            />
+                        </Deferred>
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">

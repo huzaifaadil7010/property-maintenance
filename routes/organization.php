@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::delete('properties/{property}', [PropertiesController::class, 'destroy'])->name('properties.destroy');
 
         Route::get('units', [UnitsController::class, 'index'])->name('units');
+        Route::post('units', [UnitsController::class, 'store'])->name('units.store');
 
         Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
     });
