@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Concerns\EnumHelper;
+
 enum MaintenanceCategory: string
 {
+    use EnumHelper;
+
     case PLUMBING = 'plumbing';
     case ELECTRICAL = 'electrical';
     case AIR_CONDITIONING = 'air-conditioning';

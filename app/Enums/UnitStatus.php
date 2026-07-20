@@ -2,8 +2,12 @@
 
 namespace App\Enums;
 
+use App\Concerns\EnumHelper;
+
 enum UnitStatus: string
 {
+    use EnumHelper;
+
     case VACANT = 'vacant';
     case OCCUPIED = 'occupied';
     case UNDER_MAINTENANCE = 'under-maintenance';
