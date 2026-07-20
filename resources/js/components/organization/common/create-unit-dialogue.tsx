@@ -47,11 +47,15 @@ type CreateUnitFormData = {
 type CreateUnitDialogueProps = {
     properties: PropertyOption[];
     unitStatuses: UnitStatusOption[];
+    only: Array<
+        'units' | 'totalUnits' | 'totalVacantUnits' | 'totalOccupiedUnits'
+    >;
 };
 
 export default function CreateUnitDialogue({
     properties,
     unitStatuses,
+    only,
 }: CreateUnitDialogueProps) {
     const [open, setOpen] = useState(false);
     const { currentOrganization } = usePage().props;
@@ -70,7 +74,7 @@ export default function CreateUnitDialogue({
         }
 
         form.submit(store(currentOrganization.uuid), {
-            only: ['units'],
+            only,
             preserveScroll: true,
             onSuccess: () => {
                 form.resetAndClearErrors();

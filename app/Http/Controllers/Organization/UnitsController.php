@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Organization;
 
 use App\Actions\CreateUnit;
 use App\Actions\GetUnits;
+use App\Actions\Organization\Common\GetPropertiesForDropDown;
 use App\Actions\UpdateUnit;
 use App\Data\UnitData;
 use App\Data\UnitFilterData;
@@ -12,8 +13,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UnitsRequest;
 use App\Http\Resources\UnitResource;
 use App\Models\Organization;
-use App\Models\Property;
 use App\Models\Unit;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,10 +30,7 @@ class UnitsController extends Controller
             'units' => UnitResource::collection($units),
             'unitStatuses' => UnitStatus::getLabeledValues(),
             'properties' => Inertia::defer(
-                fn () => Property::query()
-                    ->select(['id', 'name'])
-                    ->orderBy('name')
-                    ->get(),
+                fn (): Collection => GetPropertiesForDropDown::handle(),
             )->once(),
         ]);
     }

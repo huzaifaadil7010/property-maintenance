@@ -9,22 +9,33 @@ import {
     UsersRound,
 } from 'lucide-react';
 import CreatePropertyDialogue from '@/components/organization/common/create-property-dialogue';
+import CreateUnitDialogue from '@/components/organization/common/create-unit-dialogue';
+import type {
+    PropertyOption,
+    UnitStatusOption,
+} from '@/components/organization/common/create-unit-dialogue';
 import { StatCard } from '@/components/organization/dashboard/stat-card';
 import { StatCardSkeleton } from '@/components/organization/dashboard/stat-card-skeleton';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/wayfinder/routes';
 
 type DashboardProps = {
+    properties?: PropertyOption[];
     totalOccupiedUnits: number;
     totalProperties: number;
     totalUnits: number;
     totalVacantUnits: number;
+    unitStatuses: UnitStatusOption[];
 };
 
 export default function Dashboard({
+    properties,
     totalOccupiedUnits,
     totalProperties,
     totalUnits,
     totalVacantUnits,
+    unitStatuses,
 }: DashboardProps) {
     return (
         <>
@@ -41,7 +52,30 @@ export default function Dashboard({
                         </p>
                     </div>
 
-                    <CreatePropertyDialogue only={['totalProperties']} />
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        <CreatePropertyDialogue
+                            only={['totalProperties', 'properties']}
+                        />
+                        <Deferred
+                            data="properties"
+                            fallback={
+                                <Button className="w-full sm:w-auto" disabled>
+                                    <Spinner />
+                                    Create unit
+                                </Button>
+                            }
+                        >
+                            <CreateUnitDialogue
+                                properties={properties ?? []}
+                                unitStatuses={unitStatuses}
+                                only={[
+                                    'totalUnits',
+                                    'totalVacantUnits',
+                                    'totalOccupiedUnits',
+                                ]}
+                            />
+                        </Deferred>
+                    </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

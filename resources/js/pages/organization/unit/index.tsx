@@ -195,6 +195,7 @@ export default function Index(props: GeneratedPageProps) {
                             <CreateUnitDialogue
                                 properties={properties ?? []}
                                 unitStatuses={unitStatuses}
+                                only={['units']}
                             />
                         </Deferred>
                     </div>
