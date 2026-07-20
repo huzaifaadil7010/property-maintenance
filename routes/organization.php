@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
 
         Route::get('units', [UnitsController::class, 'index'])->name('units');
         Route::post('units', [UnitsController::class, 'store'])->name('units.store');
+        Route::patch('units/{unit}', [UnitsController::class, 'update'])->name('units.update');
 
         Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
     });

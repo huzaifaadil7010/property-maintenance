@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\Unit;
+use Illuminate\Container\Attributes\RouteParameter as RouteParam;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,8 +16,9 @@ class UnitsRequest extends FormRequest
         return true;
     }
 
-    public function rules(): array
-    {
+    public function rules(
+        #[RouteParam('unit')] ?Unit $unit = null,
+    ): array {
         return [
             'property_id' => [
                 'required',
@@ -30,10 +32,12 @@ class UnitsRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique(Unit::class, 'name')->where(
-                    'property_id',
-                    $this->integer('property_id'),
-                ),
+                Rule::unique(Unit::class, 'name')
+                    ->ignore($unit)
+                    ->where(
+                        'property_id',
+                        $this->integer('property_id'),
+                    ),
             ],
             'floor' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::enum(UnitStatus::class)],

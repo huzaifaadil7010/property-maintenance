@@ -2,24 +2,36 @@ import { Deferred, Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
+import { Pencil } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import CreateUnitDialogue from '@/components/organization/common/create-unit-dialogue';
 import type {
     PropertyOption,
     UnitStatusOption,
 } from '@/components/organization/common/create-unit-dialogue';
+import EditUnitDialogue from '@/components/organization/common/edit-unit-dialogue';
+import type { EditableUnit } from '@/components/organization/common/edit-unit-dialogue';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.Unit.Index;
 
+type UnitTableRow = EditableUnit & {
+    created_at: unknown;
+};
+
 export default function Index(props: GeneratedPageProps) {
     const { url } = usePage();
     const units = props.units as unknown as {
-        data: GeneratedPageProps['units'];
+        data: UnitTableRow[];
         meta: Record<
             'current_page' | 'last_page' | 'per_page' | 'total',
             number
@@ -30,6 +42,9 @@ export default function Index(props: GeneratedPageProps) {
     const queryParameters = new URLSearchParams(url.split('?')[1] ?? '');
     const requestedPerPage = Number(queryParameters.get('perPage'));
     const [search, setSearch] = useState(queryParameters.get('search') ?? '');
+    const [unitBeingEdited, setUnitBeingEdited] = useState<UnitTableRow | null>(
+        null,
+    );
     const isInitialRender = useRef(true);
 
     useEffect(() => {
@@ -51,7 +66,11 @@ export default function Index(props: GeneratedPageProps) {
         return () => reloadUnits.cancel();
     }, [search]);
 
-    const columns: ColumnDef<GeneratedPageProps['units'][number]>[] = [
+    function onEdit(unit: UnitTableRow) {
+        setUnitBeingEdited(unit);
+    }
+
+    const columns: ColumnDef<UnitTableRow>[] = [
         {
             accessorKey: 'name',
             header: 'Unit',
@@ -76,6 +95,31 @@ export default function Index(props: GeneratedPageProps) {
                 row.original.created_at
                     ? format(String(row.original.created_at), 'yyyy-MM-dd')
                     : '—',
+        },
+        {
+            id: 'actions',
+            header: () => <span className="sr-only">Actions</span>,
+            cell: ({ row }) => (
+                <div className="flex justify-end">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                aria-label="Edit unit"
+                                onClick={() => onEdit(row.original)}
+                            >
+                                <Pencil />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Edit unit</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            ),
         },
     ];
 
@@ -145,6 +189,21 @@ export default function Index(props: GeneratedPageProps) {
                     </div>
                 </div>
             </div>
+
+            {unitBeingEdited && properties && (
+                <EditUnitDialogue
+                    key={unitBeingEdited.id}
+                    unit={unitBeingEdited}
+                    properties={properties}
+                    unitStatuses={unitStatuses}
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setUnitBeingEdited(null);
+                        }
+                    }}
+                />
+            )}
         </>
     );
 }
