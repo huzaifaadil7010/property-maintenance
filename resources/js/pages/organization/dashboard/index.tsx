@@ -6,7 +6,9 @@ import {
     Clock3,
     DoorOpen,
     KeyRound,
+    UserRoundCheck,
     UsersRound,
+    Wrench,
 } from 'lucide-react';
 import CreatePropertyDialogue from '@/components/organization/common/create-property-dialogue';
 import CreateUnitDialogue from '@/components/organization/common/create-unit-dialogue';
@@ -22,6 +24,8 @@ import { dashboard } from '@/wayfinder/routes';
 
 type DashboardProps = {
     properties?: PropertyOption[];
+    totalActiveResidents: number;
+    totalAvailableTechnicians: number;
     totalOccupiedUnits: number;
     totalProperties: number;
     totalUnits: number;
@@ -31,6 +35,8 @@ type DashboardProps = {
 
 export default function Dashboard({
     properties,
+    totalActiveResidents,
+    totalAvailableTechnicians,
     totalOccupiedUnits,
     totalProperties,
     totalUnits,
@@ -78,7 +84,7 @@ export default function Dashboard({
                     </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[90.0625rem]:grid-cols-5">
                     <Deferred
                         data="totalProperties"
                         fallback={<StatCardSkeleton />}
@@ -121,6 +127,30 @@ export default function Dashboard({
                             value={totalOccupiedUnits}
                             description="Units currently occupied"
                             icon={UsersRound}
+                        />
+                    </Deferred>
+
+                    <Deferred
+                        data="totalActiveResidents"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Total active residents"
+                            value={totalActiveResidents}
+                            description="Residents with an active occupancy"
+                            icon={UserRoundCheck}
+                        />
+                    </Deferred>
+
+                    <Deferred
+                        data="totalAvailableTechnicians"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Available technicians"
+                            value={totalAvailableTechnicians}
+                            description="Technicians currently available"
+                            icon={Wrench}
                         />
                     </Deferred>
 

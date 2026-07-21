@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\Common\GetPropertiesForDropDown;
+use App\Actions\Organization\Dashboard\GetTotalActiveResidents;
+use App\Actions\Organization\Dashboard\GetTotalAvailableTechnicians;
 use App\Actions\Organization\Dashboard\GetTotalOccupiedUnits;
 use App\Actions\Organization\Dashboard\GetTotalProperties;
 use App\Actions\Organization\Dashboard\GetTotalUnits;
@@ -22,6 +24,14 @@ class DashboardController extends Controller
                 fn (): Collection => GetPropertiesForDropDown::handle(),
             )->once(),
             'unitStatuses' => UnitStatus::getLabeledValues(),
+            'totalActiveResidents' => Inertia::defer(
+                fn (): int => GetTotalActiveResidents::handle(),
+                'totalActiveResidents',
+            ),
+            'totalAvailableTechnicians' => Inertia::defer(
+                fn (): int => GetTotalAvailableTechnicians::handle(),
+                'totalAvailableTechnicians',
+            ),
             'totalOccupiedUnits' => Inertia::defer(
                 fn (): int => GetTotalOccupiedUnits::handle(),
                 'totalOccupiedUnits',
