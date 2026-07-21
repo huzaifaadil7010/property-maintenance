@@ -4,7 +4,6 @@ namespace App\Actions\Organization;
 
 use App\Data\ResidentFilterData;
 use App\Enums\OccupancyStatus;
-use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,7 +15,7 @@ class GetResidents
     {
         return User::query()
             ->select(['id', 'name', 'email', 'phone', 'created_at'])
-            ->role(UserRole::RESIDENT)
+            ->resident()
             ->with([
                 'occupancies' => fn (HasMany $query): HasMany => $query
                     ->select(['id', 'resident_id', 'unit_id', 'starts_at'])

@@ -3,7 +3,6 @@
 namespace App\Actions\Organization;
 
 use App\Data\TechnicianFilterData;
-use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,7 +14,7 @@ class GetTechnicians
     {
         return User::query()
             ->select(['id', 'name', 'email', 'phone'])
-            ->role(UserRole::TECHNICIAN)
+            ->technician()
             ->with([
                 'technicianProfiles' => fn (HasMany $query): HasMany => $query
                     ->select(['id', 'user_id', 'specialty', 'phone', 'is_available']),

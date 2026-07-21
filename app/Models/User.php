@@ -3,9 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -39,6 +42,15 @@ class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'two_factor_confirmed_at' => 'datetime',
+        ];
+    }
 
     public function currentOrganization(): BelongsTo
     {
@@ -80,17 +92,27 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasMany(MaintenanceRequestStatusLog::class, 'changed_by');
     }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    #[Scope]
+    protected function owner(Builder $builder): Builder
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'two_factor_confirmed_at' => 'datetime',
-        ];
+        return $builder->role(UserRole::OWNER);
+    }
+
+    #[Scope]
+    protected function manager(Builder $builder): Builder
+    {
+        return $builder->role(UserRole::MANAGER);
+    }
+
+    #[Scope]
+    protected function resident(Builder $builder): Builder
+    {
+        return $builder->role(UserRole::RESIDENT);
+    }
+
+    #[Scope]
+    protected function technician(Builder $builder): Builder
+    {
+        return $builder->role(UserRole::TECHNICIAN);
     }
 }
