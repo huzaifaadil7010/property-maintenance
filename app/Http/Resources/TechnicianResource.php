@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Str;
 
 class TechnicianResource extends JsonResource
 {
@@ -23,7 +22,10 @@ class TechnicianResource extends JsonResource
             'email' => $this->email,
             'phone' => $technicianProfile?->phone ?? $this->phone,
             'specialty' => $technicianProfile?->specialty
-                ? Str::headline($technicianProfile->specialty->value)
+                ? [
+                    'label' => $technicianProfile->specialty->getLabel(),
+                    'value' => $technicianProfile->specialty->value,
+                ]
                 : null,
             'is_available' => $technicianProfile?->is_available ?? false,
         ];

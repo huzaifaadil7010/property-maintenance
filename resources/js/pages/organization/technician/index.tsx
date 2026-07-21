@@ -56,9 +56,9 @@ export default function Index(props: GeneratedPageProps) {
             cell: ({ row }) => row.original.phone ?? '—',
         },
         {
-            accessorKey: 'specialty',
+            accessorKey: 'specialty.label',
             header: 'Specialty',
-            cell: ({ row }) => row.original.specialty ?? '—',
+            cell: ({ row }) => row.original.specialty?.label ?? '—',
         },
         {
             accessorKey: 'is_available',
