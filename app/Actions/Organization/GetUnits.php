@@ -14,20 +14,22 @@ class GetUnits
         return Unit::query()
             ->with('property:id,name')
             ->latest('id')
-            ->when(
-                $filters->search,
-                fn (Builder $query, string $search): Builder => $query->where(
-                    fn (Builder $query): Builder => $query
-                        ->whereAny(['name', 'floor', 'status'], 'like', "%{$search}%")
-                        ->orWhereHas(
-                            'property',
-                            fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"),
-                        ),
-                ),
-            )
+            ->when($filters->search, fn ($query, $search) => self::filterBySearch($query, $search))
             ->paginate(
                 perPage: $filters->resolvedPerPage(),
                 page: $filters->resolvedPage(),
             );
+    }
+
+    private static function filterBySearch(Builder $query, string $search): void
+    {
+        $query->where(
+            fn (Builder $query): Builder => $query
+                ->whereAny(['name', 'floor', 'status'], 'like', "%{$search}%")
+                ->orWhereHas(
+                    'property',
+                    fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"),
+                ),
+        );
     }
 }

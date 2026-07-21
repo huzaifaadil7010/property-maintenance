@@ -21,24 +21,26 @@ class GetTechnicians
                     ->select(['id', 'user_id', 'specialty', 'phone', 'is_available']),
             ])
             ->latest('id')
-            ->when(
-                $filters->search,
-                fn (Builder $query, string $search): Builder => $query->where(
-                    fn (Builder $query): Builder => $query
-                        ->whereAny(['name', 'email', 'phone'], 'like', "%{$search}%")
-                        ->orWhereHas(
-                            'technicianProfiles',
-                            fn (Builder $query): Builder => $query->whereAny(
-                                ['specialty', 'phone'],
-                                'like',
-                                "%{$search}%",
-                            ),
-                        ),
-                ),
-            )
+            ->when($filters->search, fn ($query, $search) => self::filterBySearch($query, $search))
             ->paginate(
                 perPage: $filters->resolvedPerPage(),
                 page: $filters->resolvedPage(),
             );
+    }
+
+    private static function filterBySearch(Builder $query, string $search): void
+    {
+        $query->where(
+            fn (Builder $query): Builder => $query
+                ->whereAny(['name', 'email', 'phone'], 'like', "%{$search}%")
+                ->orWhereHas(
+                    'technicianProfiles',
+                    fn (Builder $query): Builder => $query->whereAny(
+                        ['specialty', 'phone'],
+                        'like',
+                        "%{$search}%",
+                    ),
+                ),
+        );
     }
 }

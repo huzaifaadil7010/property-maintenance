@@ -28,30 +28,32 @@ class GetResidents
                     ]),
             ])
             ->latest('id')
-            ->when(
-                $filters->search,
-                fn (Builder $query, string $search): Builder => $query->where(
-                    fn (Builder $query): Builder => $query
-                        ->whereAny(['name', 'email', 'phone'], 'like', "%{$search}%")
-                        ->orWhereHas(
-                            'occupancies',
-                            fn (Builder $query): Builder => $query
-                                ->where('status', OccupancyStatus::ACTIVE)
-                                ->whereHas(
-                                    'unit',
-                                    fn (Builder $query): Builder => $query
-                                        ->where('name', 'like', "%{$search}%")
-                                        ->orWhereHas(
-                                            'property',
-                                            fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"),
-                                        ),
-                                ),
-                        ),
-                ),
-            )
+            ->when($filters->search, fn ($query, $search) => self::filterBySearch($query, $search))
             ->paginate(
                 perPage: $filters->resolvedPerPage(),
                 page: $filters->resolvedPage(),
             );
+    }
+
+    private static function filterBySearch(Builder $query, string $search): void
+    {
+        $query->where(
+            fn (Builder $query): Builder => $query
+                ->whereAny(['name', 'email', 'phone'], 'like', "%{$search}%")
+                ->orWhereHas(
+                    'occupancies',
+                    fn (Builder $query): Builder => $query
+                        ->where('status', OccupancyStatus::ACTIVE)
+                        ->whereHas(
+                            'unit',
+                            fn (Builder $query): Builder => $query
+                                ->where('name', 'like', "%{$search}%")
+                                ->orWhereHas(
+                                    'property',
+                                    fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"),
+                                ),
+                        ),
+                ),
+        );
     }
 }
