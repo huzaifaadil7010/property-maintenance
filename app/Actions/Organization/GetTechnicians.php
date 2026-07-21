@@ -19,6 +19,7 @@ class GetTechnicians
                 'technicianProfiles' => fn (HasMany $query): HasMany => $query
                     ->select(['id', 'user_id', 'specialty', 'phone', 'is_available']),
             ])
+            ->withCount('assignedMaintenanceRequests as assigned_requests_count')
             ->latest('id')
             ->when($filters->search, fn ($query, $search) => self::filterBySearch($query, $search))
             ->paginate(

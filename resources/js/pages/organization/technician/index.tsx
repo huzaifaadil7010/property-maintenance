@@ -61,6 +61,10 @@ export default function Index(props: GeneratedPageProps) {
             cell: ({ row }) => row.original.specialty?.label ?? '—',
         },
         {
+            accessorKey: 'assigned_requests_count',
+            header: 'Assigned Requests',
+        },
+        {
             accessorKey: 'is_available',
             header: 'Availability',
             cell: ({ row }) =>

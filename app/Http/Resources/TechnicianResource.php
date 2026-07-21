@@ -28,6 +28,7 @@ class TechnicianResource extends JsonResource
                 ]
                 : null,
             'is_available' => $technicianProfile?->is_available ?? false,
+            'assigned_requests_count' => $this->whenHas('assigned_requests_count'),
         ];
     }
 }

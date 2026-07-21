@@ -15,7 +15,7 @@ class TechniciansController extends Controller
     public function index(Request $request): Response
     {
         $technicians = GetTechnicians::handle(TechnicianFilterData::from($request->all()));
-
+//dd($technicians);
         return Inertia::render('organization/technician/index', [
             'technicians' => TechnicianResource::collection($technicians),
         ]);
