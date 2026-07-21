@@ -3,6 +3,7 @@
 use App\Http\Controllers\Organization\DashboardController;
 use App\Http\Controllers\Organization\PropertiesController;
 use App\Http\Controllers\Organization\ResidentsController;
+use App\Http\Controllers\Organization\TechniciansController;
 use App\Http\Controllers\Organization\UnitsController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,4 +27,5 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::delete('units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
 
         Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
+        Route::get('technicians', [TechniciansController::class, 'index'])->name('technicians');
     });

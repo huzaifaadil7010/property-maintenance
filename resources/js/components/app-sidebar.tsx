@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Building2, DoorOpen, LayoutGrid, Users } from 'lucide-react';
+import { Building2, DoorOpen, LayoutGrid, Users, Wrench } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -15,6 +15,7 @@ import {
 import type { NavItem } from '@/types';
 import PropertiesController from '@/wayfinder/App/Http/Controllers/Organization/PropertiesController';
 import ResidentsController from '@/wayfinder/App/Http/Controllers/Organization/ResidentsController';
+import TechniciansController from '@/wayfinder/App/Http/Controllers/Organization/TechniciansController';
 import UnitsController from '@/wayfinder/App/Http/Controllers/Organization/UnitsController';
 import { dashboard } from '@/wayfinder/routes';
 
@@ -45,6 +46,13 @@ export function AppSidebar() {
                       href: ResidentsController.index(currentOrganization.uuid)
                           .url,
                       icon: Users,
+                  },
+                  {
+                      title: 'Technicians',
+                      href: TechniciansController.index(
+                          currentOrganization.uuid,
+                      ).url,
+                      icon: Wrench,
                   },
               ]
             : []),
