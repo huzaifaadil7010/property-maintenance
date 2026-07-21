@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Actions\Organization\Unit;
 
 use App\Data\UnitData;
 use App\Models\Unit;

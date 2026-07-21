@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Organization;
 
-use App\Actions\CreateUnit;
-use App\Actions\GetUnits;
 use App\Actions\Organization\Common\GetPropertiesForDropDown;
-use App\Actions\UpdateUnit;
+use App\Actions\Organization\GetUnits;
+use App\Actions\Organization\Unit\CreateUnit;
+use App\Actions\Organization\Unit\UpdateUnit;
 use App\Data\UnitData;
 use App\Data\UnitFilterData;
 use App\Enums\UnitStatus;

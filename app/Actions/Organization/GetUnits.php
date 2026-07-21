@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Actions\Organization;
 
 use App\Data\UnitFilterData;
 use App\Models\Unit;

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Organization;
 
-use App\Actions\CreateProperty;
-use App\Actions\GetProperties;
-use App\Actions\UpdateProperty;
+use App\Actions\Organization\GetProperties;
+use App\Actions\Organization\Property\CreateProperty;
+use App\Actions\Organization\Property\UpdateProperty;
 use App\Data\PropertyData;
 use App\Data\PropertyFilterData;
 use App\Http\Controllers\Controller;

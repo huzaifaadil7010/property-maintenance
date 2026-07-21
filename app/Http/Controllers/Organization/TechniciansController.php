@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Organization;
 
-use App\Actions\GetTechnicians;
+use App\Actions\Organization\GetTechnicians;
 use App\Data\TechnicianFilterData;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TechnicianResource;

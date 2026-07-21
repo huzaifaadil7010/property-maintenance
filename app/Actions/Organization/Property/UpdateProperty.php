@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Actions\Organization\Property;
 
 use App\Data\PropertyData;
 use App\Models\Property;

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Organization;
 
-use App\Actions\GetResidents;
+use App\Actions\Organization\GetResidents;
 use App\Data\ResidentFilterData;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ResidentResource;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Actions\Organization;
 
 use App\Data\ResidentFilterData;
 use App\Enums\OccupancyStatus;
