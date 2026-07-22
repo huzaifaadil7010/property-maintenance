@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Organization\DashboardController;
+use App\Http\Controllers\Organization\MaintenanceRequestsController;
 use App\Http\Controllers\Organization\PropertiesController;
 use App\Http\Controllers\Organization\ResidentsController;
 use App\Http\Controllers\Organization\TechniciansController;
@@ -28,4 +29,5 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
 
         Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
         Route::get('technicians', [TechniciansController::class, 'index'])->name('technicians');
+        Route::get('maintenance-requests', [MaintenanceRequestsController::class, 'index'])->name('maintenance-requests');
     });

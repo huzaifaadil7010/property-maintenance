@@ -1,5 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Building2, DoorOpen, LayoutGrid, Users, Wrench } from 'lucide-react';
+import {
+    Building2,
+    ClipboardList,
+    DoorOpen,
+    LayoutGrid,
+    Users,
+    Wrench,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -13,6 +20,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
+import MaintenanceRequestsController from '@/wayfinder/App/Http/Controllers/Organization/MaintenanceRequestsController';
 import PropertiesController from '@/wayfinder/App/Http/Controllers/Organization/PropertiesController';
 import ResidentsController from '@/wayfinder/App/Http/Controllers/Organization/ResidentsController';
 import TechniciansController from '@/wayfinder/App/Http/Controllers/Organization/TechniciansController';
@@ -53,6 +61,13 @@ export function AppSidebar() {
                           currentOrganization.uuid,
                       ).url,
                       icon: Wrench,
+                  },
+                  {
+                      title: 'Maintenance Requests',
+                      href: MaintenanceRequestsController.index(
+                          currentOrganization.uuid,
+                      ).url,
+                      icon: ClipboardList,
                   },
               ]
             : []),
