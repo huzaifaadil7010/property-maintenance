@@ -30,4 +30,5 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
         Route::get('technicians', [TechniciansController::class, 'index'])->name('technicians');
         Route::get('maintenance-requests', [MaintenanceRequestsController::class, 'index'])->name('maintenance-requests');
+        Route::get('maintenance-requests/{maintenanceRequest}', [MaintenanceRequestsController::class, 'show'])->name('maintenance-requests.show');
     });

@@ -2,9 +2,17 @@ import { Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
+import { Eye } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { show } from '@/wayfinder/App/Http/Controllers/Organization/MaintenanceRequestsController';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.MaintenanceRequest.Index;
@@ -33,7 +41,7 @@ type MaintenanceRequestTableRow = {
 };
 
 export default function Index(props: GeneratedPageProps) {
-    const { url } = usePage();
+    const { url, props: pageProps } = usePage();
     const maintenanceRequests = props.maintenanceRequests as unknown as {
         data: MaintenanceRequestTableRow[];
         meta: Record<
@@ -65,15 +73,23 @@ export default function Index(props: GeneratedPageProps) {
         return () => reloadMaintenanceRequests.cancel();
     }, [search]);
 
+    function onView(maintenanceRequest: MaintenanceRequestTableRow) {
+        if (!pageProps.currentOrganization) {
+            return;
+        }
+
+        router.visit(
+            show({
+                organization: pageProps.currentOrganization.uuid,
+                maintenanceRequest: maintenanceRequest.id,
+            })
+        );
+    }
+
     const columns: ColumnDef<MaintenanceRequestTableRow>[] = [
         {
             accessorKey: 'title',
             header: 'Title',
-            cell: ({ row }) => (
-                <div className="max-w-xs wrap-anywhere whitespace-normal">
-                    {row.original.title}
-                </div>
-            ),
         },
         {
             accessorKey: 'property.name',
@@ -111,6 +127,31 @@ export default function Index(props: GeneratedPageProps) {
                 row.original.created_at
                     ? format(row.original.created_at, 'yyyy-MM-dd')
                     : '—',
+        },
+        {
+            id: 'actions',
+            header: () => <span className="sr-only">Actions</span>,
+            cell: ({ row }) => (
+                <div className="flex justify-end">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                aria-label="View maintenance request"
+                                onClick={() => onView(row.original)}
+                            >
+                                <Eye />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>View request</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            ),
         },
     ];
 

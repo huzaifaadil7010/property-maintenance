@@ -17,6 +17,7 @@ class MaintenanceRequestResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'description' => $this->description,
             'property' => [
                 'id' => $this->property->id,
                 'name' => $this->property->name,
@@ -28,11 +29,15 @@ class MaintenanceRequestResource extends JsonResource
             'resident' => [
                 'id' => $this->resident->id,
                 'name' => $this->resident->name,
+                'email' => $this->resident->email,
+                'phone' => $this->resident->phone,
             ],
             'assigned_technician' => $this->assignedTechnician
                 ? [
                     'id' => $this->assignedTechnician->id,
                     'name' => $this->assignedTechnician->name,
+                    'email' => $this->assignedTechnician->email,
+                    'phone' => $this->assignedTechnician->phone,
                 ]
                 : null,
             'category' => [
@@ -47,7 +52,14 @@ class MaintenanceRequestResource extends JsonResource
                 'label' => str($this->status->value)->headline()->toString(),
                 'value' => $this->status->value,
             ],
+            'completion_notes' => $this->completion_notes,
+            'actual_cost' => $this->actual_cost,
+            'completed_at' => $this->completed_at,
+            'closed_at' => $this->closed_at,
             'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+            'attachments' => MaintenanceRequestAttachmentResource::collection($this->attachments),
+            'status_logs' => MaintenanceRequestStatusLogResource::collection($this->statusLogs),
         ];
     }
 }
