@@ -65,8 +65,7 @@ const getPriorityColor = (priority: string | null | undefined): string => {
 
     const colors: Record<string, string> = {
         high: 'bg-red-500/15 text-red-700 border-red-200 dark:border-red-900 dark:text-red-300',
-        medium:
-            'bg-amber-500/15 text-amber-700 border-amber-200 dark:border-amber-900 dark:text-amber-300',
+        medium: 'bg-amber-500/15 text-amber-700 border-amber-200 dark:border-amber-900 dark:text-amber-300',
         low: 'bg-blue-500/15 text-blue-700 border-blue-200 dark:border-blue-900 dark:text-blue-300',
     };
     return (
@@ -80,13 +79,15 @@ const getStatusColor = (status: string | null | undefined): string => {
         return 'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300';
     }
     const colors: Record<string, string> = {
-        pending: 'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300',
+        pending:
+            'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300',
         open: 'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300',
         in_progress:
             'bg-blue-500/15 text-blue-700 border-blue-200 dark:border-blue-900 dark:text-blue-300',
         completed:
             'bg-green-500/15 text-green-700 border-green-200 dark:border-green-900 dark:text-green-300',
-        cancelled: 'bg-red-500/15 text-red-700 border-red-200 dark:border-red-900 dark:text-red-300',
+        cancelled:
+            'bg-red-500/15 text-red-700 border-red-200 dark:border-red-900 dark:text-red-300',
     };
     return (
         colors[status.toLowerCase()] ||
@@ -125,66 +126,79 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
         name: string;
     } | null>(null);
 
-    const imageAttachments = (maintenanceRequest.data.attachments || []).filter((attachment) =>
-        isImageFile(attachment.mime_type)
+    const imageAttachments = (maintenanceRequest.data.attachments || []).filter(
+        (attachment) => isImageFile(attachment.mime_type),
     );
 
     return (
         <>
             <Head title={maintenanceRequest.data.title} />
 
-            <div className="flex min-h-0 flex-1 flex-col p-4 md:p-6 lg:p-8">
+            <div className="flex min-h-0 flex-1 flex-col bg-slate-50 p-4 md:p-6 lg:p-8 dark:bg-slate-950">
                 <div className="mx-auto w-full max-w-6xl flex-1">
-                    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-2">
-                            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                                {maintenanceRequest.data.title}
-                            </h1>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Request ID: #{maintenanceRequest.data.id}
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            <Badge
-                                variant="outline"
-                                className={`border px-3 py-1.5 text-xs font-semibold ${getStatusColor(maintenanceRequest.data.status?.value)} flex items-center gap-1.5`}
-                            >
-                                {getStatusIcon(
-                                    maintenanceRequest.data.status?.value,
-                                )}
-                                {maintenanceRequest.data.status?.label || '—'}
-                            </Badge>
-                            <Badge
-                                variant="outline"
-                                className={`border px-3 py-1.5 text-xs font-semibold ${getPriorityColor(maintenanceRequest.data.priority?.value)}`}
-                            >
-                                {maintenanceRequest.data.priority?.label || '—'}
-                            </Badge>
+                    {/* Header Section */}
+                    <div className="mb-8">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="space-y-2">
+                                <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                                    {maintenanceRequest.data.title}
+                                </h1>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                    Request ID:{' '}
+                                    <span className="font-semibold text-slate-900 dark:text-slate-200">
+                                        #{maintenanceRequest.data.id}
+                                    </span>
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <Badge
+                                    variant="outline"
+                                    className={`flex items-center gap-2 border px-4 py-2 text-sm font-semibold ${getStatusColor(maintenanceRequest.data.status?.value)}`}
+                                >
+                                    {getStatusIcon(
+                                        maintenanceRequest.data.status?.value,
+                                    )}
+                                    {maintenanceRequest.data.status?.label ||
+                                        '—'}
+                                </Badge>
+                                <Badge
+                                    variant="outline"
+                                    className={`border px-4 py-2 text-sm font-semibold ${getPriorityColor(maintenanceRequest.data.priority?.value)}`}
+                                >
+                                    {maintenanceRequest.data.priority?.label ||
+                                        '—'}
+                                </Badge>
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid gap-6 lg:grid-cols-3">
                         <div className="space-y-6 lg:col-span-2">
-                            <Card className="border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
+                            {/* Description */}
+                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                 <div className="p-6">
                                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <MessageSquare className="h-5 w-5" />
+                                        <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                         Description
                                     </h2>
                                     <p className="text-base leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
                                         {maintenanceRequest.data.description}
                                     </p>
                                 </div>
-                            </Card>
+                            </div>
 
-                            <Card className="overflow-hidden border-slate-200 dark:border-slate-800">
-                                <div className="grid gap-0 sm:grid-cols-2">
-                                    <div className="border-b border-slate-200 p-6 sm:border-r sm:border-b-0 dark:border-slate-800">
-                                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-                                            <MapPin className="h-4 w-4 text-blue-500" />
-                                            Location
+                            {/* Location & Category Grid */}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {/* Location Card */}
+                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                    <div className="p-6">
+                                        <div className="mb-4 flex items-center gap-2">
+                                            <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                Location
+                                            </h3>
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                             <div>
                                                 <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                                                     Property
@@ -202,18 +216,23 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                 </p>
                                                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
                                                     {
-                                                        maintenanceRequest.data.unit
-                                                            ?.name
+                                                        maintenanceRequest.data
+                                                            .unit?.name
                                                     }
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
+                                {/* Category Card */}
+                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                     <div className="p-6">
-                                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-                                            <Wrench className="h-4 w-4 text-amber-500" />
-                                            Category
+                                        <div className="mb-4 flex items-center gap-2">
+                                            <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                Category
+                                            </h3>
                                         </div>
                                         <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                             {maintenanceRequest.data.category
@@ -221,29 +240,34 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                         </p>
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
 
-                            <Card className="border-slate-200 dark:border-slate-800">
+                            {/* Timeline */}
+                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                 <div className="p-6">
-                                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <Calendar className="h-5 w-5" />
+                                    <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                                        <Calendar className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                         Timeline
                                     </h2>
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
+                                        {/* Created */}
                                         <div className="flex gap-4">
-                                            <div className="flex flex-col items-center">
+                                            <div className="flex flex-col items-center pt-1">
                                                 <div className="h-3 w-3 rounded-full bg-blue-500" />
-                                                <div className="mt-2 h-12 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                                                <div className="mt-3 h-12 w-0.5 bg-slate-200 dark:bg-slate-700" />
                                             </div>
                                             <div className="pb-4">
                                                 <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                                                     Created
                                                 </p>
-                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                    {maintenanceRequest?.data.created_at
+                                                <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                                                    {maintenanceRequest?.data
+                                                        .created_at
                                                         ? format(
                                                               new Date(
-                                                                  maintenanceRequest?.data.created_at,
+                                                                  maintenanceRequest
+                                                                      ?.data
+                                                                      .created_at,
                                                               ),
                                                               'MMM dd, yyyy • h:mm a',
                                                           )
@@ -252,20 +276,24 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             </div>
                                         </div>
 
-                                        {maintenanceRequest.data.completed_at && (
+                                        {/* Completed */}
+                                        {maintenanceRequest.data
+                                            .completed_at && (
                                             <div className="flex gap-4">
-                                                <div className="flex flex-col items-center">
-                                                    <div className="h-3 w-3 rounded-full bg-green-500" />
-                                                    <div className="mt-2 h-12 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                                                <div className="flex flex-col items-center pt-1">
+                                                    <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                                                    <div className="mt-3 h-12 w-0.5 bg-slate-200 dark:bg-slate-700" />
                                                 </div>
                                                 <div className="pb-4">
                                                     <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                                                         Completed
                                                     </p>
-                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
                                                         {format(
                                                             new Date(
-                                                                maintenanceRequest.data.completed_at,
+                                                                maintenanceRequest
+                                                                    .data
+                                                                    .completed_at,
                                                             ),
                                                             'MMM dd, yyyy • h:mm a',
                                                         )}
@@ -274,19 +302,23 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             </div>
                                         )}
 
+                                        {/* Last Updated */}
                                         <div className="flex gap-4">
-                                            <div className="flex flex-col items-center">
+                                            <div className="flex flex-col items-center pt-1">
                                                 <div className="h-3 w-3 rounded-full bg-slate-400" />
                                             </div>
                                             <div>
                                                 <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                                                     Last Updated
                                                 </p>
-                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                    {maintenanceRequest?.data.updated_at
+                                                <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                                                    {maintenanceRequest?.data
+                                                        .updated_at
                                                         ? format(
                                                               new Date(
-                                                                  maintenanceRequest?.data.updated_at,
+                                                                  maintenanceRequest
+                                                                      ?.data
+                                                                      .updated_at,
                                                               ),
                                                               'MMM dd, yyyy • h:mm a',
                                                           )
@@ -296,44 +328,48 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
 
+                            {/* Completion Notes */}
                             {maintenanceRequest.data.completion_notes && (
-                                <Card className="border-slate-200 bg-gradient-to-br from-green-50 to-green-100 dark:border-slate-800 dark:from-green-900/20 dark:to-green-800/20">
+                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                             Completion Notes
                                         </h2>
                                         <p className="text-base leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
                                             {
-                                                maintenanceRequest.data.completion_notes
+                                                maintenanceRequest.data
+                                                    .completion_notes
                                             }
                                         </p>
                                     </div>
-                                </Card>
+                                </div>
                             )}
 
+                            {/* Image Attachments */}
                             {imageAttachments.length > 0 && (
-                                <Card className="border-slate-200 dark:border-slate-800">
+                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                            <ImageIcon className="h-5 w-5" />
+                                            <ImageIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                                             Attachments (
                                             {imageAttachments.length})
                                         </h2>
                                         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                                             {imageAttachments.map(
                                                 (attachment) => (
-                                                    <div
+                                                    <button
                                                         key={attachment.id}
-                                                        className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-200 transition-all hover:border-blue-400 dark:border-slate-700 dark:hover:border-blue-500"
+                                                        type="button"
                                                         onClick={() =>
                                                             setSelectedImage({
                                                                 url: attachment.file_path,
                                                                 name: attachment.original_name,
                                                             })
                                                         }
+                                                        className="group relative overflow-hidden rounded-lg border border-slate-200 bg-transparent p-0 text-left transition-all hover:bg-transparent hover:shadow-md dark:border-slate-700 dark:hover:border-slate-600"
                                                     >
                                                         <div className="aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
                                                             <img
@@ -351,7 +387,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                                 <ImageIcon className="h-6 w-6 text-white" />
                                                             </div>
                                                         </div>
-                                                        <div className="bg-white p-2 dark:bg-slate-900">
+                                                        <div className="bg-white p-3 dark:bg-slate-800">
                                                             <p className="truncate text-xs font-medium text-slate-900 dark:text-white">
                                                                 {
                                                                     attachment.original_name
@@ -371,26 +407,27 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                                 }
                                                             </p>
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                 ),
                                             )}
                                         </div>
                                     </div>
-                                </Card>
+                                </div>
                             )}
 
-                            {(maintenanceRequest.data.status_logs || []).length >
-                                0 && (
-                                <Card className="border-slate-200 dark:border-slate-800">
+                            {/* Status History */}
+                            {(maintenanceRequest.data.status_logs || [])
+                                .length > 0 && (
+                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                            <Clock className="h-5 w-5" />
+                                            <Clock className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                                             Status History
                                         </h2>
                                         <div className="space-y-4">
                                             {(
-                                                maintenanceRequest.data.status_logs ||
-                                                []
+                                                maintenanceRequest.data
+                                                    .status_logs || []
                                             ).map((log, index) => (
                                                 <div
                                                     key={log.id}
@@ -400,7 +437,9 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                         <div className="h-3 w-3 rounded-full bg-slate-400" />
                                                         {index <
                                                             (
-                                                                maintenanceRequest.data.status_logs ||
+                                                                maintenanceRequest
+                                                                    .data
+                                                                    .status_logs ||
                                                                 []
                                                             ).length -
                                                                 1 && (
@@ -472,73 +511,83 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             ))}
                                         </div>
                                     </div>
-                                </Card>
+                                </div>
                             )}
                         </div>
 
+                        {/* Right Sidebar */}
                         <div className="space-y-6">
-                            <Card className="border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
+                            {/* Resident Card */}
+                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                 <div className="p-6">
                                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <User className="h-5 w-5" />
+                                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                         Resident
                                     </h2>
                                     <div className="mb-4 flex items-center gap-3">
                                         <Avatar className="h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-600">
-                                            <AvatarFallback className="font-semibold text-white">
-                                                {maintenanceRequest.data.resident?.name ? maintenanceRequest.data.resident?.name
-                                                    .split(' ')
-                                                    .map((n) => n[0])
-                                                    .join('') : '-'}
+                                            <AvatarFallback className="font-semibold text-slate-900 dark:text-white">
+                                                {maintenanceRequest.data
+                                                    .resident?.name
+                                                    ? maintenanceRequest.data.resident?.name
+                                                          .split(' ')
+                                                          .map((n) => n[0])
+                                                          .join('')
+                                                    : '-'}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
                                             <p className="font-semibold text-slate-900 dark:text-white">
                                                 {
-                                                    maintenanceRequest.data.resident?.name
+                                                    maintenanceRequest.data
+                                                        .resident?.name
                                                 }
                                             </p>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        {maintenanceRequest.data.resident.email && (
+                                        {maintenanceRequest.data.resident
+                                            .email && (
                                             <a
                                                 href={`mailto:${maintenanceRequest.data.resident.email}`}
                                                 className="inline-flex items-center gap-2 text-sm font-medium break-all text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                             >
                                                 {
-                                                    maintenanceRequest.data.resident
-                                                        .email
+                                                    maintenanceRequest.data
+                                                        .resident.email
                                                 }
                                             </a>
                                         )}
-                                        {maintenanceRequest.data.resident.phone && (
+                                        {maintenanceRequest.data.resident
+                                            .phone && (
                                             <a
                                                 href={`tel:${maintenanceRequest.data.resident.phone}`}
                                                 className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                             >
                                                 <Phone className="h-4 w-4" />
                                                 {
-                                                    maintenanceRequest.data.resident
-                                                        .phone
+                                                    maintenanceRequest.data
+                                                        .resident.phone
                                                 }
                                             </a>
                                         )}
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
 
-                            <Card className="border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
+                            {/* Assigned Technician Card */}
+                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                 <div className="p-6">
                                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <Wrench className="h-5 w-5" />
+                                        <Wrench className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                         Assigned Technician
                                     </h2>
-                                    {maintenanceRequest.data.assigned_technician ? (
+                                    {maintenanceRequest.data
+                                        .assigned_technician ? (
                                         <>
                                             <div className="mb-4 flex items-center gap-3">
                                                 <Avatar className="h-10 w-10 bg-gradient-to-br from-green-400 to-green-600">
-                                                    <AvatarFallback className="font-semibold text-white">
+                                                    <AvatarFallback className="font-semibold text-slate-900 dark:text-white">
                                                         {maintenanceRequest.data.assigned_technician.name
                                                             .split(' ')
                                                             .map((n) => n[0])
@@ -548,26 +597,32 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                 <div>
                                                     <p className="font-semibold text-slate-900 dark:text-white">
                                                         {
-                                                            maintenanceRequest.data.assigned_technician
+                                                            maintenanceRequest
+                                                                .data
+                                                                .assigned_technician
                                                                 .name
                                                         }
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                {maintenanceRequest.data.assigned_technician
+                                                {maintenanceRequest.data
+                                                    .assigned_technician
                                                     .email && (
                                                     <a
                                                         href={`mailto:${maintenanceRequest.data.assigned_technician.email}`}
                                                         className="inline-flex items-center gap-2 text-sm font-medium break-all text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                                     >
                                                         {
-                                                            maintenanceRequest.data.assigned_technician
+                                                            maintenanceRequest
+                                                                .data
+                                                                .assigned_technician
                                                                 .email
                                                         }
                                                     </a>
                                                 )}
-                                                {maintenanceRequest.data.assigned_technician
+                                                {maintenanceRequest.data
+                                                    .assigned_technician
                                                     .phone && (
                                                     <a
                                                         href={`tel:${maintenanceRequest.data.assigned_technician.phone}`}
@@ -575,22 +630,26 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                     >
                                                         <Phone className="h-4 w-4" />
                                                         {
-                                                            maintenanceRequest.data.assigned_technician.phone
+                                                            maintenanceRequest
+                                                                .data
+                                                                .assigned_technician
+                                                                .phone
                                                         }
                                                     </a>
                                                 )}
                                             </div>
                                         </>
                                     ) : (
-                                        <div className="rounded-lg bg-slate-200 px-3 py-2 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                                        <div className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300">
                                             Technician not assigned
                                         </div>
                                     )}
                                 </div>
-                            </Card>
+                            </div>
 
+                            {/* Actual Cost Card */}
                             {maintenanceRequest.data.actual_cost && (
-                                <Card className="border-slate-200 bg-gradient-to-br from-amber-50 to-amber-100 dark:border-slate-800 dark:from-amber-900/20 dark:to-amber-800/20">
+                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
                                             <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -599,11 +658,12 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                         <p className="text-3xl font-bold text-slate-900 dark:text-white">
                                             $
                                             {parseFloat(
-                                                maintenanceRequest.data.actual_cost,
+                                                maintenanceRequest.data
+                                                    .actual_cost,
                                             ).toFixed(2)}
                                         </p>
                                     </div>
-                                </Card>
+                                </div>
                             )}
                         </div>
                     </div>
