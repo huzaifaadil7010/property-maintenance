@@ -670,12 +670,14 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                 </div>
             </div>
 
-            <ImageModal
-                isOpen={!!selectedImage}
-                onClose={() => setSelectedImage(null)}
-                imageUrl={selectedImage?.url || ''}
-                imageName={selectedImage?.name || ''}
-            />
+            {selectedImage && (
+                <ImageModal
+                    isOpen={!!selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                    imageUrl={selectedImage?.url || ''}
+                    imageName={selectedImage?.name || ''}
+                />
+            )}
         </>
     );
 }
