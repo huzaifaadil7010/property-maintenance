@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
     Calendar,
@@ -8,17 +8,29 @@ import {
     Image as ImageIcon,
     MapPin,
     MessageSquare,
-    Paperclip,
     Phone,
+    RotateCcw,
     User,
+    UserCog,
     Wrench,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ImageModal } from '@/components/organization/maintenance-request/image-modal';
+import AssignTechnicianDialog, {
+    type AssignTechnicianFormData,
+    type TechnicianOption,
+} from '@/components/organization/maintenance-request/assign-technician-dialog';
+import StatusUpdateDialog, {
+    type MaintenanceRequestStatusOption,
+    type StatusUpdateFormData,
+} from '@/components/organization/maintenance-request/status-update-dialog';
+import AssignMaintenanceRequestTechnicianController from '@/wayfinder/App/Http/Controllers/Organization/AssignMaintenanceRequestTechnicianController';
+import UpdateMaintenanceRequestStatusController from '@/wayfinder/App/Http/Controllers/Organization/UpdateMaintenanceRequestStatusController';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.MaintenanceRequest.Show;
@@ -58,49 +70,46 @@ type StatusLog = {
     created_at: string;
 };
 
+const NEUTRAL_BADGE = 'border bg-muted text-muted-foreground';
+const ACCENT_BADGE = 'border-primary/30 bg-primary/10 text-primary';
+const ATTENTION_BADGE = 'border-destructive/30 bg-destructive/10 text-destructive';
+
 const getPriorityColor = (priority: string | null | undefined): string => {
     if (!priority) {
-        return 'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300';
+        return NEUTRAL_BADGE;
     }
 
     const colors: Record<string, string> = {
-        high: 'bg-red-500/15 text-red-700 border-red-200 dark:border-red-900 dark:text-red-300',
-        medium: 'bg-amber-500/15 text-amber-700 border-amber-200 dark:border-amber-900 dark:text-amber-300',
-        low: 'bg-blue-500/15 text-blue-700 border-blue-200 dark:border-blue-900 dark:text-blue-300',
+        high: ATTENTION_BADGE,
+        medium: ACCENT_BADGE,
+        low: NEUTRAL_BADGE,
     };
-    return (
-        colors[priority.toLowerCase()] ||
-        'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300'
-    );
+    return colors[priority.toLowerCase()] || NEUTRAL_BADGE;
 };
 
 const getStatusColor = (status: string | null | undefined): string => {
     if (!status) {
-        return 'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300';
+        return NEUTRAL_BADGE;
     }
     const colors: Record<string, string> = {
-        pending:
-            'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300',
-        open: 'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300',
-        in_progress:
-            'bg-blue-500/15 text-blue-700 border-blue-200 dark:border-blue-900 dark:text-blue-300',
-        completed:
-            'bg-green-500/15 text-green-700 border-green-200 dark:border-green-900 dark:text-green-300',
-        cancelled:
-            'bg-red-500/15 text-red-700 border-red-200 dark:border-red-900 dark:text-red-300',
+        open: NEUTRAL_BADGE,
+        assigned: ACCENT_BADGE,
+        'in-progress': ACCENT_BADGE,
+        completed: 'border bg-secondary text-secondary-foreground',
+        closed: NEUTRAL_BADGE,
+        reopened: ATTENTION_BADGE,
     };
-    return (
-        colors[status.toLowerCase()] ||
-        'bg-slate-500/15 text-slate-700 border-slate-200 dark:border-slate-800 dark:text-slate-300'
-    );
+    return colors[status.toLowerCase()] || NEUTRAL_BADGE;
 };
 
 const getStatusIcon = (status: string | null | undefined) => {
     const icons: Record<string, JSX.Element> = {
-        pending: <AlertCircle className="h-4 w-4" />,
         open: <AlertCircle className="h-4 w-4" />,
-        in_progress: <Clock className="h-4 w-4" />,
+        assigned: <UserCog className="h-4 w-4" />,
+        'in-progress': <Clock className="h-4 w-4" />,
         completed: <CheckCircle2 className="h-4 w-4" />,
+        closed: <CheckCircle2 className="h-4 w-4" />,
+        reopened: <RotateCcw className="h-4 w-4" />,
     };
 
     if (!status) return <AlertCircle className="h-4 w-4" />;
@@ -120,32 +129,148 @@ const formatBytes = (bytes: number): string => {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
-export default function Show({ maintenanceRequest }: GeneratedPageProps) {
+export default function Show({
+    maintenanceRequest,
+    maintenanceRequestStatuses,
+    availableTechnicians,
+}: GeneratedPageProps) {
     const [selectedImage, setSelectedImage] = useState<{
         url: string;
         name: string;
     } | null>(null);
+    const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+    const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
     const imageAttachments = (maintenanceRequest.data.attachments || []).filter(
         (attachment) => isImageFile(attachment.mime_type),
     );
 
+    const statuses = (maintenanceRequestStatuses ||
+        []) as MaintenanceRequestStatusOption[];
+    const assignedTechnician = maintenanceRequest.data.assigned_technician;
+    const hasAssignedTechnician = Boolean(assignedTechnician);
+
+    const baseTechnicians = availableTechnicians as
+        | TechnicianOption[]
+        | undefined;
+    const technicians =
+        baseTechnicians && assignedTechnician
+            ? baseTechnicians.some(
+                  (technician) => technician.id === assignedTechnician.id,
+              )
+                ? baseTechnicians
+                : [
+                      ...baseTechnicians,
+                      {
+                          id: assignedTechnician.id,
+                          name: assignedTechnician.name,
+                      },
+                  ]
+            : baseTechnicians;
+
+    const currentStatusValue = maintenanceRequest.data.status?.value ?? '';
+    const { currentOrganization } = usePage().props;
+
+    const assignForm = useForm<AssignTechnicianFormData>({
+        assigned_technician_id: assignedTechnician?.id ?? '',
+        notes: '',
+    });
+    const statusForm = useForm<StatusUpdateFormData>({
+        status: currentStatusValue,
+        notes: '',
+    });
+
+    useEffect(() => {
+        if (assignDialogOpen) {
+            assignForm.setData({
+                assigned_technician_id: assignedTechnician?.id ?? '',
+                notes: '',
+            });
+        } else {
+            assignForm.resetAndClearErrors();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignDialogOpen, assignedTechnician?.id]);
+
+    useEffect(() => {
+        if (statusDialogOpen) {
+            statusForm.setData({ status: currentStatusValue, notes: '' });
+        } else {
+            statusForm.resetAndClearErrors();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [statusDialogOpen, currentStatusValue]);
+
+    function submitAssignTechnician(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        if (!currentOrganization) {
+            return;
+        }
+
+        assignForm.submit(
+            AssignMaintenanceRequestTechnicianController({
+                organization: currentOrganization.uuid,
+                maintenanceRequest: maintenanceRequest.data.id,
+            }),
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    assignForm.resetAndClearErrors();
+                    setAssignDialogOpen(false);
+                },
+                onError: (errors) => {
+                    if (errors.cannot_submit) {
+                        toast.error(errors.cannot_submit);
+                    }
+                },
+            },
+        );
+    }
+
+    function submitStatusUpdate(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        if (!currentOrganization) {
+            return;
+        }
+
+        statusForm.submit(
+            UpdateMaintenanceRequestStatusController({
+                organization: currentOrganization.uuid,
+                maintenanceRequest: maintenanceRequest.data.id,
+            }),
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    statusForm.resetAndClearErrors();
+                    setStatusDialogOpen(false);
+                },
+                onError: (errors) => {
+                    if (errors.cannot_submit) {
+                        toast.error(errors.cannot_submit);
+                    }
+                },
+            },
+        );
+    }
+
     return (
         <>
             <Head title={maintenanceRequest.data.title} />
 
-            <div className="flex min-h-0 flex-1 flex-col bg-slate-50 p-4 md:p-6 lg:p-8 dark:bg-slate-950">
+            <div className="flex min-h-0 flex-1 flex-col p-4 md:p-6 lg:p-8">
                 <div className="mx-auto w-full max-w-6xl flex-1">
                     {/* Header Section */}
                     <div className="mb-8">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="space-y-2">
-                                <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                                <h1 className="text-4xl font-bold tracking-tight">
                                     {maintenanceRequest.data.title}
                                 </h1>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                <p className="text-sm text-muted-foreground">
                                     Request ID:{' '}
-                                    <span className="font-semibold text-slate-900 dark:text-slate-200">
+                                    <span className="font-semibold text-foreground">
                                         #{maintenanceRequest.data.id}
                                     </span>
                                 </p>
@@ -153,7 +278,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                             <div className="flex flex-wrap gap-2">
                                 <Badge
                                     variant="outline"
-                                    className={`flex items-center gap-2 border px-4 py-2 text-sm font-semibold ${getStatusColor(maintenanceRequest.data.status?.value)}`}
+                                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${getStatusColor(maintenanceRequest.data.status?.value)}`}
                                 >
                                     {getStatusIcon(
                                         maintenanceRequest.data.status?.value,
@@ -163,11 +288,39 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                 </Badge>
                                 <Badge
                                     variant="outline"
-                                    className={`border px-4 py-2 text-sm font-semibold ${getPriorityColor(maintenanceRequest.data.priority?.value)}`}
+                                    className={`px-4 py-2 text-sm font-semibold ${getPriorityColor(maintenanceRequest.data.priority?.value)}`}
                                 >
                                     {maintenanceRequest.data.priority?.label ||
                                         '—'}
                                 </Badge>
+                                <Button
+                                    variant={
+                                        hasAssignedTechnician
+                                            ? 'outline'
+                                            : 'default'
+                                    }
+                                    onClick={() =>
+                                        setAssignDialogOpen(true)
+                                    }
+                                >
+                                    {hasAssignedTechnician
+                                        ? 'Reassign Technician'
+                                        : 'Assign Technician'}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    disabled={!hasAssignedTechnician}
+                                    title={
+                                        hasAssignedTechnician
+                                            ? undefined
+                                            : 'Assign a technician first'
+                                    }
+                                    onClick={() =>
+                                        setStatusDialogOpen(true)
+                                    }
+                                >
+                                    Update Status
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -175,13 +328,13 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                     <div className="grid gap-6 lg:grid-cols-3">
                         <div className="space-y-6 lg:col-span-2">
                             {/* Description */}
-                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                 <div className="p-6">
-                                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                                        <MessageSquare className="h-5 w-5 text-muted-foreground" />
                                         Description
                                     </h2>
-                                    <p className="text-base leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                                    <p className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
                                         {maintenanceRequest.data.description}
                                     </p>
                                 </div>
@@ -190,31 +343,32 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                             {/* Location & Category Grid */}
                             <div className="grid gap-4 sm:grid-cols-2">
                                 {/* Location Card */}
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                     <div className="p-6">
                                         <div className="mb-4 flex items-center gap-2">
-                                            <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                                            <h3 className="text-sm font-semibold">
                                                 Location
                                             </h3>
                                         </div>
                                         <div className="space-y-3">
                                             <div>
-                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                                <p className="text-xs font-medium text-muted-foreground">
                                                     Property
                                                 </p>
-                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                <p className="text-sm font-semibold">
                                                     {
                                                         maintenanceRequest
-                                                            .property?.name
+                                                            .data.property
+                                                            ?.name
                                                     }
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                                <p className="text-xs font-medium text-muted-foreground">
                                                     Unit
                                                 </p>
-                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                <p className="text-sm font-semibold">
                                                     {
                                                         maintenanceRequest.data
                                                             .unit?.name
@@ -226,15 +380,15 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                 </div>
 
                                 {/* Category Card */}
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                     <div className="p-6">
                                         <div className="mb-4 flex items-center gap-2">
-                                            <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                            <Wrench className="h-4 w-4 text-muted-foreground" />
+                                            <h3 className="text-sm font-semibold">
                                                 Category
                                             </h3>
                                         </div>
-                                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <p className="text-sm font-medium text-muted-foreground">
                                             {maintenanceRequest.data.category
                                                 ?.label || '—'}
                                         </p>
@@ -243,24 +397,24 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                             </div>
 
                             {/* Timeline */}
-                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                 <div className="p-6">
-                                    <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <Calendar className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                    <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold">
+                                        <Calendar className="h-5 w-5 text-muted-foreground" />
                                         Timeline
                                     </h2>
                                     <div className="space-y-6">
                                         {/* Created */}
                                         <div className="flex gap-4">
                                             <div className="flex flex-col items-center pt-1">
-                                                <div className="h-3 w-3 rounded-full bg-blue-500" />
-                                                <div className="mt-3 h-12 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                                                <div className="h-3 w-3 rounded-full bg-primary" />
+                                                <div className="mt-3 h-12 w-0.5 bg-border" />
                                             </div>
                                             <div className="pb-4">
-                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                                <p className="text-xs font-medium text-muted-foreground">
                                                     Created
                                                 </p>
-                                                <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                                                <p className="mt-2 text-sm font-semibold">
                                                     {maintenanceRequest?.data
                                                         .created_at
                                                         ? format(
@@ -281,14 +435,14 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             .completed_at && (
                                             <div className="flex gap-4">
                                                 <div className="flex flex-col items-center pt-1">
-                                                    <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                                                    <div className="mt-3 h-12 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                                                    <div className="h-3 w-3 rounded-full bg-primary" />
+                                                    <div className="mt-3 h-12 w-0.5 bg-border" />
                                                 </div>
                                                 <div className="pb-4">
-                                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                                    <p className="text-xs font-medium text-muted-foreground">
                                                         Completed
                                                     </p>
-                                                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                                                    <p className="mt-2 text-sm font-semibold">
                                                         {format(
                                                             new Date(
                                                                 maintenanceRequest
@@ -305,13 +459,13 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                         {/* Last Updated */}
                                         <div className="flex gap-4">
                                             <div className="flex flex-col items-center pt-1">
-                                                <div className="h-3 w-3 rounded-full bg-slate-400" />
+                                                <div className="h-3 w-3 rounded-full bg-muted-foreground" />
                                             </div>
                                             <div>
-                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                                <p className="text-xs font-medium text-muted-foreground">
                                                     Last Updated
                                                 </p>
-                                                <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                                                <p className="mt-2 text-sm font-semibold">
                                                     {maintenanceRequest?.data
                                                         .updated_at
                                                         ? format(
@@ -332,13 +486,13 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
 
                             {/* Completion Notes */}
                             {maintenanceRequest.data.completion_notes && (
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                     <div className="p-6">
-                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                                            <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
                                             Completion Notes
                                         </h2>
-                                        <p className="text-base leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                                        <p className="text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
                                             {
                                                 maintenanceRequest.data
                                                     .completion_notes
@@ -350,10 +504,10 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
 
                             {/* Image Attachments */}
                             {imageAttachments.length > 0 && (
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                     <div className="p-6">
-                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                            <ImageIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
                                             Attachments (
                                             {imageAttachments.length})
                                         </h2>
@@ -369,9 +523,9 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                                 name: attachment.original_name,
                                                             })
                                                         }
-                                                        className="group relative overflow-hidden rounded-lg border border-slate-200 bg-transparent p-0 text-left transition-all hover:bg-transparent hover:shadow-md dark:border-slate-700 dark:hover:border-slate-600"
+                                                        className="group relative overflow-hidden rounded-lg border bg-transparent p-0 text-left transition-all hover:bg-transparent hover:shadow-md hover:border-ring/50"
                                                     >
-                                                        <div className="aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                                        <div className="aspect-square overflow-hidden bg-muted">
                                                             <img
                                                                 src={
                                                                     attachment.file_path
@@ -387,18 +541,18 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                                 <ImageIcon className="h-6 w-6 text-white" />
                                                             </div>
                                                         </div>
-                                                        <div className="bg-white p-3 dark:bg-slate-800">
-                                                            <p className="truncate text-xs font-medium text-slate-900 dark:text-white">
+                                                        <div className="bg-card p-3">
+                                                            <p className="truncate text-xs font-medium">
                                                                 {
                                                                     attachment.original_name
                                                                 }
                                                             </p>
-                                                            <p className="truncate text-xs text-slate-600 dark:text-slate-400">
+                                                            <p className="truncate text-xs text-muted-foreground">
                                                                 {formatBytes(
                                                                     attachment.size,
                                                                 )}
                                                             </p>
-                                                            <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-500">
+                                                            <p className="mt-1 truncate text-xs text-muted-foreground">
                                                                 by{' '}
                                                                 {
                                                                     attachment
@@ -418,10 +572,10 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                             {/* Status History */}
                             {(maintenanceRequest.data.status_logs || [])
                                 .length > 0 && (
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                     <div className="p-6">
-                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                            <Clock className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                                            <Clock className="h-5 w-5 text-muted-foreground" />
                                             Status History
                                         </h2>
                                         <div className="space-y-4">
@@ -431,10 +585,10 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             ).map((log, index) => (
                                                 <div
                                                     key={log.id}
-                                                    className="flex gap-4 border-b border-slate-200 pb-4 last:border-0 last:pb-0 dark:border-slate-700"
+                                                    className="flex gap-4 border-b pb-4 last:border-0 last:pb-0"
                                                 >
                                                     <div className="flex flex-col items-center">
-                                                        <div className="h-3 w-3 rounded-full bg-slate-400" />
+                                                        <div className="h-3 w-3 rounded-full bg-muted-foreground" />
                                                         {index <
                                                             (
                                                                 maintenanceRequest
@@ -443,7 +597,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                                 []
                                                             ).length -
                                                                 1 && (
-                                                            <div className="mt-2 h-8 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                                                            <div className="mt-2 h-8 w-0.5 bg-border" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 pt-0.5">
@@ -452,26 +606,26 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                                 <>
                                                                     <Badge
                                                                         variant="outline"
-                                                                        className={`border text-xs ${getStatusColor(log.from_status?.value)}`}
+                                                                        className={`text-xs ${getStatusColor(log.from_status?.value)}`}
                                                                     >
                                                                         {log
                                                                             .from_status
                                                                             ?.label ||
                                                                             '—'}
                                                                     </Badge>
-                                                                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                                    <span className="text-xs text-muted-foreground">
                                                                         →
                                                                     </span>
                                                                 </>
                                                             ) : (
                                                                 <>
                                                                     <Badge
-                                                                        variant="outline"
-                                                                        className="border bg-slate-100 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                                                                        variant="secondary"
+                                                                        className="text-xs"
                                                                     >
                                                                         Initial
                                                                     </Badge>
-                                                                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                                    <span className="text-xs text-muted-foreground">
                                                                         →
                                                                     </span>
                                                                 </>
@@ -479,7 +633,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                             {log.to_status && (
                                                                 <Badge
                                                                     variant="outline"
-                                                                    className={`border text-xs ${getStatusColor(log.to_status?.value)}`}
+                                                                    className={`text-xs ${getStatusColor(log.to_status?.value)}`}
                                                                 >
                                                                     {log
                                                                         .to_status
@@ -488,12 +642,12 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                                 </Badge>
                                                             )}
                                                         </div>
-                                                        <p className="mb-1 text-xs text-slate-600 dark:text-slate-400">
+                                                        <p className="mb-1 text-xs text-muted-foreground">
                                                             by{' '}
                                                             {log.changed_by
                                                                 ?.name || '—'}
                                                         </p>
-                                                        <p className="mb-2 text-xs text-slate-500 dark:text-slate-500">
+                                                        <p className="mb-2 text-xs text-muted-foreground">
                                                             {format(
                                                                 new Date(
                                                                     log.created_at,
@@ -502,7 +656,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                             )}
                                                         </p>
                                                         {log.notes && (
-                                                            <p className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                                            <p className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
                                                                 {log.notes}
                                                             </p>
                                                         )}
@@ -518,15 +672,15 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                         {/* Right Sidebar */}
                         <div className="space-y-6">
                             {/* Resident Card */}
-                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                 <div className="p-6">
-                                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                                        <User className="h-5 w-5 text-muted-foreground" />
                                         Resident
                                     </h2>
                                     <div className="mb-4 flex items-center gap-3">
-                                        <Avatar className="h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-600">
-                                            <AvatarFallback className="font-semibold text-slate-900 dark:text-white">
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarFallback className="font-semibold text-primary bg-primary/10">
                                                 {maintenanceRequest.data
                                                     .resident?.name
                                                     ? maintenanceRequest.data.resident?.name
@@ -537,7 +691,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <p className="font-semibold text-slate-900 dark:text-white">
+                                            <p className="font-semibold">
                                                 {
                                                     maintenanceRequest.data
                                                         .resident?.name
@@ -550,7 +704,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             .email && (
                                             <a
                                                 href={`mailto:${maintenanceRequest.data.resident.email}`}
-                                                className="inline-flex items-center gap-2 text-sm font-medium break-all text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                                className="inline-flex items-center gap-2 text-sm font-medium break-all text-primary hover:text-primary/80"
                                             >
                                                 {
                                                     maintenanceRequest.data
@@ -562,7 +716,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             .phone && (
                                             <a
                                                 href={`tel:${maintenanceRequest.data.resident.phone}`}
-                                                className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                                className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
                                             >
                                                 <Phone className="h-4 w-4" />
                                                 {
@@ -576,18 +730,18 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                             </div>
 
                             {/* Assigned Technician Card */}
-                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                 <div className="p-6">
-                                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                        <Wrench className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                                        <Wrench className="h-5 w-5 text-muted-foreground" />
                                         Assigned Technician
                                     </h2>
                                     {maintenanceRequest.data
                                         .assigned_technician ? (
                                         <>
                                             <div className="mb-4 flex items-center gap-3">
-                                                <Avatar className="h-10 w-10 bg-gradient-to-br from-green-400 to-green-600">
-                                                    <AvatarFallback className="font-semibold text-slate-900 dark:text-white">
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarFallback className="font-semibold text-primary bg-primary/10">
                                                         {maintenanceRequest.data.assigned_technician.name
                                                             .split(' ')
                                                             .map((n) => n[0])
@@ -595,7 +749,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="font-semibold text-slate-900 dark:text-white">
+                                                    <p className="font-semibold">
                                                         {
                                                             maintenanceRequest
                                                                 .data
@@ -611,7 +765,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                     .email && (
                                                     <a
                                                         href={`mailto:${maintenanceRequest.data.assigned_technician.email}`}
-                                                        className="inline-flex items-center gap-2 text-sm font-medium break-all text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                                        className="inline-flex items-center gap-2 text-sm font-medium break-all text-primary hover:text-primary/80"
                                                     >
                                                         {
                                                             maintenanceRequest
@@ -626,7 +780,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                                     .phone && (
                                                     <a
                                                         href={`tel:${maintenanceRequest.data.assigned_technician.phone}`}
-                                                        className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                                        className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
                                                     >
                                                         <Phone className="h-4 w-4" />
                                                         {
@@ -640,7 +794,7 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                                             </div>
                                         </>
                                     ) : (
-                                        <div className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                                        <div className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
                                             Technician not assigned
                                         </div>
                                     )}
@@ -649,13 +803,13 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
 
                             {/* Actual Cost Card */}
                             {maintenanceRequest.data.actual_cost && (
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                     <div className="p-6">
-                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                                            <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                                            <DollarSign className="h-5 w-5 text-muted-foreground" />
                                             Actual Cost
                                         </h2>
-                                        <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                                        <p className="text-3xl font-bold">
                                             $
                                             {parseFloat(
                                                 maintenanceRequest.data
@@ -678,6 +832,29 @@ export default function Show({ maintenanceRequest }: GeneratedPageProps) {
                     imageName={selectedImage?.name || ''}
                 />
             )}
+
+            <AssignTechnicianDialog
+                technicians={technicians}
+                isReassigning={hasAssignedTechnician}
+                data={assignForm.data}
+                setData={assignForm.setData}
+                errors={assignForm.errors}
+                processing={assignForm.processing}
+                onSubmit={submitAssignTechnician}
+                open={assignDialogOpen}
+                onOpenChange={setAssignDialogOpen}
+            />
+
+            <StatusUpdateDialog
+                statuses={statuses}
+                data={statusForm.data}
+                setData={statusForm.setData}
+                errors={statusForm.errors}
+                processing={statusForm.processing}
+                onSubmit={submitStatusUpdate}
+                open={statusDialogOpen}
+                onOpenChange={setStatusDialogOpen}
+            />
         </>
     );
 }

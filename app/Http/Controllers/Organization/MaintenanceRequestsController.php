@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Organization;
 
+use App\Actions\Organization\Common\GetAvailableTechniciansForDropdown;
 use App\Actions\Organization\GetMaintenanceRequests;
 use App\Data\MaintenanceRequestFilterData;
+use App\Enums\MaintenanceRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MaintenanceRequestResource;
 use App\Models\MaintenanceRequest;
 use App\Models\Organization;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -38,6 +41,10 @@ class MaintenanceRequestsController extends Controller
 
         return Inertia::render('organization/maintenance-request/show', [
             'maintenanceRequest' => $maintenanceRequest->toResource(),
+            'maintenanceRequestStatuses' => MaintenanceRequestStatus::getLabeledValues(),
+            'availableTechnicians' => Inertia::defer(
+                fn (): Collection => GetAvailableTechniciansForDropdown::handle(),
+            )->once(),
         ]);
     }
 }

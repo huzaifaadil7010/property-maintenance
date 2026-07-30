@@ -252,6 +252,15 @@ Rules:
 - Any operation touching more than one table wraps in `DB::transaction()`.
 - Side effects (notifications, media, events) belong in the Action, not the controller.
 - Actions may call other Actions. They must never touch `$request`.
+- Request-derived input comes **only** through the `Data` DTO — never a raw
+  `Request`. Context that isn't part of the request (`User`, a route-bound model)
+  stays a separate explicit `handle()` parameter, same as `Auth::user()` below —
+  it does not get stuffed into the DTO.
+- If an Action needs a field that the DTO doesn't naturally carry (e.g. a fixed
+  status specific to one transition), don't assume where it comes from — **stop
+  and ask** whether it should be added to the DTO (with the caller populating it)
+  or passed as its own `handle()` parameter. Never hardcode business-specific
+  values inside the Action body regardless of which shape is chosen.
 - **Never call `Auth::user()` / `Auth::id()` inside an Action.** Pass the user in as
   an explicit parameter: `handle(SubmissionData $data, User $user)`. An Action that
   reads the session can't be reused from a job, command, or another user's context,

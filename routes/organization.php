@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Organization\AssignMaintenanceRequestTechnicianController;
 use App\Http\Controllers\Organization\DashboardController;
 use App\Http\Controllers\Organization\MaintenanceRequestsController;
 use App\Http\Controllers\Organization\PropertiesController;
 use App\Http\Controllers\Organization\ResidentsController;
 use App\Http\Controllers\Organization\TechniciansController;
 use App\Http\Controllers\Organization\UnitsController;
+use App\Http\Controllers\Organization\UpdateMaintenanceRequestStatusController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -31,4 +33,6 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::get('technicians', [TechniciansController::class, 'index'])->name('technicians');
         Route::get('maintenance-requests', [MaintenanceRequestsController::class, 'index'])->name('maintenance-requests');
         Route::get('maintenance-requests/{maintenanceRequest}', [MaintenanceRequestsController::class, 'show'])->name('maintenance-requests.show');
+        Route::patch('maintenance-requests/{maintenanceRequest}/assign-technician', AssignMaintenanceRequestTechnicianController::class)->name('maintenance-requests.assign-technician');
+        Route::patch('maintenance-requests/{maintenanceRequest}/status', UpdateMaintenanceRequestStatusController::class)->name('maintenance-requests.update-status');
     });
