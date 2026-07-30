@@ -70,36 +70,41 @@ type StatusLog = {
     created_at: string;
 };
 
-const NEUTRAL_BADGE = 'border bg-muted text-muted-foreground';
-const ACCENT_BADGE = 'border-primary/30 bg-primary/10 text-primary';
-const ATTENTION_BADGE = 'border-destructive/30 bg-destructive/10 text-destructive';
-
-const getPriorityColor = (priority: string | null | undefined): string => {
-    if (!priority) {
-        return NEUTRAL_BADGE;
-    }
-
+const getStatusColor = (status: string | null | undefined): string => {
+    if (!status) return 'border bg-muted text-muted-foreground';
     const colors: Record<string, string> = {
-        high: ATTENTION_BADGE,
-        medium: ACCENT_BADGE,
-        low: NEUTRAL_BADGE,
+        open: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+        assigned: 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        'in-progress': 'border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400',
+        completed: 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400',
+        closed: 'border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400',
+        reopened: 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400',
     };
-    return colors[priority.toLowerCase()] || NEUTRAL_BADGE;
+    return colors[status.toLowerCase()] ?? 'border bg-muted text-muted-foreground';
 };
 
-const getStatusColor = (status: string | null | undefined): string => {
-    if (!status) {
-        return NEUTRAL_BADGE;
-    }
+const getStatusDotColor = (status: string | null | undefined): string => {
+    if (!status) return 'bg-muted-foreground';
     const colors: Record<string, string> = {
-        open: NEUTRAL_BADGE,
-        assigned: ACCENT_BADGE,
-        'in-progress': ACCENT_BADGE,
-        completed: 'border bg-secondary text-secondary-foreground',
-        closed: NEUTRAL_BADGE,
-        reopened: ATTENTION_BADGE,
+        open: 'bg-amber-500',
+        assigned: 'bg-blue-500',
+        'in-progress': 'bg-violet-500',
+        completed: 'bg-green-500',
+        closed: 'bg-slate-400',
+        reopened: 'bg-rose-500',
     };
-    return colors[status.toLowerCase()] || NEUTRAL_BADGE;
+    return colors[status.toLowerCase()] ?? 'bg-muted-foreground';
+};
+
+const getPriorityColor = (priority: string | null | undefined): string => {
+    if (!priority) return 'border bg-muted text-muted-foreground';
+    const colors: Record<string, string> = {
+        urgent: 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+        high: 'border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400',
+        normal: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+        low: 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400',
+    };
+    return colors[priority.toLowerCase()] ?? 'border bg-muted text-muted-foreground';
 };
 
 const getStatusIcon = (status: string | null | undefined) => {
@@ -407,7 +412,7 @@ export default function Show({
                                         {/* Created */}
                                         <div className="flex gap-4">
                                             <div className="flex flex-col items-center pt-1">
-                                                <div className="h-3 w-3 rounded-full bg-primary" />
+                                                <div className={`h-3 w-3 rounded-full ${getStatusDotColor('open')}`} />
                                                 <div className="mt-3 h-12 w-0.5 bg-border" />
                                             </div>
                                             <div className="pb-4">
@@ -435,7 +440,7 @@ export default function Show({
                                             .completed_at && (
                                             <div className="flex gap-4">
                                                 <div className="flex flex-col items-center pt-1">
-                                                    <div className="h-3 w-3 rounded-full bg-primary" />
+                                                    <div className={`h-3 w-3 rounded-full ${getStatusDotColor('completed')}`} />
                                                     <div className="mt-3 h-12 w-0.5 bg-border" />
                                                 </div>
                                                 <div className="pb-4">
@@ -459,7 +464,7 @@ export default function Show({
                                         {/* Last Updated */}
                                         <div className="flex gap-4">
                                             <div className="flex flex-col items-center pt-1">
-                                                <div className="h-3 w-3 rounded-full bg-muted-foreground" />
+                                                <div className={`h-3 w-3 rounded-full ${getStatusDotColor(maintenanceRequest.data.status?.value)}`} />
                                             </div>
                                             <div>
                                                 <p className="text-xs font-medium text-muted-foreground">
@@ -588,7 +593,7 @@ export default function Show({
                                                     className="flex gap-4 border-b pb-4 last:border-0 last:pb-0"
                                                 >
                                                     <div className="flex flex-col items-center">
-                                                        <div className="h-3 w-3 rounded-full bg-muted-foreground" />
+                                                        <div className={`h-3 w-3 rounded-full ${getStatusDotColor(log.to_status?.value)}`} />
                                                         {index <
                                                             (
                                                                 maintenanceRequest
