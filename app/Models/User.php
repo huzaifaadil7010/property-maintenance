@@ -92,6 +92,27 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasMany(MaintenanceRequestStatusLog::class, 'changed_by');
     }
 
+    public function getDashboardUrl(): string
+    {
+        if ($this->hasRole(UserRole::RESIDENT)) {
+            return route('resident.dashboard');
+        }
+
+        if (
+            (
+                $this->hasRole(UserRole::OWNER)
+                || $this->hasRole(UserRole::MANAGER)
+                || $this->hasRole(UserRole::TECHNICIAN)
+            ) && $this->currentOrganization?->uuid !== null
+        ) {
+            return route('organization.dashboard', [
+                'organization' => $this->currentOrganization->uuid,
+            ]);
+        }
+
+        return route('home');
+    }
+
     #[Scope]
     protected function owner(Builder $builder): Builder
     {
