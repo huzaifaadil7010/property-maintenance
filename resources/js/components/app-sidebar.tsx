@@ -1,12 +1,4 @@
 import { Link, usePage } from '@inertiajs/react';
-import {
-    Building2,
-    ClipboardList,
-    DoorOpen,
-    LayoutGrid,
-    Users,
-    Wrench,
-} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -19,59 +11,19 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import type { NavItem } from '@/types';
-import MaintenanceRequestsController from '@/wayfinder/App/Http/Controllers/Organization/MaintenanceRequestsController';
-import PropertiesController from '@/wayfinder/App/Http/Controllers/Organization/PropertiesController';
-import ResidentsController from '@/wayfinder/App/Http/Controllers/Organization/ResidentsController';
-import TechniciansController from '@/wayfinder/App/Http/Controllers/Organization/TechniciansController';
-import UnitsController from '@/wayfinder/App/Http/Controllers/Organization/UnitsController';
-import { dashboard } from '@/wayfinder/routes';
+import { getSidebarNavigation } from '@/lib/navigation';
+import type { Auth } from '@/types';
 
 export function AppSidebar() {
-    const { currentOrganization } = usePage().props;
+    const { auth, currentOrganization } = usePage<{
+        auth: Auth;
+        currentOrganization: { uuid: string; name: string } | null;
+    }>().props;
 
-    const mainNavItems: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: dashboard(),
-            icon: LayoutGrid,
-        },
-        ...(currentOrganization
-            ? [
-                  {
-                      title: 'Properties',
-                      href: PropertiesController.index(currentOrganization.uuid)
-                          .url,
-                      icon: Building2,
-                  },
-                  {
-                      title: 'Units',
-                      href: UnitsController.index(currentOrganization.uuid).url,
-                      icon: DoorOpen,
-                  },
-                  {
-                      title: 'Residents',
-                      href: ResidentsController.index(currentOrganization.uuid)
-                          .url,
-                      icon: Users,
-                  },
-                  {
-                      title: 'Technicians',
-                      href: TechniciansController.index(
-                          currentOrganization.uuid,
-                      ).url,
-                      icon: Wrench,
-                  },
-                  {
-                      title: 'Maintenance Requests',
-                      href: MaintenanceRequestsController.index(
-                          currentOrganization.uuid,
-                      ).url,
-                      icon: ClipboardList,
-                  },
-              ]
-            : []),
-    ];
+    const { items, label, dashboardHref } = getSidebarNavigation(
+        auth.role,
+        currentOrganization,
+    );
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -79,7 +31,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={dashboardHref} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -88,7 +40,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={items} label={label} />
             </SidebarContent>
 
             <SidebarFooter>

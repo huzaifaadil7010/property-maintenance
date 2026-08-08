@@ -11,26 +11,25 @@ export default function AppLayout({
     breadcrumbs?: BreadcrumbItem[];
     children: React.ReactNode;
 }) {
-
-    const page = usePage()
-    const flash = useMemo(()=> page.flash, [page.flash]);
+    const page = usePage();
+    const flash = useMemo(
+        () => page.flash as { success?: string; error?: string },
+        [page.flash],
+    );
 
     useEffect(() => {
         if (flash?.success) {
-            toast.success(flash.success)
-            delete flash.success
+            toast.success(flash.success);
 
             return;
         }
 
         if (flash?.error) {
-            toast.error(flash.error)
-            delete flash.error;
+            toast.error(flash.error);
 
             return;
         }
-
-    }, [flash])
+    }, [flash]);
 
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs}>
