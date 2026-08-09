@@ -20,6 +20,7 @@ class PropertyResource extends JsonResource
             'city' => $this->city,
             'created_at' => $this->created_at,
             'units_count' => $this->whenCounted('units'),
+            'available_units_count' => $this->available_units_count ?? null,
         ];
     }
 }
