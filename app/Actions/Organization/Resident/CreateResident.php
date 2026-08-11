@@ -3,9 +3,10 @@
 namespace App\Actions\Organization\Resident;
 
 use App\Data\ResidentData;
+use App\Data\OccupancyData;
+use App\Data\ResidentUserData;
 use App\Enums\OccupancyStatus;
 use App\Enums\UserRole;
-use App\Models\Occupancy;
 use App\Models\Organization;
 use App\Models\Unit;
 use App\Models\User;
@@ -50,13 +51,14 @@ class CreateResident
                     ]);
                 }
 
-                $resident = User::create([
-                    'current_organization_id' => $organization->id,
-                    'name' => $data->name,
-                    'email' => $data->email,
-                    'phone' => $data->phone,
-                    'password' => $temporaryPassword,
-                ]);
+                $resident = CreateUser::handle(new ResidentUserData(
+                    name: $data->name,
+                    email: $data->email,
+                    password: $temporaryPassword,
+                    phone: $data->phone,
+                ));
+
+                $resident->update(['current_organization_id' => $organization->id]);
 
                 $resident->forceFill([
                     'email_verified_at' => now(),
@@ -70,13 +72,13 @@ class CreateResident
 
                 $resident->assignRole($residentRole);
 
-                Occupancy::create([
-                    'organization_id' => $organization->id,
-                    'unit_id' => $unit->id,
-                    'resident_id' => $resident->id,
-                    'starts_at' => now()->toDateString(),
-                    'status' => OccupancyStatus::ACTIVE,
-                ]);
+                CreateOccupancy::handle(new OccupancyData(
+                    organization_id: $organization->id,
+                    unit_id: $unit->id,
+                    resident_id: $resident->id,
+                    starts_at: now()->toDateString(),
+                    status: OccupancyStatus::ACTIVE,
+                ));
 
                 DB::afterCommit(function () use ($resident, $temporaryPassword): void {
                     $resident->notify(new ResidentAccountCreatedNotification($temporaryPassword));
