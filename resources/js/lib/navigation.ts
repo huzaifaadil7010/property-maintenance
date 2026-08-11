@@ -1,4 +1,5 @@
 import { Building2, ClipboardList, DoorOpen, LayoutGrid, Users, Wrench } from 'lucide-react';
+import type { NavItem } from '@/types';
 import { UserRole } from '@/wayfinder/App/Enums/UserRole';
 import MaintenanceRequestsController from '@/wayfinder/App/Http/Controllers/Organization/MaintenanceRequestsController';
 import PropertiesController from '@/wayfinder/App/Http/Controllers/Organization/PropertiesController';
@@ -7,8 +8,10 @@ import TechniciansController from '@/wayfinder/App/Http/Controllers/Organization
 import UnitsController from '@/wayfinder/App/Http/Controllers/Organization/UnitsController';
 import { dashboard as appDashboard } from '@/wayfinder/routes';
 import { dashboard as organizationDashboard } from '@/wayfinder/routes/organization';
-import { dashboard as residentDashboard } from '@/wayfinder/routes/resident';
-import type { NavItem } from '@/types';
+import {
+    dashboard as residentDashboard,
+    maintenanceRequests as residentMaintenanceRequests,
+} from '@/wayfinder/routes/resident';
 
 type CurrentOrganization = {
     uuid: string;
@@ -50,6 +53,11 @@ export function getSidebarNavigation(
                     title: 'Dashboard',
                     href: dashboardHref,
                     icon: LayoutGrid,
+                },
+                {
+                    title: 'My Requests',
+                    href: residentMaintenanceRequests().url,
+                    icon: ClipboardList,
                 },
             ],
         };
