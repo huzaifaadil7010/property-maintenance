@@ -329,6 +329,43 @@ enum SubmissionStatus: string
 - Put enum-derived behaviour (labels, colors, allowed transitions) on the enum
   as methods rather than in `match` blocks scattered across the app.
 
+#### Enum options for Inertia React dropdowns
+
+- Before preparing enum options for a frontend dropdown, inspect the enum for the
+  project's existing labeled-values helper. In this project, the shared
+  `EnumHelper` trait provides `getLabeledValues()`.
+- If the helper exists, use it from the controller and pass the result as an
+  Inertia prop. Do not create a second option format in the controller.
+- Check whether the enum defines `getLabel()`. If it does, use it for the labels.
+  If it does not, stop and ask before proceeding unless the project explicitly
+  permits adding the method; do not invent a frontend label-formatting fallback.
+- If no labeled-values helper can be found, stop and ask the user where the
+  helper is located or how labeled options should be produced. Do not invent a
+  new helper without the user's direction.
+
+```php
+use App\Enums\ProjectStatus;
+
+return Inertia::render('projects/index', [
+    'projectStatuses' => ProjectStatus::getLabeledValues(),
+]);
+```
+
+- The prop shape is an array of `{ label, value }` options:
+
+```php
+[
+    ['label' => 'In progress', 'value' => 'in-progress'],
+]
+```
+
+- In React, render the backend-provided options directly: use `option.label` for
+  display and `option.value` for the select value. Do not transform or recreate
+  the options in React.
+- Use generated Wayfinder enum constants for typed form defaults and enum
+  comparisons where needed; use the backend-provided options for dropdown
+  rendering.
+
 ### Migrations
 
 - **Never use `->enum()`.** Use `string` with an enum-backed default:
@@ -553,7 +590,10 @@ return Inertia::flash([
   Older projects use `back()->with('success', ...)` — match the file you're in.
 
 - When create/edit are dialogs on the listing page, the form's select options are
-  deferred props on the **index** response — the dialog must not fetch on open.
+  props on the **index** response, preferably deferred when they are secondary
+  data — the dialog must not fetch options on open. For enum options, pass the
+  backend-provided `{ label, value }` options through to the dialog and render
+  them directly.
 - Wrap list and detail payloads in API Resources so the frontend contract is explicit.
 - Route model binding everywhere; never look a model up by id inside a controller.
 
