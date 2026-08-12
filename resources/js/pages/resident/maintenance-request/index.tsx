@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
 import { useEffect, useRef, useState } from 'react';
+import CreateMaintenanceRequestDialogue from '@/components/resident/maintenance-request/create-maintenance-request-dialogue';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import type { Inertia } from '@/wayfinder/types';
@@ -13,6 +14,8 @@ type EnumOption = {
     label: string;
     value: string;
 };
+
+type CreateMaintenanceRequestOption = EnumOption;
 
 type MyRequestTableRow = {
     id: number;
@@ -30,6 +33,10 @@ export default function Index(props: GeneratedPageProps) {
         data: MyRequestTableRow[];
         meta: Record<'current_page' | 'last_page' | 'per_page' | 'total', number>;
     };
+    const maintenanceCategories = props.maintenanceCategories as unknown as
+        | CreateMaintenanceRequestOption[];
+    const maintenancePriorities = props.maintenancePriorities as unknown as
+        | CreateMaintenanceRequestOption[];
     const queryParameters = new URLSearchParams(url.split('?')[1] ?? '');
     const requestedPerPage = Number(queryParameters.get('perPage'));
     const [search, setSearch] = useState(queryParameters.get('search') ?? '');
@@ -88,13 +95,21 @@ export default function Index(props: GeneratedPageProps) {
 
             <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
                 <div className="mx-auto flex w-full max-w-10xl flex-1 flex-col gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            My Requests
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            View and track your maintenance requests.
-                        </p>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl font-semibold tracking-tight">
+                                My Requests
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                View and track your maintenance requests.
+                            </p>
+                        </div>
+
+                        <CreateMaintenanceRequestDialogue
+                            categories={maintenanceCategories}
+                            priorities={maintenancePriorities}
+                            only={['myRequests']}
+                        />
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">

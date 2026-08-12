@@ -13,4 +13,15 @@ enum MaintenanceCategory: string
     case AIR_CONDITIONING = 'air-conditioning';
     case CARPENTRY = 'carpentry';
     case GENERAL = 'general';
+
+    public function getLabel(): string
+    {
+        return match ($this) {
+            self::PLUMBING => 'Plumbing',
+            self::ELECTRICAL => 'Electrical',
+            self::AIR_CONDITIONING => 'Air conditioning',
+            self::CARPENTRY => 'Carpentry',
+            self::GENERAL => 'General',
+        };
+    }
 }

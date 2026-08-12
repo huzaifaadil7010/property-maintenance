@@ -12,4 +12,14 @@ enum MaintenancePriority: string
     case NORMAL = 'normal';
     case HIGH = 'high';
     case URGENT = 'urgent';
+
+    public function getLabel(): string
+    {
+        return match ($this) {
+            self::LOW => 'Low',
+            self::NORMAL => 'Normal',
+            self::HIGH => 'High',
+            self::URGENT => 'Urgent',
+        };
+    }
 }

@@ -10,4 +10,5 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:resident'])
     ->group(function (): void {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('maintenance-requests', [MaintenanceRequestsController::class, 'index'])->name('maintenance-requests');
+        Route::post('maintenance-requests', [MaintenanceRequestsController::class, 'store'])->name('maintenance-requests.store');
     });
