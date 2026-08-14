@@ -654,3 +654,17 @@ Notes:
 - Curly braces on all control structures, even one-liners.
 - PHPDoc blocks over inline comments; document `@throws` on Actions that can throw.
 - Run `vendor/bin/pint --dirty` before finishing any PHP change.
+
+### Readable condition checks
+
+- Use boolean truthiness for boolean checks: `if ($value)` and `if (! $value)`.
+- Use Laravel's `blank($value)` when checking whether a string, array, nullable value,
+  or general value has no usable content.
+- Use `filled($value)` when the positive condition reads more clearly.
+- Do not use explicit emptiness checks such as `$value === ''`, `$value !== ''`,
+  `$value === null`, `$value !== null`, `$value === false`, `$value == false`,
+  `empty($value)`, or `isset($value)` when the intent is only to check whether a
+  value is usable.
+- Keep explicit comparisons when they communicate a specific business or security
+  condition, such as enum comparisons, status checks, numeric comparisons, or path
+  safety checks.
