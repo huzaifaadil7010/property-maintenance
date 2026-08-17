@@ -4,9 +4,6 @@ import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 import InputError from '@/components/input-error';
-import TempFileUploadRequest, {
-    type TempFileUploadResponse,
-} from '@/components/resident/maintenance-request/temp-file-upload-request';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,6 +29,7 @@ import { Spinner } from '@/components/ui/spinner';
 import MaintenanceCategory from '@/wayfinder/App/Enums/MaintenanceCategory';
 import MaintenancePriority from '@/wayfinder/App/Enums/MaintenancePriority';
 import DeleteTempFileController from '@/wayfinder/App/Http/Controllers/DeleteTempFileController';
+import StoreTempFileController from '@/wayfinder/App/Http/Controllers/StoreTempFileController';
 import { store } from '@/wayfinder/App/Http/Controllers/Resident/MaintenanceRequestsController';
 
 type EnumOption = {
@@ -44,6 +42,16 @@ type FormData = {
     category: (typeof MaintenanceCategory)[keyof typeof MaintenanceCategory];
     priority: (typeof MaintenancePriority)[keyof typeof MaintenancePriority];
     description: string;
+};
+
+type UploadFormData = {
+    file: File | null;
+    file_type: string;
+};
+
+type TempFileUploadResponse = {
+    file_name: string;
+    message: string;
 };
 
 type DeleteFormData = {
@@ -60,11 +68,6 @@ type ImagePreview = {
     fileName: string;
     isProcessing: boolean;
     progress: number | null;
-};
-
-type UploadJob = {
-    id: string;
-    file: File;
 };
 
 type CleanupQueue = {
@@ -87,7 +90,7 @@ export default function CreateMaintenanceRequestDialogue({
     const { temp_path: tempPath } = usePage<{ temp_path: string }>().props;
     const [open, setOpen] = useState(false);
     const [previews, setPreviews] = useState<ImagePreview[]>([]);
-    const [uploadJobs, setUploadJobs] = useState<UploadJob[]>([]);
+    const [pendingUploads, setPendingUploads] = useState(0);
     const [isCleaningUp, setIsCleaningUp] = useState(false);
     const form = useForm<FormData>({
         title: '',
@@ -95,12 +98,16 @@ export default function CreateMaintenanceRequestDialogue({
         priority: MaintenancePriority.NORMAL,
         description: '',
     });
+    const uploadHttp = useHttp<UploadFormData, TempFileUploadResponse>({
+        file: null,
+        file_type: 'image',
+    });
     const deleteHttp = useHttp<DeleteFormData, DeleteResponse>({
         file_name: '',
     });
     const cleanupQueue = useRef<CleanupQueue | null>(null);
     const isFileProcessing =
-        uploadJobs.length > 0 || deleteHttp.processing || isCleaningUp;
+        pendingUploads > 0 || deleteHttp.processing || isCleaningUp;
     const cannotSubmitError = (
         form.errors as Record<string, string | undefined>
     ).cannot_submit;
@@ -123,7 +130,6 @@ export default function CreateMaintenanceRequestDialogue({
             progress: null,
             url: `${tempPath}/${response.file_name}`,
         });
-        toast.success(response.message);
     }
 
     function handleUploadError(id: string, message: string): void {
@@ -137,15 +143,13 @@ export default function CreateMaintenanceRequestDialogue({
         updatePreview(id, { progress });
     }
 
-    function handleUploadFinish(id: string): void {
-        setUploadJobs((current) =>
-            current.filter((uploadJob) => uploadJob.id !== id),
-        );
+    function handleUploadFinish(): void {
+        setPendingUploads((current) => Math.max(0, current - 1));
     }
 
     function handleFilesChange(files: File | File[]): void {
         const selectedFiles = Array.isArray(files) ? files : [files];
-        const jobs = selectedFiles.map((file) => {
+        const filesWithIds = selectedFiles.map((file) => {
             const id = crypto.randomUUID();
 
             return {
@@ -156,7 +160,7 @@ export default function CreateMaintenanceRequestDialogue({
 
         setPreviews((current) => [
             ...current,
-            ...jobs.map(({ id, file }) => ({
+            ...filesWithIds.map(({ id, file }) => ({
                 id,
                 url: '',
                 fileName: file.name,
@@ -164,7 +168,45 @@ export default function CreateMaintenanceRequestDialogue({
                 progress: null,
             })),
         ]);
-        setUploadJobs((current) => [...current, ...jobs]);
+        setPendingUploads((current) => current + filesWithIds.length);
+
+        filesWithIds.forEach(({ id, file }) => {
+            uploadHttp.setData({ file, file_type: 'image' });
+            uploadHttp.post(StoreTempFileController.url(), {
+                onProgress: (progress) => {
+                    handleUploadProgress(id, progress.percentage ?? null);
+                },
+                onSuccess: (response) => {
+                    handleUploadSuccess(id, response);
+                },
+                onError: (errors) => {
+                    handleUploadError(
+                        id,
+                        String(
+                            errors.file ??
+                                'Something went wrong while uploading the file.',
+                        ),
+                    );
+                },
+                onHttpException: () => {
+                    handleUploadError(
+                        id,
+                        'Something went wrong while uploading the file.',
+                    );
+
+                    return false;
+                },
+                onNetworkError: () => {
+                    handleUploadError(
+                        id,
+                        'Unable to connect while uploading the file.',
+                    );
+
+                    return false;
+                },
+                onFinish: handleUploadFinish,
+            });
+        });
     }
 
     function showDeleteError(message: string): void {
@@ -247,11 +289,10 @@ export default function CreateMaintenanceRequestDialogue({
 
         deleteHttp.setData({ file_name: preview.fileName });
         deleteHttp.delete(DeleteTempFileController.url(), {
-            onSuccess: (response) => {
+            onSuccess: () => {
                 setPreviews((current) =>
                     current.filter((item) => item.id !== preview.id),
                 );
-                toast.success(response.message);
             },
             onError: (errors) => {
                 showDeleteError(
@@ -323,18 +364,6 @@ export default function CreateMaintenanceRequestDialogue({
             </DialogTrigger>
 
             <DialogContent>
-                {uploadJobs.map((job) => (
-                    <TempFileUploadRequest
-                        key={job.id}
-                        id={job.id}
-                        file={job.file}
-                        onSuccess={handleUploadSuccess}
-                        onError={handleUploadError}
-                        onProgress={handleUploadProgress}
-                        onFinish={handleUploadFinish}
-                    />
-                ))}
-
                 <DialogHeader>
                     <DialogTitle>Report an issue</DialogTitle>
                     <DialogDescription>
