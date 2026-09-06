@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Organization;
 use App\Actions\Organization\Common\GetPropertiesForDropDown;
 use App\Actions\Organization\Dashboard\GetTotalActiveResidents;
 use App\Actions\Organization\Dashboard\GetTotalAvailableTechnicians;
+use App\Actions\Organization\Dashboard\GetTotalMaintenanceRequestsByStatus;
 use App\Actions\Organization\Dashboard\GetTotalOccupiedUnits;
 use App\Actions\Organization\Dashboard\GetTotalProperties;
 use App\Actions\Organization\Dashboard\GetTotalUnits;
 use App\Actions\Organization\Dashboard\GetTotalVacantUnits;
+use App\Enums\MaintenanceRequestStatus;
 use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Collection;
@@ -47,6 +49,27 @@ class DashboardController extends Controller
             'totalVacantUnits' => Inertia::defer(
                 fn (): int => GetTotalVacantUnits::handle(),
                 'totalVacantUnits',
+            ),
+            'totalOpenRequests' => Inertia::defer(
+                fn (): int => GetTotalMaintenanceRequestsByStatus::handle([
+                    MaintenanceRequestStatus::OPEN,
+                    MaintenanceRequestStatus::ASSIGNED,
+                ]),
+                'totalOpenRequests',
+            ),
+            'totalInProgressRequests' => Inertia::defer(
+                fn (): int => GetTotalMaintenanceRequestsByStatus::handle([
+                    MaintenanceRequestStatus::IN_PROGRESS,
+                    MaintenanceRequestStatus::REOPENED,
+                ]),
+                'totalInProgressRequests',
+            ),
+            'totalCompletedRequests' => Inertia::defer(
+                fn (): int => GetTotalMaintenanceRequestsByStatus::handle([
+                    MaintenanceRequestStatus::COMPLETED,
+                    MaintenanceRequestStatus::CLOSED,
+                ]),
+                'totalCompletedRequests',
             ),
         ]);
     }

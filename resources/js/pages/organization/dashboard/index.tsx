@@ -26,7 +26,10 @@ type DashboardProps = {
     properties?: PropertyOption[];
     totalActiveResidents: number;
     totalAvailableTechnicians: number;
+    totalCompletedRequests: number;
+    totalInProgressRequests: number;
     totalOccupiedUnits: number;
+    totalOpenRequests: number;
     totalProperties: number;
     totalUnits: number;
     totalVacantUnits: number;
@@ -37,7 +40,10 @@ export default function Dashboard({
     properties,
     totalActiveResidents,
     totalAvailableTechnicians,
+    totalCompletedRequests,
+    totalInProgressRequests,
     totalOccupiedUnits,
+    totalOpenRequests,
     totalProperties,
     totalUnits,
     totalVacantUnits,
@@ -154,24 +160,41 @@ export default function Dashboard({
                         />
                     </Deferred>
 
-                    <StatCard
-                        title="Open requests"
-                        value={0}
-                        description="Awaiting review or assignment"
-                        icon={CircleAlert}
-                    />
-                    <StatCard
-                        title="In-progress requests"
-                        value={0}
-                        description="Maintenance currently underway"
-                        icon={Clock3}
-                    />
-                    <StatCard
-                        title="Completed requests"
-                        value={0}
-                        description="Maintenance work completed"
-                        icon={CircleCheckBig}
-                    />
+                    <Deferred
+                        data="totalOpenRequests"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Open requests"
+                            value={totalOpenRequests}
+                            description="Awaiting review or assignment"
+                            icon={CircleAlert}
+                        />
+                    </Deferred>
+
+                    <Deferred
+                        data="totalInProgressRequests"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="In-progress requests"
+                            value={totalInProgressRequests}
+                            description="Maintenance currently underway"
+                            icon={Clock3}
+                        />
+                    </Deferred>
+
+                    <Deferred
+                        data="totalCompletedRequests"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Completed requests"
+                            value={totalCompletedRequests}
+                            description="Maintenance work completed"
+                            icon={CircleCheckBig}
+                        />
+                    </Deferred>
                 </div>
             </div>
         </>
