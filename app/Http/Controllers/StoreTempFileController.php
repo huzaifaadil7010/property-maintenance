@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Concerns\HasFileUploadHelpers;
+use App\Concerns\HasMediaLibraryUploadHelpers;
 use App\Http\Requests\StoreTempFileRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -10,15 +10,17 @@ use Throwable;
 
 class StoreTempFileController extends Controller
 {
-    use HasFileUploadHelpers;
+    use HasMediaLibraryUploadHelpers;
 
     public function __invoke(StoreTempFileRequest $request): JsonResponse
     {
         try {
-            $fileName = self::storeFileInTemp($request->file('file'));
+            $result = self::storeFileInTempMedia($request->file('file'), $request->user());
 
             return response()->json([
-                'file_name' => $fileName,
+                'file_name' => $result['uuid'],
+                'url' => $result['url'],
+                'srcset' => $result['srcset'],
                 'message' => __('File uploaded successfully.'),
             ]);
         } catch (ValidationException $exception) {

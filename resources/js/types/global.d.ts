@@ -16,6 +16,7 @@ declare module '@inertiajs/core' {
                 App.Models.Organization,
                 'uuid' | 'name'
             > | null;
+            temp_path: string;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

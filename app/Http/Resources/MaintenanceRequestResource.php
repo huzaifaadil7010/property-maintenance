@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\MaintenanceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -58,7 +59,14 @@ class MaintenanceRequestResource extends JsonResource
             'closed_at' => $this->closed_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'attachments' => MaintenanceRequestAttachmentResource::collection($this->attachments),
+            'attachments' => MaintenanceRequestAttachmentResource::collection(
+                $this->getMedia(MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES)
+                    ->each(fn ($media) => $media->uploader = $this->resident)
+                    ->concat(
+                        $this->getMedia(MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES)
+                            ->each(fn ($media) => $media->uploader = $this->assignedTechnician),
+                    ),
+            ),
             'status_logs' => MaintenanceRequestStatusLogResource::collection($this->statusLogs),
         ];
     }

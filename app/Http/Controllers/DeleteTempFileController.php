@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Concerns\HasFileUploadHelpers;
+use App\Concerns\HasMediaLibraryUploadHelpers;
 use App\Http\Requests\DeleteTempFileRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -10,12 +10,12 @@ use Throwable;
 
 class DeleteTempFileController extends Controller
 {
-    use HasFileUploadHelpers;
+    use HasMediaLibraryUploadHelpers;
 
     public function __invoke(DeleteTempFileRequest $request): JsonResponse
     {
         try {
-            self::deleteFileFromTemp($request->string('file_name')->toString());
+            self::deleteFileFromTempMedia($request->string('file_name')->toString(), $request->user());
 
             return response()->json([
                 'message' => __('File deleted successfully.'),

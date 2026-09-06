@@ -2,6 +2,32 @@ import React, { useRef, useState } from 'react';
 import { Upload, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
+export type ImageUploadPreview = {
+    url: string;
+    srcSet?: string;
+    fileName: string;
+    isProcessing?: boolean;
+    progress?: number | null;
+};
+
+type ImageUploadInputProps = {
+    label?: string;
+    description?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    isProcessing?: boolean;
+    progress?: number | null;
+    previewUrl?: string | null;
+    fileName?: string | null;
+    onChange?: (value: File | File[]) => void;
+    accept?: string;
+    className?: string;
+    multiple?: boolean;
+    previews?: ImageUploadPreview[];
+    onRemove?: ((index: number) => void) | null;
+    maxFiles?: number;
+};
+
 const ImageUploadInput = ({
                               label = 'Upload Proof Image',
                               description = 'PNG, JPG, WEBP - MAX 10MB',
@@ -18,9 +44,9 @@ const ImageUploadInput = ({
                               multiple = false,
                               previews = [],
                               onRemove = null,
-                              maxFiles = 10,
-                          }) => {
-    const fileInputRef = useRef(null);
+                          maxFiles = 10,
+                      }: ImageUploadInputProps) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragActive, setIsDragActive] = useState(false);
 
     // Determine if upload area should be shown in multi mode
@@ -35,7 +61,7 @@ const ImageUploadInput = ({
         }
     };
 
-    const handleDrag = (e) => {
+    const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         if (!isAnyProcessing && !disabled && canAddMore) {
@@ -43,7 +69,7 @@ const ImageUploadInput = ({
         }
     };
 
-    const handleDrop = (e) => {
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         setIsDragActive(false);
@@ -67,7 +93,7 @@ const ImageUploadInput = ({
         }
     };
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (multiple) {
             const files = e.target.files;
             if (files && onChange) {
@@ -83,7 +109,10 @@ const ImageUploadInput = ({
         }
     };
 
-    const handleRemoveImage = (index, e) => {
+    const handleRemoveImage = (
+        index: number,
+        e: React.MouseEvent<HTMLButtonElement>,
+    ) => {
         e.stopPropagation();
         if (onRemove) {
             onRemove(index);
@@ -209,6 +238,8 @@ const ImageUploadInput = ({
                                         ) : (
                                             <img
                                                 src={preview.url}
+                                                srcSet={preview.srcSet}
+                                                sizes="8rem"
                                                 alt={preview.fileName || `Preview ${index + 1}`}
                                                 className="h-full w-full object-contain"
                                             />
@@ -314,7 +345,7 @@ export default ImageUploadInput;
  * const [isProcessing, setIsProcessing] = useState(false);
  * const [progress, setProgress] = useState(null);
  *
- * const handleFileChange = async (file) => {
+ * const handleFileChange = (file) => {
  *   setIsProcessing(true);
  *   // Upload file...
  *   setPreview(filePreviewUrl);
@@ -333,7 +364,7 @@ export default ImageUploadInput;
  * @example Multi Image Mode
  * const [previews, setPreviews] = useState([]);
  *
- * const handleFilesChange = async (files) => {
+ * const handleFilesChange = (files) => {
  *   const newPreviews = files.map(file => ({
  *     url: URL.createObjectURL(file),
  *     fileName: file.name,
