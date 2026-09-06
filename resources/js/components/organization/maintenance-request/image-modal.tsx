@@ -10,6 +10,7 @@ interface ImageModalProps {
     isOpen: boolean;
     onClose: () => void;
     imageUrl: string;
+    imageSrcSet?: string | null;
     imageName: string;
 }
 
@@ -17,6 +18,7 @@ export function ImageModal({
     isOpen,
     onClose,
     imageUrl,
+    imageSrcSet,
     imageName,
 }: ImageModalProps) {
     return (
@@ -28,6 +30,8 @@ export function ImageModal({
                 <div className="flex items-center justify-center min-h-96">
                     <img
                         src={imageUrl}
+                        srcSet={imageSrcSet ?? undefined}
+                        sizes="(min-width: 1024px) 896px, 90vw"
                         alt={imageName}
                         className="max-w-full max-h-[80vh] object-contain rounded-lg"
                     />

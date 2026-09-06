@@ -38,6 +38,7 @@ type GeneratedPageProps = Inertia.Pages.Organization.MaintenanceRequest.Show;
 type Attachment = {
     id: number;
     file_path: string;
+    srcset: string | null;
     original_name: string;
     mime_type: string;
     size: number;
@@ -141,6 +142,7 @@ export default function Show({
 }: GeneratedPageProps) {
     const [selectedImage, setSelectedImage] = useState<{
         url: string;
+        srcSet: string | null;
         name: string;
     } | null>(null);
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -525,6 +527,7 @@ export default function Show({
                                                         onClick={() =>
                                                             setSelectedImage({
                                                                 url: attachment.file_path,
+                                                                srcSet: attachment.srcset,
                                                                 name: attachment.original_name,
                                                             })
                                                         }
@@ -535,6 +538,11 @@ export default function Show({
                                                                 src={
                                                                     attachment.file_path
                                                                 }
+                                                                srcSet={
+                                                                    attachment.srcset ??
+                                                                    undefined
+                                                                }
+                                                                sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
                                                                 alt={
                                                                     attachment.original_name
                                                                 }
@@ -834,6 +842,7 @@ export default function Show({
                     isOpen={!!selectedImage}
                     onClose={() => setSelectedImage(null)}
                     imageUrl={selectedImage?.url || ''}
+                    imageSrcSet={selectedImage?.srcSet}
                     imageName={selectedImage?.name || ''}
                 />
             )}

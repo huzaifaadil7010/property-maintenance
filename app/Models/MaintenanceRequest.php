@@ -29,8 +29,11 @@ class MaintenanceRequest extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection(self::MEDIA_COLLECTION_ISSUE_IMAGES);
-        $this->addMediaCollection(self::MEDIA_COLLECTION_COMPLETION_IMAGES);
+        $this->addMediaCollection(self::MEDIA_COLLECTION_ISSUE_IMAGES)
+            ->withResponsiveImages();
+
+        $this->addMediaCollection(self::MEDIA_COLLECTION_COMPLETION_IMAGES)
+            ->withResponsiveImages();
     }
 
     public function property(): BelongsTo

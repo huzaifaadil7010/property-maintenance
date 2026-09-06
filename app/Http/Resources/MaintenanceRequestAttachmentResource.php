@@ -17,6 +17,7 @@ class MaintenanceRequestAttachmentResource extends JsonResource
         return [
             'id' => $this->id,
             'file_path' => $this->getUrl(),
+            'srcset' => $this->hasResponsiveImages() ? $this->getSrcset() : null,
             'original_name' => $this->file_name,
             'mime_type' => $this->mime_type,
             'size' => $this->size,
