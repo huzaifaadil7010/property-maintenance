@@ -1,4 +1,4 @@
-import { useForm, useHttp, usePage } from '@inertiajs/react';
+import { useForm, useHttp } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -42,6 +42,7 @@ type FormData = {
     category: (typeof MaintenanceCategory)[keyof typeof MaintenanceCategory];
     priority: (typeof MaintenancePriority)[keyof typeof MaintenancePriority];
     description: string;
+    images: string[];
 };
 
 type UploadFormData = {
@@ -51,6 +52,8 @@ type UploadFormData = {
 
 type TempFileUploadResponse = {
     file_name: string;
+    url: string;
+    srcset: string | null;
     message: string;
 };
 
@@ -65,6 +68,7 @@ type DeleteResponse = {
 type ImagePreview = {
     id: string;
     url: string;
+    srcSet?: string;
     fileName: string;
     isProcessing: boolean;
     progress: number | null;
@@ -87,7 +91,6 @@ export default function CreateMaintenanceRequestDialogue({
     priorities,
     only,
 }: CreateMaintenanceRequestDialogueProps) {
-    const { temp_path: tempPath } = usePage<{ temp_path: string }>().props;
     const [open, setOpen] = useState(false);
     const [previews, setPreviews] = useState<ImagePreview[]>([]);
     const [pendingUploads, setPendingUploads] = useState(0);
@@ -97,6 +100,7 @@ export default function CreateMaintenanceRequestDialogue({
         category: MaintenanceCategory.GENERAL,
         priority: MaintenancePriority.NORMAL,
         description: '',
+        images: [],
     });
     const uploadHttp = useHttp<UploadFormData, TempFileUploadResponse>({
         file: null,
@@ -128,7 +132,8 @@ export default function CreateMaintenanceRequestDialogue({
             fileName: response.file_name,
             isProcessing: false,
             progress: null,
-            url: `${tempPath}/${response.file_name}`,
+            url: response.url,
+            srcSet: response.srcset ?? undefined,
         });
     }
 
@@ -320,14 +325,20 @@ export default function CreateMaintenanceRequestDialogue({
     function submit(event: FormEvent<HTMLFormElement>): void {
         event.preventDefault();
 
+        form.transform((data) => ({
+            ...data,
+            images: previews
+                .filter((preview) => !preview.isProcessing)
+                .map((preview) => preview.fileName),
+        }));
+
         form.submit(store(), {
             only,
             preserveScroll: true,
             onSuccess: () => {
-                cleanupTempFiles(() => {
-                    form.resetAndClearErrors();
-                    setOpen(false);
-                });
+                setPreviews([]);
+                form.resetAndClearErrors();
+                setOpen(false);
             },
             onError: (errors) => {
                 if (errors.cannot_submit) {
@@ -484,6 +495,7 @@ export default function CreateMaintenanceRequestDialogue({
                         disabled={form.processing || isFileProcessing}
                         maxFiles={10}
                     />
+                    <InputError message={form.errors.images} />
 
                     <DialogFooter>
                         <DialogClose asChild>

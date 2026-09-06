@@ -24,6 +24,8 @@ class CreateMaintenanceRequestRequest extends FormRequest
             'category' => ['required', Rule::enum(MaintenanceCategory::class)],
             'priority' => ['required', Rule::enum(MaintenancePriority::class)],
             'description' => ['required', 'string'],
+            'images' => ['required', 'array', 'min:1'],
+            'images.*' => ['string'],
         ];
     }
 

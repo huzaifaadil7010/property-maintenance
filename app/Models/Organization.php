@@ -45,11 +45,6 @@ class Organization extends Model
         return $this->hasMany(MaintenanceRequest::class);
     }
 
-    public function maintenanceRequestAttachments(): HasMany
-    {
-        return $this->hasMany(MaintenanceRequestAttachment::class);
-    }
-
     public function maintenanceRequestStatusLogs(): HasMany
     {
         return $this->hasMany(MaintenanceRequestStatusLog::class);

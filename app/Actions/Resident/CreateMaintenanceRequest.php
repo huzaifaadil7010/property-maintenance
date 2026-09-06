@@ -2,6 +2,7 @@
 
 namespace App\Actions\Resident;
 
+use App\Concerns\HasMediaLibraryUploadHelpers;
 use App\Data\MaintenanceRequestData;
 use App\Enums\OccupancyStatus;
 use App\Enums\UserRole;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class CreateMaintenanceRequest
 {
+    use HasMediaLibraryUploadHelpers;
+
     public static function handle(
         MaintenanceRequestData $data,
         User $resident,
@@ -33,6 +36,15 @@ class CreateMaintenanceRequest
                 'description' => $data->description,
             ]);
         });
+
+        foreach ($data->images as $fileName) {
+            self::moveMediaFromTempToPermanent(
+                $fileName,
+                $resident,
+                $maintenanceRequest,
+                MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES,
+            );
+        }
 
         $organizationOwner = User::query()
             ->where('current_organization_id', $resident->current_organization_id)

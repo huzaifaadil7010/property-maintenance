@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 
 export type ImageUploadPreview = {
     url: string;
+    srcSet?: string;
     fileName: string;
     isProcessing?: boolean;
     progress?: number | null;
@@ -237,6 +238,8 @@ const ImageUploadInput = ({
                                         ) : (
                                             <img
                                                 src={preview.url}
+                                                srcSet={preview.srcSet}
+                                                sizes="8rem"
                                                 alt={preview.fileName || `Preview ${index + 1}`}
                                                 className="h-full w-full object-contain"
                                             />

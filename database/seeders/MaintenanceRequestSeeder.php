@@ -2,18 +2,19 @@
 
 namespace Database\Seeders;
 
-use App\Enums\AttachmentType;
 use App\Enums\MaintenanceCategory;
 use App\Enums\MaintenancePriority;
 use App\Enums\MaintenanceRequestStatus;
 use App\Enums\OccupancyStatus;
 use App\Enums\TechnicianSpecialty;
 use App\Enums\UserRole;
+use App\Models\MaintenanceRequest;
 use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 use Spatie\Permission\PermissionRegistrar;
@@ -27,7 +28,23 @@ class MaintenanceRequestSeeder extends Seeder
         $permissionRegistrar = app(PermissionRegistrar::class);
         $permissionRegistrar->forgetCachedPermissions();
 
-        DB::transaction(function (): void {
+        $placeholderImages = $this->generatePlaceholderImages();
+
+        try {
+            $this->seedMaintenanceRequests($placeholderImages);
+        } finally {
+            File::delete(array_values($placeholderImages));
+        }
+
+        $permissionRegistrar->forgetCachedPermissions();
+    }
+
+    /**
+     * @param  array{jpg: string, png: string}  $placeholderImages
+     */
+    private function seedMaintenanceRequests(array $placeholderImages): void
+    {
+        DB::transaction(function () use ($placeholderImages): void {
             $timestamp = now();
             $portfolios = $this->portfolios();
             $scenarios = $this->scenarios();
@@ -139,8 +156,12 @@ class MaintenanceRequestSeeder extends Seeder
                 ->keyBy(fn (object $request): string => $this->relationshipKey($request->organization_id, $request->title))
                 ->map(fn (object $request): int => $request->id);
 
+            $requestModels = MaintenanceRequest::query()
+                ->whereIn('id', $requestIds->values())
+                ->get()
+                ->keyBy('id');
+
             $statusLogRows = [];
-            $attachmentRows = [];
 
             foreach ($requestContexts as $requestContext) {
                 $scenario = $requestContext['scenario'];
@@ -164,38 +185,50 @@ class MaintenanceRequestSeeder extends Seeder
                     $fromStatus = $transition['status'];
                 }
 
-                foreach ($scenario['attachments'] as $attachmentIndex => $attachmentType) {
-                    $uploadedBy = $attachmentType === AttachmentType::COMPLETION
-                        ? $requestContext['technician_id']
-                        : $requestContext['resident_id'];
-                    $extension = $attachmentType === AttachmentType::COMPLETION ? 'png' : 'jpg';
-                    $originalName = sprintf(
-                        '%s-%02d.%s',
-                        $attachmentType->value,
-                        $requestId,
-                        $extension,
-                    );
+                foreach ($scenario['attachments'] as $attachmentIndex => $mediaCollection) {
+                    $isCompletion = $mediaCollection === MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES;
+                    $extension = $isCompletion ? 'png' : 'jpg';
+                    $originalName = sprintf('%s-%02d.%s', $mediaCollection, $requestId, $extension);
+                    $mediaTimestamp = $requestContext['created_at']->copy()->addMinutes(15 + $attachmentIndex);
 
-                    $attachmentRows[] = [
-                        'organization_id' => $requestContext['organization_id'],
-                        'maintenance_request_id' => $requestId,
-                        'uploaded_by' => $uploadedBy,
-                        'type' => $attachmentType->value,
-                        'file_path' => "maintenance/seeded/{$requestId}/{$originalName}",
-                        'original_name' => $originalName,
-                        'mime_type' => $extension === 'png' ? 'image/png' : 'image/jpeg',
-                        'size' => 180000 + ($requestId * 1000) + ($attachmentIndex * 500),
-                        'created_at' => $requestContext['created_at']->copy()->addMinutes(15 + $attachmentIndex),
-                        'updated_at' => $requestContext['created_at']->copy()->addMinutes(15 + $attachmentIndex),
-                    ];
+                    $media = $requestModels->get($requestId)
+                        ->addMedia($placeholderImages[$extension])
+                        ->preservingOriginal()
+                        ->usingFileName($originalName)
+                        ->toMediaCollection($mediaCollection);
+
+                    $media->forceFill([
+                        'created_at' => $mediaTimestamp,
+                        'updated_at' => $mediaTimestamp,
+                    ])->save();
                 }
             }
 
             DB::table('maintenance_request_status_logs')->insert($statusLogRows);
-            DB::table('maintenance_request_attachments')->insert($attachmentRows);
         });
+    }
 
-        $permissionRegistrar->forgetCachedPermissions();
+    /**
+     * @return array{jpg: string, png: string}
+     */
+    private function generatePlaceholderImages(): array
+    {
+        $directory = storage_path('app/tmp-seed-placeholders');
+        File::ensureDirectoryExists($directory);
+
+        $jpgPath = $directory.'/issue-placeholder.jpg';
+        $jpgImage = imagecreatetruecolor(640, 480);
+        imagefill($jpgImage, 0, 0, imagecolorallocate($jpgImage, 96, 165, 250));
+        imagejpeg($jpgImage, $jpgPath);
+        imagedestroy($jpgImage);
+
+        $pngPath = $directory.'/completion-placeholder.png';
+        $pngImage = imagecreatetruecolor(640, 480);
+        imagefill($pngImage, 0, 0, imagecolorallocate($pngImage, 74, 222, 128));
+        imagepng($pngImage, $pngPath);
+        imagedestroy($pngImage);
+
+        return ['jpg' => $jpgPath, 'png' => $pngPath];
     }
 
     private function seedTechnicians(Collection $organizations, DateTimeInterface $timestamp): array
@@ -327,7 +360,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => null,
                 'completed_after_hours' => null,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::ISSUE],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident reported an active water leak.'],
                 ],
@@ -343,7 +376,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => null,
                 'completed_after_hours' => null,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::ISSUE],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident reported the failed socket circuit.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to the electrical technician for inspection.'],
@@ -360,7 +393,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => null,
                 'completed_after_hours' => null,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::ISSUE],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Cooling problem reported by resident.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned for air-conditioning diagnostics.'],
@@ -378,7 +411,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => '1850.00',
                 'completed_after_hours' => 12,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::ISSUE, AttachmentType::COMPLETION],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES, MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident reported a loose cabinet door.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to general maintenance.'],
@@ -397,7 +430,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => '3200.00',
                 'completed_after_hours' => 12,
                 'closed_after_hours' => 16,
-                'attachments' => [AttachmentType::COMPLETION],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Ventilation issue reported.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to general maintenance.'],
@@ -417,7 +450,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => '2400.00',
                 'completed_after_hours' => 12,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::ISSUE, AttachmentType::COMPLETION],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES, MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Initial leak reported.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to the plumbing technician.'],
@@ -453,7 +486,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => null,
                 'completed_after_hours' => null,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::ISSUE],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident uploaded a photo of the water damage.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned for drain-line inspection.'],
@@ -470,7 +503,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => null,
                 'completed_after_hours' => null,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::ISSUE],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Repeated breaker trips reported.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Urgent electrical inspection assigned.'],
@@ -488,7 +521,7 @@ class MaintenanceRequestSeeder extends Seeder
                 'actual_cost' => '1500.00',
                 'completed_after_hours' => 12,
                 'closed_after_hours' => null,
-                'attachments' => [AttachmentType::COMPLETION],
+                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
                 'transitions' => [
                     ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Blocked shower drain reported.'],
                     ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to the plumbing technician.'],

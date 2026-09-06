@@ -35,7 +35,7 @@ class MaintenanceRequestsController extends Controller
             'unit',
             'resident',
             'assignedTechnician',
-            'attachments.uploader',
+            'media',
             'statusLogs.changedBy',
         ]);
 

@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -38,10 +40,10 @@ use Spatie\Permission\Traits\HasRoles;
  */
 #[Fillable(['current_organization_id', 'name', 'email', 'password', 'phone'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements PasskeyUser
+class User extends Authenticatable implements HasMedia, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, HasRoles, InteractsWithMedia, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     protected function casts(): array
     {
@@ -80,11 +82,6 @@ class User extends Authenticatable implements PasskeyUser
     public function assignedMaintenanceRequests(): HasMany
     {
         return $this->hasMany(MaintenanceRequest::class, 'assigned_technician_id');
-    }
-
-    public function maintenanceRequestAttachments(): HasMany
-    {
-        return $this->hasMany(MaintenanceRequestAttachment::class, 'uploaded_by');
     }
 
     public function maintenanceRequestStatusLogs(): HasMany

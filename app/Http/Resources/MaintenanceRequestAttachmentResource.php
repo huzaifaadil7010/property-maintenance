@@ -16,14 +16,10 @@ class MaintenanceRequestAttachmentResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'file_path' => $this->file_path,
-            'original_name' => $this->original_name,
+            'file_path' => $this->getUrl(),
+            'original_name' => $this->file_name,
             'mime_type' => $this->mime_type,
             'size' => $this->size,
-            'type' => [
-                'label' => str($this->type->value)->headline()->toString(),
-                'value' => $this->type->value,
-            ],
             'uploader' => [
                 'id' => $this->uploader->id,
                 'name' => $this->uploader->name,

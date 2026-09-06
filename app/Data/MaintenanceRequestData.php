@@ -13,5 +13,7 @@ class MaintenanceRequestData extends Data
         public MaintenanceCategory $category,
         public MaintenancePriority $priority,
         public string $description,
+        /** @var array<int, string> */
+        public array $images,
     ) {}
 }

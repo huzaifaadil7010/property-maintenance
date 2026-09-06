@@ -10,16 +10,28 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 #[Fillable(['organization_id', 'property_id', 'unit_id', 'resident_id', 'assigned_technician_id', 'title', 'description', 'category', 'priority', 'status', 'completion_notes', 'actual_cost', 'completed_at', 'closed_at'])]
-class MaintenanceRequest extends Model
+class MaintenanceRequest extends Model implements HasMedia
 {
-    use BelongsToOrganization;
+    use BelongsToOrganization, InteractsWithMedia;
+
+    public const MEDIA_COLLECTION_ISSUE_IMAGES = 'issue-images';
+
+    public const MEDIA_COLLECTION_COMPLETION_IMAGES = 'completion-images';
 
     protected $attributes = [
         'priority' => MaintenancePriority::NORMAL->value,
         'status' => MaintenanceRequestStatus::OPEN->value,
     ];
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::MEDIA_COLLECTION_ISSUE_IMAGES);
+        $this->addMediaCollection(self::MEDIA_COLLECTION_COMPLETION_IMAGES);
+    }
 
     public function property(): BelongsTo
     {
@@ -39,11 +51,6 @@ class MaintenanceRequest extends Model
     public function assignedTechnician(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_technician_id');
-    }
-
-    public function attachments(): HasMany
-    {
-        return $this->hasMany(MaintenanceRequestAttachment::class);
     }
 
     public function statusLogs(): HasMany
