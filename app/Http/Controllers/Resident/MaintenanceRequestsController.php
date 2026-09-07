@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Resident;
 
 use App\Actions\Resident\CreateMaintenanceRequest;
 use App\Actions\Resident\GetMyMaintenanceRequests;
+use App\Actions\Resident\MaintenanceRequest\GetMyMaintenanceRequest;
 use App\Data\MaintenanceRequestData;
 use App\Data\MaintenanceRequestFilterData;
 use App\Enums\MaintenanceCategory;
 use App\Enums\MaintenancePriority;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateMaintenanceRequestRequest;
+use App\Http\Resources\ResidentMaintenanceRequestDetailResource;
 use App\Http\Resources\ResidentMaintenanceRequestResource;
+use App\Models\MaintenanceRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -40,5 +43,14 @@ class MaintenanceRequestsController extends Controller
         );
 
         return Inertia::flash('success', 'Maintenance request reported successfully.')->back();
+    }
+
+    public function show(Request $request, MaintenanceRequest $maintenanceRequest): Response
+    {
+        return Inertia::render('resident/maintenance-request/show', [
+            'maintenanceRequest' => new ResidentMaintenanceRequestDetailResource(
+                GetMyMaintenanceRequest::handle($maintenanceRequest, $request->user()),
+            ),
+        ]);
     }
 }
