@@ -3,7 +3,6 @@
 namespace App\Actions\Resident\MaintenanceRequest;
 
 use App\Data\MaintenanceRequestStatusData;
-use App\Enums\MaintenanceRequestStatus;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +19,7 @@ class ReopenMaintenanceRequest
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($maintenanceRequest->status !== MaintenanceRequestStatus::COMPLETED) {
+            if (! $maintenanceRequest->isCompleted()) {
                 throw ValidationException::withMessages(['cannot_submit' => __('Only completed requests can be reopened.')]);
             }
 

@@ -3,7 +3,6 @@
 namespace App\Actions\Organization;
 
 use App\Data\ResidentFilterData;
-use App\Enums\OccupancyStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,7 +18,7 @@ class GetResidents
             ->with([
                 'occupancies' => fn (HasMany $query): HasMany => $query
                     ->select(['id', 'resident_id', 'unit_id', 'starts_at'])
-                    ->where('status', OccupancyStatus::ACTIVE)
+                    ->active()
                     ->latest('starts_at')
                     ->with([
                         'unit:id,property_id,name',
@@ -42,7 +41,7 @@ class GetResidents
                 ->orWhereHas(
                     'occupancies',
                     fn (Builder $query): Builder => $query
-                        ->where('status', OccupancyStatus::ACTIVE)
+                        ->active()
                         ->whereHas(
                             'unit',
                             fn (Builder $query): Builder => $query

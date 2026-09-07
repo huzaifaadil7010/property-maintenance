@@ -24,7 +24,7 @@ class ReopenMaintenanceRequestRequest extends FormRequest
     public function after(#[RouteParameter('maintenanceRequest')] MaintenanceRequest $maintenanceRequest): array
     {
         return [function (Validator $validator) use ($maintenanceRequest): void {
-            if ($maintenanceRequest->status !== MaintenanceRequestStatus::COMPLETED) {
+            if (! $maintenanceRequest->isCompleted()) {
                 $validator->errors()->add('cannot_submit', __('Only completed requests can be reopened.'));
             }
         }];

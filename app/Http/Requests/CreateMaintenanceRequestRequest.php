@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use App\Enums\MaintenanceCategory;
 use App\Enums\MaintenancePriority;
-use App\Enums\OccupancyStatus;
 use App\Models\Occupancy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -35,7 +34,7 @@ class CreateMaintenanceRequestRequest extends FormRequest
             function (Validator $validator): void {
                 $hasActiveOccupancy = Occupancy::query()
                     ->where('resident_id', $this->user()?->id)
-                    ->where('status', OccupancyStatus::ACTIVE)
+                    ->active()
                     ->exists();
 
                 if (! $hasActiveOccupancy) {

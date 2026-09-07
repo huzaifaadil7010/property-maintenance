@@ -404,6 +404,23 @@ protected function casts(): array
 - Reusable query constraints become scopes (`->completed()`, `->active()`) rather
   than repeated `where()` chains in Actions.
 
+#### Enum status scopes and predicates
+
+- A model with a backed enum `status` cast must define one protected local scope per
+  enum case using Laravel's `#[Scope]` attribute. Name the scope after the status
+  value in camelCase (`active()`, `inProgress()`, `underMaintenance()`).
+- The scope owns its enum comparison. Query callers must use the named scope instead
+  of writing `where('status', Status::CASE)` or comparing against `Status::CASE->value`.
+- A model with a backed enum `status` cast must define one public boolean predicate
+  per enum case, named `is<Status>()` (`isActive()`, `isInProgress()`). The predicate
+  owns its enum comparison.
+- Use status predicates for model-state branching, including negation
+  (`! $model->isActive()`); do not compare `$model->status` directly to an enum case.
+- Direct enum comparisons remain appropriate for non-model values, including DTO and
+  validated request-data properties.
+- Use enum cases inside status scopes and predicates. Never use raw status strings or
+  `->value` unless a database boundary explicitly requires the scalar value.
+
 ### Multi-tenancy (tenant-scoped models)
 
 When an app is multi-tenant, **every model owned by a tenant gets one trait** and

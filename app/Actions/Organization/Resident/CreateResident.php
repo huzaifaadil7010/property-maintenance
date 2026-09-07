@@ -2,8 +2,8 @@
 
 namespace App\Actions\Organization\Resident;
 
-use App\Data\ResidentData;
 use App\Data\OccupancyData;
+use App\Data\ResidentData;
 use App\Data\ResidentUserData;
 use App\Enums\OccupancyStatus;
 use App\Enums\UserRole;
@@ -59,7 +59,7 @@ class CreateResident
         }
 
         if ($unit->occupancies()
-            ->where('status', OccupancyStatus::ACTIVE)
+            ->active()
             ->lockForUpdate()
             ->exists()) {
             throw ValidationException::withMessages([

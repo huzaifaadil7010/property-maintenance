@@ -7,6 +7,8 @@ use App\Enums\MaintenanceCategory;
 use App\Enums\MaintenancePriority;
 use App\Enums\MaintenanceRequestStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -59,6 +61,72 @@ class MaintenanceRequest extends Model implements HasMedia
     public function statusLogs(): HasMany
     {
         return $this->hasMany(MaintenanceRequestStatusLog::class);
+    }
+
+    #[Scope]
+    protected function open(Builder $query): void
+    {
+        $query->where('status', MaintenanceRequestStatus::OPEN);
+    }
+
+    #[Scope]
+    protected function assigned(Builder $query): void
+    {
+        $query->where('status', MaintenanceRequestStatus::ASSIGNED);
+    }
+
+    #[Scope]
+    protected function inProgress(Builder $query): void
+    {
+        $query->where('status', MaintenanceRequestStatus::IN_PROGRESS);
+    }
+
+    #[Scope]
+    protected function completed(Builder $query): void
+    {
+        $query->where('status', MaintenanceRequestStatus::COMPLETED);
+    }
+
+    #[Scope]
+    protected function closed(Builder $query): void
+    {
+        $query->where('status', MaintenanceRequestStatus::CLOSED);
+    }
+
+    #[Scope]
+    protected function reopened(Builder $query): void
+    {
+        $query->where('status', MaintenanceRequestStatus::REOPENED);
+    }
+
+    public function isOpen(): bool
+    {
+        return $this->status === MaintenanceRequestStatus::OPEN;
+    }
+
+    public function isAssigned(): bool
+    {
+        return $this->status === MaintenanceRequestStatus::ASSIGNED;
+    }
+
+    public function isInProgress(): bool
+    {
+        return $this->status === MaintenanceRequestStatus::IN_PROGRESS;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === MaintenanceRequestStatus::COMPLETED;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->status === MaintenanceRequestStatus::CLOSED;
+    }
+
+    public function isReopened(): bool
+    {
+        return $this->status === MaintenanceRequestStatus::REOPENED;
     }
 
     protected function casts(): array

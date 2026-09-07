@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Concerns\ProfileValidationRules;
-use App\Enums\OccupancyStatus;
 use App\Models\Property;
 use App\Models\Unit;
 use App\Models\User;
@@ -62,7 +61,7 @@ class ResidentsRequest extends FormRequest
 
                 $hasAvailableUnits = Unit::query()
                     ->where('property_id', $propertyId)
-                    ->whereDoesntHave('occupancies', fn ($query) => $query->where('status', OccupancyStatus::ACTIVE))
+                    ->whereDoesntHave('occupancies', fn ($query) => $query->active())
                     ->exists();
 
                 if (! $hasAvailableUnits) {
@@ -79,7 +78,7 @@ class ResidentsRequest extends FormRequest
                 $isAvailableUnit = Unit::query()
                     ->whereKey($unitId)
                     ->where('property_id', $propertyId)
-                    ->whereDoesntHave('occupancies', fn ($query) => $query->where('status', OccupancyStatus::ACTIVE))
+                    ->whereDoesntHave('occupancies', fn ($query) => $query->active())
                     ->exists();
 
                 if (! $isAvailableUnit) {

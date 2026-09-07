@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Concerns\BelongsToOrganization;
 use App\Enums\OccupancyStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,6 +25,28 @@ class Occupancy extends Model
     public function resident(): BelongsTo
     {
         return $this->belongsTo(User::class, 'resident_id');
+    }
+
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $query->where('status', OccupancyStatus::ACTIVE);
+    }
+
+    #[Scope]
+    protected function ended(Builder $query): void
+    {
+        $query->where('status', OccupancyStatus::ENDED);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === OccupancyStatus::ACTIVE;
+    }
+
+    public function isEnded(): bool
+    {
+        return $this->status === OccupancyStatus::ENDED;
     }
 
     protected function casts(): array

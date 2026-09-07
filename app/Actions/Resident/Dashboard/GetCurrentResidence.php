@@ -2,7 +2,6 @@
 
 namespace App\Actions\Resident\Dashboard;
 
-use App\Enums\OccupancyStatus;
 use App\Models\Occupancy;
 use App\Models\User;
 
@@ -12,7 +11,7 @@ class GetCurrentResidence
     {
         return $resident->occupancies()
             ->select(['id', 'unit_id'])
-            ->where('status', OccupancyStatus::ACTIVE)
+            ->active()
             ->with(['unit:id,property_id,name', 'unit.property:id,name'])
             ->latest('id')
             ->first();

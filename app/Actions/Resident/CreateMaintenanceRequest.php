@@ -4,7 +4,6 @@ namespace App\Actions\Resident;
 
 use App\Concerns\HasMediaLibraryUploadHelpers;
 use App\Data\MaintenanceRequestData;
-use App\Enums\OccupancyStatus;
 use App\Enums\UserRole;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
@@ -21,7 +20,7 @@ class CreateMaintenanceRequest
     ): MaintenanceRequest {
         $maintenanceRequest = DB::transaction(function () use ($data, $resident): MaintenanceRequest {
             $occupancy = $resident->occupancies()
-                ->where('status', OccupancyStatus::ACTIVE)
+                ->active()
                 ->with('unit')
                 ->firstOrFail();
 
