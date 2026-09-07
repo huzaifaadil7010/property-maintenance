@@ -83,7 +83,7 @@ type CleanupQueue = {
 type CreateMaintenanceRequestDialogueProps = {
     categories: EnumOption[];
     priorities: EnumOption[];
-    only: ['myRequests'];
+    only: string[];
 };
 
 export default function CreateMaintenanceRequestDialogue({
