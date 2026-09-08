@@ -1,4 +1,11 @@
-import { Building2, ClipboardList, DoorOpen, LayoutGrid, Users, Wrench } from 'lucide-react';
+import {
+    Building2,
+    ClipboardList,
+    DoorOpen,
+    LayoutGrid,
+    Users,
+    Wrench,
+} from 'lucide-react';
 import type { NavItem } from '@/types';
 import { UserRole } from '@/wayfinder/App/Enums/UserRole';
 import MaintenanceRequestsController from '@/wayfinder/App/Http/Controllers/Organization/MaintenanceRequestsController';
@@ -12,10 +19,14 @@ import {
     dashboard as residentDashboard,
     maintenanceRequests as residentMaintenanceRequests,
 } from '@/wayfinder/routes/resident';
+import { dashboard as technicianDashboard } from '@/wayfinder/routes/technician';
 
-type CurrentOrganization = {
-    uuid: string;
-} | null | undefined;
+type CurrentOrganization =
+    | {
+          uuid: string;
+      }
+    | null
+    | undefined;
 
 type UserRoleValue = string | null | undefined;
 
@@ -25,6 +36,10 @@ export function getDashboardHref(
 ): string {
     if (role === UserRole.RESIDENT) {
         return residentDashboard().url;
+    }
+
+    if (role === UserRole.TECHNICIAN) {
+        return technicianDashboard().url;
     }
 
     if (currentOrganization) {
@@ -58,6 +73,20 @@ export function getSidebarNavigation(
                     title: 'My Requests',
                     href: residentMaintenanceRequests().url,
                     icon: ClipboardList,
+                },
+            ],
+        };
+    }
+
+    if (role === UserRole.TECHNICIAN) {
+        return {
+            label: 'Technician',
+            dashboardHref,
+            items: [
+                {
+                    title: 'Dashboard',
+                    href: dashboardHref,
+                    icon: LayoutGrid,
                 },
             ],
         };
@@ -108,7 +137,9 @@ export function getSidebarNavigation(
             },
             {
                 title: 'Maintenance Requests',
-                href: MaintenanceRequestsController.index(currentOrganization.uuid).url,
+                href: MaintenanceRequestsController.index(
+                    currentOrganization.uuid,
+                ).url,
                 icon: ClipboardList,
             },
         ],

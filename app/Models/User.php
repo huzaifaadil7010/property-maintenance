@@ -95,11 +95,14 @@ class User extends Authenticatable implements HasMedia, PasskeyUser
             return route('resident.dashboard');
         }
 
+        if ($this->hasRole(UserRole::TECHNICIAN)) {
+            return route('technician.dashboard');
+        }
+
         if (
             (
                 $this->hasRole(UserRole::OWNER)
                 || $this->hasRole(UserRole::MANAGER)
-                || $this->hasRole(UserRole::TECHNICIAN)
             ) && $this->currentOrganization?->uuid !== null
         ) {
             return route('organization.dashboard', [
