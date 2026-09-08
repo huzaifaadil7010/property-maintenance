@@ -2,6 +2,8 @@ import { Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import debounce from 'lodash.debounce';
 import { useEffect, useRef, useState } from 'react';
+import CreateTechnicianDialogue from '@/components/organization/technician/create-technician-dialogue';
+import type { TechnicianSpecialtyOption } from '@/components/organization/technician/create-technician-dialogue';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import type { Inertia } from '@/wayfinder/types';
@@ -17,6 +19,8 @@ export default function Index(props: GeneratedPageProps) {
             number
         >;
     };
+    const technicianSpecialties =
+        props.technicianSpecialties as unknown as TechnicianSpecialtyOption[];
     const queryParameters = new URLSearchParams(url.split('?')[1] ?? '');
     const requestedPerPage = Number(queryParameters.get('perPage'));
     const [search, setSearch] = useState(queryParameters.get('search') ?? '');
@@ -78,14 +82,21 @@ export default function Index(props: GeneratedPageProps) {
 
             <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
                 <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Technicians
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            View and manage the technicians in your
-                            organization.
-                        </p>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl font-semibold tracking-tight">
+                                Technicians
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                View and manage the technicians in your
+                                organization.
+                            </p>
+                        </div>
+
+                        <CreateTechnicianDialogue
+                            specialties={technicianSpecialties}
+                            only={['technicians']}
+                        />
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">

@@ -575,6 +575,15 @@ Rules:
 - Any operation touching more than one table wraps in `DB::transaction()`.
 - Side effects (notifications, media, events) belong in the Action, not the controller.
 - Actions may call other Actions. They must never touch `$request`.
+- Request-derived input comes **only** through the `Data` DTO — never a raw
+  `Request`. Context that isn't part of the request (`User`, a route-bound model)
+  stays a separate explicit `handle()` parameter, same as `Auth::user()` below —
+  it does not get stuffed into the DTO.
+- If an Action needs a field that the DTO doesn't naturally carry (e.g. a fixed
+  status specific to one transition), don't assume where it comes from — **stop
+  and ask** whether it should be added to the DTO (with the caller populating it)
+  or passed as its own `handle()` parameter. Never hardcode business-specific
+  values inside the Action body regardless of which shape is chosen.
 - **Never call `Auth::user()` / `Auth::id()` inside an Action.** Pass the user in as
   an explicit parameter: `handle(SubmissionData $data, User $user)`. An Action that
   reads the session can't be reused from a job, command, or another user's context,
@@ -643,6 +652,43 @@ enum SubmissionStatus: string
 - Put enum-derived behaviour (labels, colors, allowed transitions) on the enum
   as methods rather than in `match` blocks scattered across the app.
 
+#### Enum options for Inertia React dropdowns
+
+- Before preparing enum options for a frontend dropdown, inspect the enum for the
+  project's existing labeled-values helper. In this project, the shared
+  `EnumHelper` trait provides `getLabeledValues()`.
+- If the helper exists, use it from the controller and pass the result as an
+  Inertia prop. Do not create a second option format in the controller.
+- Check whether the enum defines `getLabel()`. If it does, use it for the labels.
+  If it does not, stop and ask before proceeding unless the project explicitly
+  permits adding the method; do not invent a frontend label-formatting fallback.
+- If no labeled-values helper can be found, stop and ask the user where the
+  helper is located or how labeled options should be produced. Do not invent a
+  new helper without the user's direction.
+
+```php
+use App\Enums\ProjectStatus;
+
+return Inertia::render('projects/index', [
+    'projectStatuses' => ProjectStatus::getLabeledValues(),
+]);
+```
+
+- The prop shape is an array of `{ label, value }` options:
+
+```php
+[
+    ['label' => 'In progress', 'value' => 'in-progress'],
+]
+```
+
+- In React, render the backend-provided options directly: use `option.label` for
+  display and `option.value` for the select value. Do not transform or recreate
+  the options in React.
+- Use generated Wayfinder enum constants for typed form defaults and enum
+  comparisons where needed; use the backend-provided options for dropdown
+  rendering.
+
 ### Migrations
 
 - **Never use `->enum()`.** Use `string` with an enum-backed default:
@@ -680,6 +726,23 @@ protected function casts(): array
 - Models hold relationships, casts, scopes, and accessors — not business logic.
 - Reusable query constraints become scopes (`->completed()`, `->active()`) rather
   than repeated `where()` chains in Actions.
+
+#### Enum status scopes and predicates
+
+- A model with a backed enum `status` cast must define one protected local scope per
+  enum case using Laravel's `#[Scope]` attribute. Name the scope after the status
+  value in camelCase (`active()`, `inProgress()`, `underMaintenance()`).
+- The scope owns its enum comparison. Query callers must use the named scope instead
+  of writing `where('status', Status::CASE)` or comparing against `Status::CASE->value`.
+- A model with a backed enum `status` cast must define one public boolean predicate
+  per enum case, named `is<Status>()` (`isActive()`, `isInProgress()`). The predicate
+  owns its enum comparison.
+- Use status predicates for model-state branching, including negation
+  (`! $model->isActive()`); do not compare `$model->status` directly to an enum case.
+- Direct enum comparisons remain appropriate for non-model values, including DTO and
+  validated request-data properties.
+- Use enum cases inside status scopes and predicates. Never use raw status strings or
+  `->value` unless a database boundary explicitly requires the scalar value.
 
 ### Multi-tenancy (tenant-scoped models)
 
@@ -867,7 +930,10 @@ return Inertia::flash([
   Older projects use `back()->with('success', ...)` — match the file you're in.
 
 - When create/edit are dialogs on the listing page, the form's select options are
-  deferred props on the **index** response — the dialog must not fetch on open.
+  props on the **index** response, preferably deferred when they are secondary
+  data — the dialog must not fetch options on open. For enum options, pass the
+  backend-provided `{ label, value }` options through to the dialog and render
+  them directly.
 - Wrap list and detail payloads in API Resources so the frontend contract is explicit.
 - Route model binding everywhere; never look a model up by id inside a controller.
 
@@ -928,6 +994,20 @@ Notes:
 - Curly braces on all control structures, even one-liners.
 - PHPDoc blocks over inline comments; document `@throws` on Actions that can throw.
 - Run `vendor/bin/pint --dirty` before finishing any PHP change.
+
+### Readable condition checks
+
+- Use boolean truthiness for boolean checks: `if ($value)` and `if (! $value)`.
+- Use Laravel's `blank($value)` when checking whether a string, array, nullable value,
+  or general value has no usable content.
+- Use `filled($value)` when the positive condition reads more clearly.
+- Do not use explicit emptiness checks such as `$value === ''`, `$value !== ''`,
+  `$value === null`, `$value !== null`, `$value === false`, `$value == false`,
+  `empty($value)`, or `isset($value)` when the intent is only to check whether a
+  value is usable.
+- Keep explicit comparisons when they communicate a specific business or security
+  condition, such as enum comparisons, status checks, numeric comparisons, or path
+  safety checks.
 
 === foundation rules ===
 
@@ -1139,5 +1219,12 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 # Inertia + React
 
 - IMPORTANT: Activate `inertia-react-development` when working with Inertia React client-side patterns.
+
+=== spatie/laravel-medialibrary rules ===
+
+## Media Library
+
+- `spatie/laravel-medialibrary` associates files with Eloquent models, with support for collections, conversions, and responsive images.
+- Always activate the `medialibrary-development` skill when working with media uploads, conversions, collections, responsive images, or any code that uses the `HasMedia` interface or `InteractsWithMedia` trait.
 
 </laravel-boost-guidelines>

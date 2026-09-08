@@ -29,18 +29,14 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
         Route::patch('units/{unit}', [UnitsController::class, 'update'])->name('units.update');
         Route::delete('units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
 
+        Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
+        Route::post('residents', [ResidentsController::class, 'store'])->name('residents.store');
+
         Route::get('technicians', [TechniciansController::class, 'index'])->name('technicians');
+        Route::post('technicians', [TechniciansController::class, 'store'])->name('technicians.store');
+
         Route::get('maintenance-requests', [MaintenanceRequestsController::class, 'index'])->name('maintenance-requests');
         Route::get('maintenance-requests/{maintenanceRequest}', [MaintenanceRequestsController::class, 'show'])->name('maintenance-requests.show');
         Route::patch('maintenance-requests/{maintenanceRequest}/assign-technician', AssignMaintenanceRequestTechnicianController::class)->name('maintenance-requests.assign-technician');
         Route::patch('maintenance-requests/{maintenanceRequest}/status', UpdateMaintenanceRequestStatusController::class)->name('maintenance-requests.update-status');
-    });
-
-Route::middleware(['auth', 'verified', 'current.organization', 'role:owner|manager'])
-    ->prefix('organization/{organization}')
-    ->as('organization.')
-    ->scopeBindings()
-    ->group(function () {
-        Route::get('residents', [ResidentsController::class, 'index'])->name('residents');
-        Route::post('residents', [ResidentsController::class, 'store'])->name('residents.store');
     });
