@@ -19,7 +19,10 @@ import {
     dashboard as residentDashboard,
     maintenanceRequests as residentMaintenanceRequests,
 } from '@/wayfinder/routes/resident';
-import { dashboard as technicianDashboard } from '@/wayfinder/routes/technician';
+import {
+    dashboard as technicianDashboard,
+    maintenanceRequests as technicianMaintenanceRequests,
+} from '@/wayfinder/routes/technician';
 
 type CurrentOrganization =
     | {
@@ -87,6 +90,11 @@ export function getSidebarNavigation(
                     title: 'Dashboard',
                     href: dashboardHref,
                     icon: LayoutGrid,
+                },
+                {
+                    title: 'My Jobs',
+                    href: technicianMaintenanceRequests().url,
+                    icon: ClipboardList,
                 },
             ],
         };

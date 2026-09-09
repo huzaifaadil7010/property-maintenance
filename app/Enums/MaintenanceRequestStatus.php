@@ -14,4 +14,16 @@ enum MaintenanceRequestStatus: string
     case COMPLETED = 'completed';
     case CLOSED = 'closed';
     case REOPENED = 'reopened';
+
+    public function getLabel(): string
+    {
+        return match ($this) {
+            self::OPEN => 'Open',
+            self::ASSIGNED => 'Assigned',
+            self::IN_PROGRESS => 'In Progress',
+            self::COMPLETED => 'Completed',
+            self::CLOSED => 'Closed',
+            self::REOPENED => 'Reopened',
+        };
+    }
 }

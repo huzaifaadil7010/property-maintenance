@@ -2,6 +2,7 @@
 
 namespace App\Data;
 
+use App\Enums\MaintenanceRequestStatus;
 use Spatie\LaravelData\Data;
 
 class MaintenanceRequestFilterData extends Data
@@ -14,6 +15,7 @@ class MaintenanceRequestFilterData extends Data
 
     public function __construct(
         public ?string $search = null,
+        public ?MaintenanceRequestStatus $status = null,
         public ?int $page = null,
         public ?int $perPage = null,
     ) {}
