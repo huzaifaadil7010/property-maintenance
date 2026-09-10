@@ -1,10 +1,5 @@
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 
 interface ImageModalProps {
     isOpen: boolean;
@@ -22,21 +17,29 @@ export function ImageModal({
     imageName,
 }: ImageModalProps) {
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl border-slate-200 dark:border-slate-800 bg-slate-950">
-                <DialogHeader>
-                    <DialogTitle className="text-white">{imageName}</DialogTitle>
-                </DialogHeader>
-                <div className="flex items-center justify-center min-h-96">
+        <DialogPrimitive.Root open={isOpen} onOpenChange={onClose}>
+            <DialogPrimitive.Portal>
+                <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" />
+                <DialogPrimitive.Content className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 outline-none sm:p-8">
+                    <DialogPrimitive.Title className="sr-only">
+                        {imageName}
+                    </DialogPrimitive.Title>
+                    <DialogPrimitive.Description className="sr-only">
+                        Preview of {imageName}
+                    </DialogPrimitive.Description>
                     <img
                         src={imageUrl}
                         srcSet={imageSrcSet ?? undefined}
-                        sizes="(min-width: 1024px) 896px, 90vw"
+                        sizes="(max-width: 640px) calc(100vw - 2rem), calc(100vw - 4rem)"
                         alt={imageName}
-                        className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                        className="pointer-events-auto h-auto max-h-full w-auto max-w-full rounded-lg object-contain shadow-2xl"
                     />
-                </div>
-            </DialogContent>
-        </Dialog>
+                    <DialogPrimitive.Close className="pointer-events-auto absolute top-4 right-4 rounded-xs p-1 text-white opacity-70 transition-opacity hover:bg-white/10 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none">
+                        <X className="size-5" />
+                        <span className="sr-only">Close</span>
+                    </DialogPrimitive.Close>
+                </DialogPrimitive.Content>
+            </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
     );
 }
