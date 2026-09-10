@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Technician;
 
 use App\Actions\Technician\GetMyJobs;
+use App\Actions\Technician\MaintenanceRequest\GetMyJob;
 use App\Data\MaintenanceRequestFilterData;
 use App\Enums\MaintenanceRequestStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TechnicianMaintenanceRequestDetailResource;
 use App\Http\Resources\TechnicianMaintenanceRequestResource;
+use App\Models\MaintenanceRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,6 +33,15 @@ class MaintenanceRequestsController extends Controller
                     MaintenanceRequestStatus::COMPLETED->value,
                 ], true),
             )),
+        ]);
+    }
+
+    public function show(Request $request, MaintenanceRequest $maintenanceRequest): Response
+    {
+        return Inertia::render('technician/maintenance-request/show', [
+            'maintenanceRequest' => new TechnicianMaintenanceRequestDetailResource(
+                GetMyJob::handle($maintenanceRequest, $request->user()),
+            ),
         ]);
     }
 }

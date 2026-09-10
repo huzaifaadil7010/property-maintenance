@@ -10,4 +10,5 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:technician'
     ->group(function (): void {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('maintenance-requests', [MaintenanceRequestsController::class, 'index'])->name('maintenance-requests');
+        Route::get('maintenance-requests/{maintenanceRequest}', [MaintenanceRequestsController::class, 'show'])->name('maintenance-requests.show');
     });

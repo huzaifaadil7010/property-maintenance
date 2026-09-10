@@ -1,8 +1,10 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
+import { Eye } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,6 +14,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { show } from '@/wayfinder/App/Http/Controllers/Technician/MaintenanceRequestsController';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Technician.MaintenanceRequest.Index;
@@ -85,6 +93,33 @@ export default function Index(props: GeneratedPageProps) {
                 row.original.created_at
                     ? format(row.original.created_at, 'yyyy-MM-dd')
                     : '—',
+        },
+        {
+            id: 'actions',
+            header: () => <span className="sr-only">Actions</span>,
+            cell: ({ row }) => (
+                <div className="flex justify-end">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                aria-label="View job details"
+                                asChild
+                            >
+                                <Link href={show(row.original.id).url}>
+                                    <Eye />
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>View job details</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            ),
         },
     ];
 
