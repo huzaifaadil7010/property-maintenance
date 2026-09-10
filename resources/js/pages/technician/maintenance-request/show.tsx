@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import {
     ArrowLeft,
@@ -14,7 +14,9 @@ import {
 } from 'lucide-react';
 import type { DoorOpen } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { ImageModal } from '@/components/organization/maintenance-request/image-modal';
+import CompleteMaintenanceRequestDialogue from '@/components/technician/maintenance-request/complete-maintenance-request-dialogue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +26,10 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
+import MaintenanceRequestStatus from '@/wayfinder/App/Enums/MaintenanceRequestStatus';
 import { index } from '@/wayfinder/App/Http/Controllers/Technician/MaintenanceRequestsController';
+import StartMaintenanceRequestWorkController from '@/wayfinder/App/Http/Controllers/Technician/StartMaintenanceRequestWorkController';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Technician.MaintenanceRequest.Show;
@@ -70,6 +75,23 @@ export default function Show(props: GeneratedPageProps) {
     const [selectedImage, setSelectedImage] = useState<ImageAttachment | null>(
         null,
     );
+    const [completeOpen, setCompleteOpen] = useState(false);
+    const startWorkForm = useForm({});
+    const isAssigned = job.status.value === MaintenanceRequestStatus.ASSIGNED;
+    const isInProgress =
+        job.status.value === MaintenanceRequestStatus.IN_PROGRESS;
+
+    function startWork(): void {
+        startWorkForm.submit(StartMaintenanceRequestWorkController(job.id), {
+            only: ['maintenanceRequest'],
+            preserveScroll: true,
+            onError: (errors) => {
+                if (errors.cannot_submit) {
+                    toast.error(errors.cannot_submit);
+                }
+            },
+        });
+    }
 
     return (
         <>
@@ -103,6 +125,20 @@ export default function Show(props: GeneratedPageProps) {
                             <Badge variant="outline" className="px-3 py-1">
                                 {job.priority.label}
                             </Badge>
+                            {isAssigned && (
+                                <Button
+                                    onClick={startWork}
+                                    disabled={startWorkForm.processing}
+                                >
+                                    {startWorkForm.processing && <Spinner />}
+                                    Start work
+                                </Button>
+                            )}
+                            {isInProgress && (
+                                <Button onClick={() => setCompleteOpen(true)}>
+                                    Complete work
+                                </Button>
+                            )}
                         </div>
                     </div>
 
@@ -270,6 +306,11 @@ export default function Show(props: GeneratedPageProps) {
                     imageName={selectedImage.original_name}
                 />
             )}
+            <CompleteMaintenanceRequestDialogue
+                jobId={job.id}
+                open={completeOpen}
+                onOpenChange={setCompleteOpen}
+            />
         </>
     );
 }
