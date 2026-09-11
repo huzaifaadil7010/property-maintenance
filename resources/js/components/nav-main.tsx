@@ -19,15 +19,18 @@ export function NavMain({
     const { isCurrentUrl } = useCurrentUrl();
 
     return (
-        <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>{label}</SidebarGroupLabel>
-            <SidebarMenu>
+        <SidebarGroup className="px-3 py-2">
+            <SidebarGroupLabel className="px-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
+                {label}
+            </SidebarGroupLabel>
+            <SidebarMenu className="gap-1.5">
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild
                             isActive={isCurrentUrl(item.href)}
                             tooltip={{ children: item.title }}
+                            className="h-10 rounded-xl px-3 font-medium data-[active=true]:shadow-[inset_0_0_0_1px_rgba(23,107,77,0.08)] [&>svg]:size-[18px]"
                         >
                             <Link href={item.href} prefetch>
                                 {item.icon && <item.icon />}

@@ -5,12 +5,13 @@ import {
     Building2,
     CircleAlert,
     CircleCheckBig,
+    ClipboardList,
     Clock3,
     DoorOpen,
 } from 'lucide-react';
-import CreateMaintenanceRequestDialogue from '@/components/resident/maintenance-request/create-maintenance-request-dialogue';
 import { StatCard } from '@/components/organization/dashboard/stat-card';
 import { StatCardSkeleton } from '@/components/organization/dashboard/stat-card-skeleton';
+import CreateMaintenanceRequestDialogue from '@/components/resident/maintenance-request/create-maintenance-request-dialogue';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -19,8 +20,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { dashboard, maintenanceRequests } from '@/wayfinder/routes/resident';
 
 type EnumOption = { label: string; value: string };
@@ -66,18 +70,13 @@ export default function Dashboard({
     return (
         <>
             <Head title="Resident Dashboard" />
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
-                <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Resident dashboard
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                View your residence and maintenance activity.
-                            </p>
-                        </div>
-                        {residenceData && (
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="Your home"
+                    title="Resident dashboard"
+                    description="Everything you need to track your residence and maintenance activity."
+                    actions={
+                        residenceData && (
                             <Deferred
                                 data={[
                                     'maintenanceCategories',
@@ -99,130 +98,134 @@ export default function Dashboard({
                                     only={dashboardPropsToRefresh}
                                 />
                             </Deferred>
-                        )}
-                    </div>
-                    {!residenceData ? (
-                        <Card className="max-w-2xl">
-                            <CardHeader>
-                                <CardTitle>No active residence</CardTitle>
-                                <CardDescription>
-                                    You do not currently have an active unit
-                                    assigned. Contact your property manager for
-                                    help.
-                                </CardDescription>
+                        )
+                    }
+                />
+                {!residenceData ? (
+                    <Card className="max-w-2xl border-dashed">
+                        <CardHeader>
+                            <CardTitle>No active residence</CardTitle>
+                            <CardDescription>
+                                You do not currently have an active unit
+                                assigned. Contact your property manager for
+                                help.
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                ) : (
+                    <>
+                        <Card className="relative overflow-hidden border-primary/15 bg-gradient-to-br from-white via-white to-primary/6">
+                            <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
+                            <CardHeader className="flex-row items-center gap-4">
+                                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/10">
+                                    <Building2
+                                        className="size-5"
+                                        aria-hidden="true"
+                                    />
+                                </div>
+                                <div className="grid gap-1">
+                                    <CardTitle>Your residence</CardTitle>
+                                    <CardDescription>
+                                        Your current property and unit.
+                                    </CardDescription>
+                                </div>
                             </CardHeader>
-                        </Card>
-                    ) : (
-                        <>
-                            <Card>
-                                <CardHeader className="flex-row items-center gap-4">
-                                    <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                        <Building2
-                                            className="size-5"
+                            <CardContent className="grid gap-4 sm:grid-cols-2">
+                                <div className="grid gap-1">
+                                    <span className="text-sm text-muted-foreground">
+                                        Property
+                                    </span>
+                                    <span className="font-medium">
+                                        {residenceData.property.name}
+                                    </span>
+                                </div>
+                                <div className="grid gap-1">
+                                    <span className="text-sm text-muted-foreground">
+                                        Unit
+                                    </span>
+                                    <span className="flex items-center gap-2 font-medium">
+                                        <DoorOpen
+                                            className="size-4 text-muted-foreground"
                                             aria-hidden="true"
                                         />
-                                    </div>
-                                    <div className="grid gap-1">
-                                        <CardTitle>Your residence</CardTitle>
-                                        <CardDescription>
-                                            Your current property and unit.
-                                        </CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-1">
-                                        <span className="text-sm text-muted-foreground">
-                                            Property
-                                        </span>
-                                        <span className="font-medium">
-                                            {residenceData.property.name}
-                                        </span>
-                                    </div>
-                                    <div className="grid gap-1">
-                                        <span className="text-sm text-muted-foreground">
-                                            Unit
-                                        </span>
-                                        <span className="flex items-center gap-2 font-medium">
-                                            <DoorOpen
-                                                className="size-4 text-muted-foreground"
-                                                aria-hidden="true"
-                                            />
-                                            {residenceData.unit.name}
-                                        </span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                <Deferred
-                                    data="totalOpenRequests"
-                                    fallback={<StatCardSkeleton />}
-                                >
-                                    <StatCard
-                                        title="Open requests"
-                                        value={totalOpenRequests ?? 0}
-                                        description="Awaiting review or assignment"
-                                        icon={CircleAlert}
-                                    />
-                                </Deferred>
-                                <Deferred
-                                    data="totalInProgressRequests"
-                                    fallback={<StatCardSkeleton />}
-                                >
-                                    <StatCard
-                                        title="In-progress requests"
-                                        value={totalInProgressRequests ?? 0}
-                                        description="Maintenance currently underway"
-                                        icon={Clock3}
-                                    />
-                                </Deferred>
-                                <Deferred
-                                    data="totalCompletedRequests"
-                                    fallback={<StatCardSkeleton />}
-                                >
-                                    <StatCard
-                                        title="Completed requests"
-                                        value={totalCompletedRequests ?? 0}
-                                        description="Maintenance work completed"
-                                        icon={CircleCheckBig}
-                                    />
-                                </Deferred>
-                            </div>
-                            <Card>
-                                <CardHeader className="flex-row items-center justify-between gap-4">
-                                    <div className="grid gap-1">
-                                        <CardTitle>Recent requests</CardTitle>
-                                        <CardDescription>
-                                            Your five most recent maintenance
-                                            requests.
-                                        </CardDescription>
-                                    </div>
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <Link
-                                            href={maintenanceRequests().url}
-                                            prefetch
-                                        >
-                                            View all
-                                            <ArrowRight aria-hidden="true" />
-                                        </Link>
-                                    </Button>
-                                </CardHeader>
-                                <CardContent>
-                                    <Deferred
-                                        data="recentMaintenanceRequests"
-                                        fallback={<RecentRequestsSkeleton />}
+                                        {residenceData.unit.name}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <Deferred
+                                data="totalOpenRequests"
+                                fallback={<StatCardSkeleton />}
+                            >
+                                <StatCard
+                                    title="Open requests"
+                                    value={totalOpenRequests ?? 0}
+                                    description="Awaiting review or assignment"
+                                    icon={CircleAlert}
+                                    tone="amber"
+                                />
+                            </Deferred>
+                            <Deferred
+                                data="totalInProgressRequests"
+                                fallback={<StatCardSkeleton />}
+                            >
+                                <StatCard
+                                    title="In-progress requests"
+                                    value={totalInProgressRequests ?? 0}
+                                    description="Maintenance currently underway"
+                                    icon={Clock3}
+                                    tone="violet"
+                                />
+                            </Deferred>
+                            <Deferred
+                                data="totalCompletedRequests"
+                                fallback={<StatCardSkeleton />}
+                            >
+                                <StatCard
+                                    title="Completed requests"
+                                    value={totalCompletedRequests ?? 0}
+                                    description="Maintenance work completed"
+                                    icon={CircleCheckBig}
+                                    tone="emerald"
+                                />
+                            </Deferred>
+                        </div>
+                        <Card className="overflow-hidden">
+                            <CardHeader className="flex-row items-center justify-between gap-4">
+                                <div className="grid gap-1">
+                                    <CardTitle>Recent requests</CardTitle>
+                                    <CardDescription>
+                                        Your five most recent maintenance
+                                        requests.
+                                    </CardDescription>
+                                </div>
+                                <Button variant="ghost" size="sm" asChild>
+                                    <Link
+                                        href={maintenanceRequests().url}
+                                        prefetch
                                     >
-                                        <RecentRequests
-                                            requests={
-                                                recentMaintenanceRequests?.data ??
-                                                []
-                                            }
-                                        />
-                                    </Deferred>
-                                </CardContent>
-                            </Card>
-                        </>
-                    )}
-                </div>
+                                        View all
+                                        <ArrowRight aria-hidden="true" />
+                                    </Link>
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Deferred
+                                    data="recentMaintenanceRequests"
+                                    fallback={<RecentRequestsSkeleton />}
+                                >
+                                    <RecentRequests
+                                        requests={
+                                            recentMaintenanceRequests?.data ??
+                                            []
+                                        }
+                                    />
+                                </Deferred>
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
             </div>
         </>
     );
@@ -235,18 +238,20 @@ function RecentRequests({
 }) {
     if (requests.length === 0) {
         return (
-            <p className="py-4 text-sm text-muted-foreground">
-                You have not reported any maintenance requests yet.
-            </p>
+            <EmptyState
+                icon={ClipboardList}
+                title="No maintenance requests yet"
+                description="Your recently reported issues will appear here."
+            />
         );
     }
 
     return (
-        <div className="divide-y rounded-lg border">
+        <div className="divide-y overflow-hidden rounded-2xl border border-border/90">
             {requests.map((request) => (
                 <div
                     key={request.id}
-                    className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 p-4 transition-colors hover:bg-accent/45 sm:flex-row sm:items-center sm:justify-between"
                 >
                     <div className="grid gap-1">
                         <p className="font-medium">{request.title}</p>
@@ -257,9 +262,7 @@ function RecentRequests({
                                 : ''}
                         </p>
                     </div>
-                    <span className="w-fit rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                        {request.status.label}
-                    </span>
+                    <StatusBadge option={request.status} />
                 </div>
             ))}
         </div>

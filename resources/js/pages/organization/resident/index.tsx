@@ -7,6 +7,7 @@ import CreateResidentDialogue from '@/components/organization/resident/create-re
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
 import type { Inertia } from '@/wayfinder/types';
 
@@ -83,18 +84,12 @@ export default function Index(props: GeneratedPageProps) {
         <>
             <Head title="Residents" />
 
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
-                <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Residents
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                View and manage the residents in your organization.
-                            </p>
-                        </div>
-
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="People"
+                    title="Residents"
+                    description="View and manage the residents in your organization."
+                    actions={
                         <Deferred
                             data="residentCreateOptions"
                             fallback={
@@ -108,41 +103,70 @@ export default function Index(props: GeneratedPageProps) {
                                 only={['residents', 'residentCreateOptions']}
                             />
                         </Deferred>
-                    </div>
+                    }
+                />
 
-                    <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">
-                        <div className="flex w-full justify-end p-3 sm:p-4">
-                            <Input
-                                type="search"
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                placeholder="Search residents..."
-                                aria-label="Search residents"
-                                className="w-full sm:max-w-sm"
-                            />
-                        </div>
-
-                        <DataTable
-                            columns={columns}
-                            data={residents.data}
-                            pagination={{
-                                currentPage: residents.meta.current_page,
-                                lastPage: residents.meta.last_page,
-                                perPage:
-                                    requestedPerPage ||
-                                    residents.meta.per_page,
-                                total: residents.meta.total,
-                                onChange: (page, perPage) => {
-                                    router.reload({
-                                        data: { page, perPage },
-                                        only: ['residents'],
-                                    });
-                                },
-                            }}
+                <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="flex w-full justify-end border-b border-border/70 bg-muted/20 p-3 sm:p-4">
+                        <Input
+                            type="search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search residents..."
+                            aria-label="Search residents"
+                            className="w-full sm:max-w-sm"
                         />
                     </div>
+
+                    <DataTable
+                        columns={columns}
+                        data={residents.data}
+                        renderMobileCard={(resident) => (
+                            <div className="interactive-card grid gap-3 rounded-2xl border bg-card p-4">
+                                <div>
+                                    <p className="font-semibold">
+                                        {String(resident.name)}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {String(resident.email)}
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 border-t border-border/70 pt-3 text-sm">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Property
+                                        </p>
+                                        <p className="mt-1 font-medium">
+                                            {String(
+                                                resident.property_name ?? '—',
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Unit
+                                        </p>
+                                        <p className="mt-1 font-medium">
+                                            {String(resident.unit_name ?? '—')}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        pagination={{
+                            currentPage: residents.meta.current_page,
+                            lastPage: residents.meta.last_page,
+                            perPage:
+                                requestedPerPage || residents.meta.per_page,
+                            total: residents.meta.total,
+                            onChange: (page, perPage) => {
+                                router.reload({
+                                    data: { page, perPage },
+                                    only: ['residents'],
+                                });
+                            },
+                        }}
+                    />
                 </div>
             </div>
         </>

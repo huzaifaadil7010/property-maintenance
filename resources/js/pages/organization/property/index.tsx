@@ -11,6 +11,7 @@ import type { EditableProperty } from '@/components/organization/common/edit-pro
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 import {
     Tooltip,
     TooltipContent,
@@ -182,55 +183,80 @@ export default function Index(props: GeneratedPageProps) {
         <>
             <Head title="Properties" />
 
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
-                <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Properties
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                View and manage the properties in your
-                                organization.
-                            </p>
-                        </div>
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="Portfolio"
+                    title="Properties"
+                    description="View and manage the properties in your organization."
+                    actions={<CreatePropertyDialogue only={['properties']} />}
+                />
 
-                        <CreatePropertyDialogue only={['properties']} />
-                    </div>
-
-                    <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">
-                        <div className="flex w-full justify-end p-3 sm:p-4">
-                            <Input
-                                type="search"
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                placeholder="Search properties..."
-                                aria-label="Search properties"
-                                className="w-full sm:max-w-sm"
-                            />
-                        </div>
-
-                        <DataTable
-                            columns={columns}
-                            data={properties.data}
-                            pagination={{
-                                currentPage: properties.meta.current_page,
-                                lastPage: properties.meta.last_page,
-                                perPage:
-                                    requestedPerPage ||
-                                    properties.meta.per_page,
-                                total: properties.meta.total,
-                                onChange: (page, perPage) => {
-                                    router.reload({
-                                        data: { page, perPage },
-                                        only: ['properties'],
-                                    });
-                                },
-                            }}
+                <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="flex w-full justify-end border-b border-border/70 bg-muted/20 p-3 sm:p-4">
+                        <Input
+                            type="search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search properties..."
+                            aria-label="Search properties"
+                            className="w-full sm:max-w-sm"
                         />
                     </div>
+
+                    <DataTable
+                        columns={columns}
+                        data={properties.data}
+                        renderMobileCard={(property) => (
+                            <div className="interactive-card grid gap-4 rounded-2xl border bg-card p-4">
+                                <div>
+                                    <p className="font-semibold">
+                                        {property.name}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {property.address}, {property.city}
+                                    </p>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-3">
+                                    <p className="text-sm text-muted-foreground">
+                                        {property.units_count ?? 0} units
+                                    </p>
+                                    <div className="flex gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-8"
+                                            onClick={() => onEdit(property)}
+                                            aria-label="Edit property"
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-8 text-destructive"
+                                            onClick={() => onDelete(property)}
+                                            aria-label="Delete property"
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        pagination={{
+                            currentPage: properties.meta.current_page,
+                            lastPage: properties.meta.last_page,
+                            perPage:
+                                requestedPerPage || properties.meta.per_page,
+                            total: properties.meta.total,
+                            onChange: (page, perPage) => {
+                                router.reload({
+                                    data: { page, perPage },
+                                    only: ['properties'],
+                                });
+                            },
+                        }}
+                    />
                 </div>
             </div>
 

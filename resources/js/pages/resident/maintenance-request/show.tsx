@@ -1,23 +1,21 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
+import type { DoorOpen } from 'lucide-react';
 import {
     ArrowLeft,
     Building2,
     CheckCircle2,
     Clock3,
-    DoorOpen,
     Image,
     MapPin,
     MessageSquare,
     RotateCcw,
-    UserRound,
     Wrench,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import ConfirmationDialogue from '@/components/organization/common/confirmation-dialogue';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
+import ConfirmationDialogue from '@/components/organization/common/confirmation-dialogue';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -36,10 +34,11 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { StatusBadge } from '@/components/ui/status-badge';
 import MaintenanceRequestStatus from '@/wayfinder/App/Enums/MaintenanceRequestStatus';
 import ConfirmMaintenanceRequestResolutionController from '@/wayfinder/App/Http/Controllers/Resident/ConfirmMaintenanceRequestResolutionController';
-import ReopenMaintenanceRequestController from '@/wayfinder/App/Http/Controllers/Resident/ReopenMaintenanceRequestController';
 import { index } from '@/wayfinder/App/Http/Controllers/Resident/MaintenanceRequestsController';
+import ReopenMaintenanceRequestController from '@/wayfinder/App/Http/Controllers/Resident/ReopenMaintenanceRequestController';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Resident.MaintenanceRequest.Show;
@@ -106,7 +105,9 @@ export default function Show(props: GeneratedPageProps) {
                     setConfirmOpen(false);
                 },
                 onError: (errors) => {
-                    if (errors.cannot_submit) toast.error(errors.cannot_submit);
+                    if (errors.cannot_submit) {
+                        toast.error(errors.cannot_submit);
+                    }
                 },
             },
         );
@@ -122,7 +123,9 @@ export default function Show(props: GeneratedPageProps) {
                 setReopenOpen(false);
             },
             onError: (errors) => {
-                if (errors.cannot_submit) toast.error(errors.cannot_submit);
+                if (errors.cannot_submit) {
+                    toast.error(errors.cannot_submit);
+                }
             },
         });
     }
@@ -130,7 +133,7 @@ export default function Show(props: GeneratedPageProps) {
     return (
         <>
             <Head title={request.title} />
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
+            <div className="page-container">
                 <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6">
                     <Button variant="ghost" className="w-fit" asChild>
                         <Link href={index().url}>
@@ -151,12 +154,11 @@ export default function Show(props: GeneratedPageProps) {
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="px-3 py-1">
-                                {request.status.label}
-                            </Badge>
-                            <Badge variant="outline" className="px-3 py-1">
-                                {request.priority.label}
-                            </Badge>
+                            <StatusBadge option={request.status} />
+                            <StatusBadge
+                                option={request.priority}
+                                kind="priority"
+                            />
                             {isCompleted && (
                                 <>
                                     <Button

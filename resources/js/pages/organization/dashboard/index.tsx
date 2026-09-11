@@ -19,6 +19,7 @@ import type {
 import { StatCard } from '@/components/organization/dashboard/stat-card';
 import { StatCardSkeleton } from '@/components/organization/dashboard/stat-card-skeleton';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/wayfinder/routes';
 
@@ -52,150 +53,182 @@ export default function Dashboard({
     return (
         <>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="grid gap-1">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Organization dashboard
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            An overview of your properties, units, and
-                            maintenance activity.
-                        </p>
-                    </div>
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="Workspace overview"
+                    title="Organization dashboard"
+                    description="A clear view of your portfolio, people, and maintenance activity."
+                    actions={
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <CreatePropertyDialogue
+                                only={['totalProperties', 'properties']}
+                            />
+                            <Deferred
+                                data="properties"
+                                fallback={
+                                    <Button
+                                        className="w-full sm:w-auto"
+                                        disabled
+                                    >
+                                        <Spinner />
+                                        Create unit
+                                    </Button>
+                                }
+                            >
+                                <CreateUnitDialogue
+                                    properties={properties ?? []}
+                                    unitStatuses={unitStatuses}
+                                    only={[
+                                        'totalUnits',
+                                        'totalVacantUnits',
+                                        'totalOccupiedUnits',
+                                    ]}
+                                />
+                            </Deferred>
+                        </div>
+                    }
+                />
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <CreatePropertyDialogue
-                            only={['totalProperties', 'properties']}
-                        />
+                <section className="grid gap-3">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-sm font-semibold">Portfolio</h2>
+                        <div className="h-px flex-1 bg-border/80" />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <Deferred
-                            data="properties"
-                            fallback={
-                                <Button className="w-full sm:w-auto" disabled>
-                                    <Spinner />
-                                    Create unit
-                                </Button>
-                            }
+                            data="totalProperties"
+                            fallback={<StatCardSkeleton />}
                         >
-                            <CreateUnitDialogue
-                                properties={properties ?? []}
-                                unitStatuses={unitStatuses}
-                                only={[
-                                    'totalUnits',
-                                    'totalVacantUnits',
-                                    'totalOccupiedUnits',
-                                ]}
+                            <StatCard
+                                title="Total properties"
+                                value={totalProperties}
+                                description="Properties in this organization"
+                                icon={Building2}
+                                tone="brand"
+                            />
+                        </Deferred>
+
+                        <Deferred
+                            data="totalUnits"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="Total units"
+                                value={totalUnits}
+                                description="Units across all properties"
+                                icon={DoorOpen}
+                                tone="brand"
+                            />
+                        </Deferred>
+
+                        <Deferred
+                            data="totalVacantUnits"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="Total vacant units"
+                                value={totalVacantUnits}
+                                description="Units currently available"
+                                icon={KeyRound}
+                                tone="sky"
+                            />
+                        </Deferred>
+
+                        <Deferred
+                            data="totalOccupiedUnits"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="Total occupied units"
+                                value={totalOccupiedUnits}
+                                description="Units currently occupied"
+                                icon={UsersRound}
+                                tone="emerald"
                             />
                         </Deferred>
                     </div>
-                </div>
+                </section>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[90.0625rem]:grid-cols-5">
-                    <Deferred
-                        data="totalProperties"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="Total properties"
-                            value={totalProperties}
-                            description="Properties in this organization"
-                            icon={Building2}
-                        />
-                    </Deferred>
+                <section className="grid gap-3">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-sm font-semibold">People</h2>
+                        <div className="h-px flex-1 bg-border/80" />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Deferred
+                            data="totalActiveResidents"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="Total active residents"
+                                value={totalActiveResidents}
+                                description="Residents with an active occupancy"
+                                icon={UserRoundCheck}
+                                tone="emerald"
+                            />
+                        </Deferred>
 
-                    <Deferred data="totalUnits" fallback={<StatCardSkeleton />}>
-                        <StatCard
-                            title="Total units"
-                            value={totalUnits}
-                            description="Units across all properties"
-                            icon={DoorOpen}
-                        />
-                    </Deferred>
+                        <Deferred
+                            data="totalAvailableTechnicians"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="Available technicians"
+                                value={totalAvailableTechnicians}
+                                description="Technicians currently available"
+                                icon={Wrench}
+                                tone="sky"
+                            />
+                        </Deferred>
+                    </div>
+                </section>
 
-                    <Deferred
-                        data="totalVacantUnits"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="Total vacant units"
-                            value={totalVacantUnits}
-                            description="Units currently available"
-                            icon={KeyRound}
-                        />
-                    </Deferred>
+                <section className="grid gap-3">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-sm font-semibold">Maintenance</h2>
+                        <div className="h-px flex-1 bg-border/80" />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <Deferred
+                            data="totalOpenRequests"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="Open requests"
+                                value={totalOpenRequests}
+                                description="Awaiting review or assignment"
+                                icon={CircleAlert}
+                                tone="amber"
+                            />
+                        </Deferred>
 
-                    <Deferred
-                        data="totalOccupiedUnits"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="Total occupied units"
-                            value={totalOccupiedUnits}
-                            description="Units currently occupied"
-                            icon={UsersRound}
-                        />
-                    </Deferred>
+                        <Deferred
+                            data="totalInProgressRequests"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="In-progress requests"
+                                value={totalInProgressRequests}
+                                description="Maintenance currently underway"
+                                icon={Clock3}
+                                tone="violet"
+                            />
+                        </Deferred>
 
-                    <Deferred
-                        data="totalActiveResidents"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="Total active residents"
-                            value={totalActiveResidents}
-                            description="Residents with an active occupancy"
-                            icon={UserRoundCheck}
-                        />
-                    </Deferred>
-
-                    <Deferred
-                        data="totalAvailableTechnicians"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="Available technicians"
-                            value={totalAvailableTechnicians}
-                            description="Technicians currently available"
-                            icon={Wrench}
-                        />
-                    </Deferred>
-
-                    <Deferred
-                        data="totalOpenRequests"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="Open requests"
-                            value={totalOpenRequests}
-                            description="Awaiting review or assignment"
-                            icon={CircleAlert}
-                        />
-                    </Deferred>
-
-                    <Deferred
-                        data="totalInProgressRequests"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="In-progress requests"
-                            value={totalInProgressRequests}
-                            description="Maintenance currently underway"
-                            icon={Clock3}
-                        />
-                    </Deferred>
-
-                    <Deferred
-                        data="totalCompletedRequests"
-                        fallback={<StatCardSkeleton />}
-                    >
-                        <StatCard
-                            title="Completed requests"
-                            value={totalCompletedRequests}
-                            description="Maintenance work completed"
-                            icon={CircleCheckBig}
-                        />
-                    </Deferred>
-                </div>
+                        <Deferred
+                            data="totalCompletedRequests"
+                            fallback={<StatCardSkeleton />}
+                        >
+                            <StatCard
+                                title="Completed requests"
+                                value={totalCompletedRequests}
+                                description="Maintenance work completed"
+                                icon={CircleCheckBig}
+                                tone="emerald"
+                            />
+                        </Deferred>
+                    </div>
+                </section>
             </div>
         </>
     );

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 import {
     Select,
     SelectContent,
@@ -14,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
     Tooltip,
     TooltipContent,
@@ -83,9 +85,25 @@ export default function Index(props: GeneratedPageProps) {
         { accessorKey: 'title', header: 'Title' },
         { accessorKey: 'property.name', header: 'Property' },
         { accessorKey: 'unit.name', header: 'Unit' },
-        { accessorKey: 'category.label', header: 'Category' },
-        { accessorKey: 'priority.label', header: 'Priority' },
-        { accessorKey: 'status.label', header: 'Status' },
+        {
+            accessorKey: 'category.label',
+            header: 'Category',
+            cell: ({ row }) => (
+                <StatusBadge option={row.original.category} kind="neutral" />
+            ),
+        },
+        {
+            accessorKey: 'priority.label',
+            header: 'Priority',
+            cell: ({ row }) => (
+                <StatusBadge option={row.original.priority} kind="priority" />
+            ),
+        },
+        {
+            accessorKey: 'status.label',
+            header: 'Status',
+            cell: ({ row }) => <StatusBadge option={row.original.status} />,
+        },
         {
             accessorKey: 'created_at',
             header: 'Created At',
@@ -127,82 +145,103 @@ export default function Index(props: GeneratedPageProps) {
         <>
             <Head title="My Jobs" />
 
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
-                <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            My Jobs
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            View the maintenance jobs assigned to you.
-                        </p>
-                    </div>
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="Work queue"
+                    title="My jobs"
+                    description="View and prioritize the maintenance jobs assigned to you."
+                />
 
-                    <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">
-                        <div className="flex w-full flex-col gap-3 p-3 sm:flex-row sm:justify-end sm:p-4">
-                            <Select
-                                value={filters.status || 'all'}
-                                onValueChange={(status) =>
-                                    setFilters((current) => ({
-                                        ...current,
-                                        status: status === 'all' ? '' : status,
-                                    }))
-                                }
+                <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="flex w-full flex-col gap-3 border-b border-border/70 bg-muted/20 p-3 sm:flex-row sm:justify-end sm:p-4">
+                        <Select
+                            value={filters.status || 'all'}
+                            onValueChange={(status) =>
+                                setFilters((current) => ({
+                                    ...current,
+                                    status: status === 'all' ? '' : status,
+                                }))
+                            }
+                        >
+                            <SelectTrigger
+                                className="w-full sm:w-48"
+                                aria-label="Filter jobs by status"
                             >
-                                <SelectTrigger
-                                    className="w-full sm:w-48"
-                                    aria-label="Filter jobs by status"
-                                >
-                                    <SelectValue placeholder="All jobs" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        All jobs
+                                <SelectValue placeholder="All jobs" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All jobs</SelectItem>
+                                {jobStatuses.map((status) => (
+                                    <SelectItem
+                                        key={status.value}
+                                        value={status.value}
+                                    >
+                                        {status.label}
                                     </SelectItem>
-                                    {jobStatuses.map((status) => (
-                                        <SelectItem
-                                            key={status.value}
-                                            value={status.value}
-                                        >
-                                            {status.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                            <Input
-                                type="search"
-                                value={filters.search}
-                                onChange={(event) =>
-                                    setFilters((current) => ({
-                                        ...current,
-                                        search: event.target.value,
-                                    }))
-                                }
-                                placeholder="Search my jobs..."
-                                aria-label="Search my jobs"
-                                className="w-full sm:max-w-sm"
-                            />
-                        </div>
-
-                        <DataTable
-                            columns={columns}
-                            data={myJobs.data}
-                            pagination={{
-                                currentPage: myJobs.meta.current_page,
-                                lastPage: myJobs.meta.last_page,
-                                perPage:
-                                    requestedPerPage || myJobs.meta.per_page,
-                                total: myJobs.meta.total,
-                                onChange: (page, perPage) => {
-                                    router.reload({
-                                        data: { ...filters, page, perPage },
-                                        only: ['myJobs'],
-                                    });
-                                },
-                            }}
+                        <Input
+                            type="search"
+                            value={filters.search}
+                            onChange={(event) =>
+                                setFilters((current) => ({
+                                    ...current,
+                                    search: event.target.value,
+                                }))
+                            }
+                            placeholder="Search my jobs..."
+                            aria-label="Search my jobs"
+                            className="w-full sm:max-w-sm"
                         />
                     </div>
+
+                    <DataTable
+                        columns={columns}
+                        data={myJobs.data}
+                        renderMobileCard={(job) => (
+                            <Link
+                                href={show(job.id).url}
+                                className="interactive-card grid gap-3 rounded-2xl border bg-card p-4"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="font-semibold">
+                                            {job.title}
+                                        </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            {job.property.name} · Unit{' '}
+                                            {job.unit.name}
+                                        </p>
+                                    </div>
+                                    <StatusBadge option={job.status} />
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <StatusBadge
+                                        option={job.priority}
+                                        kind="priority"
+                                    />
+                                    <StatusBadge
+                                        option={job.category}
+                                        kind="neutral"
+                                    />
+                                </div>
+                            </Link>
+                        )}
+                        pagination={{
+                            currentPage: myJobs.meta.current_page,
+                            lastPage: myJobs.meta.last_page,
+                            perPage: requestedPerPage || myJobs.meta.per_page,
+                            total: myJobs.meta.total,
+                            onChange: (page, perPage) => {
+                                router.reload({
+                                    data: { ...filters, page, perPage },
+                                    only: ['myJobs'],
+                                });
+                            },
+                        }}
+                    />
                 </div>
             </div>
         </>

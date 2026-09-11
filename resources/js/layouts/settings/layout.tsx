@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
 import type { NavItem } from '@/types';
-import { edit as editAppearance } from '@/wayfinder/routes/appearance';
 import { edit } from '@/wayfinder/routes/profile';
 import { edit as editSecurity } from '@/wayfinder/routes/security';
 
@@ -21,25 +20,20 @@ const sidebarNavItems: NavItem[] = [
         href: editSecurity(),
         icon: null,
     },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-        icon: null,
-    },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
 
     return (
-        <div className="px-4 py-6">
+        <div className="page-container">
             <Heading
                 title="Settings"
                 description="Manage your profile and account settings"
             />
 
-            <div className="flex flex-col lg:flex-row lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-48">
+            <div className="surface-card flex flex-col gap-8 p-4 sm:p-6 lg:flex-row lg:gap-12 lg:p-8">
+                <aside className="w-full lg:w-52">
                     <nav
                         className="flex flex-col space-y-1 space-x-0"
                         aria-label="Settings"

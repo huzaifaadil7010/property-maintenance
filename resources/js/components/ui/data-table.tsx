@@ -9,6 +9,7 @@ import type { ColumnDef, PaginationState } from '@tanstack/react-table';
 
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import {
     Table,
     TableBody,
@@ -28,12 +29,14 @@ interface DataTableProps<TData, TValue> {
         total: number;
         onChange: (page: number, perPage: number) => void;
     };
+    renderMobileCard?: (row: TData) => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
     pagination,
+    renderMobileCard,
 }: DataTableProps<TData, TValue>) {
     const paginationState: PaginationState = {
         pageIndex: (pagination?.currentPage ?? 1) - 1,
@@ -66,7 +69,25 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <div className="overflow-hidden rounded-md border">
+            {renderMobileCard && (
+                <div className="grid gap-3 md:hidden">
+                    {data.length ? (
+                        data.map((row, index) => (
+                            <div key={index}>{renderMobileCard(row)}</div>
+                        ))
+                    ) : (
+                        <div className="rounded-2xl border border-dashed bg-card px-6 py-12 text-center text-sm text-muted-foreground">
+                            No results found.
+                        </div>
+                    )}
+                </div>
+            )}
+            <div
+                className={cn(
+                    'overflow-hidden rounded-2xl border border-border/90 bg-card shadow-[0_1px_2px_rgba(20,45,32,0.03)]',
+                    renderMobileCard && 'hidden md:block',
+                )}
+            >
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -112,7 +133,7 @@ export function DataTable<TData, TValue>({
                                     colSpan={columns.length}
                                     className="h-24 text-center"
                                 >
-                                    No results.
+                                    No results found.
                                 </TableCell>
                             </TableRow>
                         )}

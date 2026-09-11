@@ -15,7 +15,9 @@ import type { EditableUnit } from '@/components/organization/common/edit-unit-di
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
     Tooltip,
     TooltipContent,
@@ -114,6 +116,9 @@ export default function Index(props: GeneratedPageProps) {
         {
             accessorKey: 'status.label',
             header: 'Status',
+            cell: ({ row }) => (
+                <StatusBadge option={row.original.status} kind="unit" />
+            ),
         },
         {
             accessorKey: 'created_at',
@@ -171,18 +176,12 @@ export default function Index(props: GeneratedPageProps) {
         <>
             <Head title="Units" />
 
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
-                <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Units
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                View and manage the units in your organization.
-                            </p>
-                        </div>
-
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="Portfolio"
+                    title="Units"
+                    description="View and manage the units in your organization."
+                    actions={
                         <Deferred
                             data="properties"
                             fallback={
@@ -198,40 +197,78 @@ export default function Index(props: GeneratedPageProps) {
                                 only={['units']}
                             />
                         </Deferred>
-                    </div>
+                    }
+                />
 
-                    <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">
-                        <div className="flex w-full justify-end p-3 sm:p-4">
-                            <Input
-                                type="search"
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                placeholder="Search units..."
-                                aria-label="Search units"
-                                className="w-full sm:max-w-sm"
-                            />
-                        </div>
-
-                        <DataTable
-                            columns={columns}
-                            data={units.data}
-                            pagination={{
-                                currentPage: units.meta.current_page,
-                                lastPage: units.meta.last_page,
-                                perPage:
-                                    requestedPerPage || units.meta.per_page,
-                                total: units.meta.total,
-                                onChange: (page, perPage) => {
-                                    router.reload({
-                                        data: { page, perPage },
-                                        only: ['units'],
-                                    });
-                                },
-                            }}
+                <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="flex w-full justify-end border-b border-border/70 bg-muted/20 p-3 sm:p-4">
+                        <Input
+                            type="search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search units..."
+                            aria-label="Search units"
+                            className="w-full sm:max-w-sm"
                         />
                     </div>
+
+                    <DataTable
+                        columns={columns}
+                        data={units.data}
+                        renderMobileCard={(unit) => (
+                            <div className="interactive-card grid gap-4 rounded-2xl border bg-card p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="font-semibold">
+                                            Unit {unit.name}
+                                        </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            {unit.property.name}
+                                            {unit.floor
+                                                ? ` · Floor ${unit.floor}`
+                                                : ''}
+                                        </p>
+                                    </div>
+                                    <StatusBadge
+                                        option={unit.status}
+                                        kind="unit"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-1 border-t border-border/70 pt-3">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8"
+                                        onClick={() => onEdit(unit)}
+                                        aria-label="Edit unit"
+                                    >
+                                        <Pencil />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8 text-destructive"
+                                        onClick={() => onDelete(unit)}
+                                        aria-label="Delete unit"
+                                    >
+                                        <Trash2 />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                        pagination={{
+                            currentPage: units.meta.current_page,
+                            lastPage: units.meta.last_page,
+                            perPage: requestedPerPage || units.meta.per_page,
+                            total: units.meta.total,
+                            onChange: (page, perPage) => {
+                                router.reload({
+                                    data: { page, perPage },
+                                    only: ['units'],
+                                });
+                            },
+                        }}
+                    />
                 </div>
             </div>
 

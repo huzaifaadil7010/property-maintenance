@@ -1,5 +1,11 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
-import { ArrowRight, CircleAlert, CircleCheckBig, Clock3 } from 'lucide-react';
+import {
+    ArrowRight,
+    CircleAlert,
+    CircleCheckBig,
+    ClipboardList,
+    Clock3,
+} from 'lucide-react';
 import { StatCard } from '@/components/organization/dashboard/stat-card';
 import { StatCardSkeleton } from '@/components/organization/dashboard/stat-card-skeleton';
 import { Button } from '@/components/ui/button';
@@ -10,7 +16,10 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { dashboard, maintenanceRequests } from '@/wayfinder/routes/technician';
 
 type EnumOption = { label: string; value: string };
@@ -39,81 +48,76 @@ export default function Dashboard({
     return (
         <>
             <Head title="Technician Dashboard" />
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
-                <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            Technician dashboard
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            View your assigned maintenance work and progress.
-                        </p>
-                    </div>
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="Your workday"
+                    title="Technician dashboard"
+                    description="View your assigned maintenance work and keep every job moving."
+                />
 
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <Deferred
-                            data="totalAssignedJobs"
-                            fallback={<StatCardSkeleton />}
-                        >
-                            <StatCard
-                                title="Assigned jobs"
-                                value={totalAssignedJobs ?? 0}
-                                description="Ready for you to begin"
-                                icon={CircleAlert}
-                            />
-                        </Deferred>
-                        <Deferred
-                            data="totalInProgressJobs"
-                            fallback={<StatCardSkeleton />}
-                        >
-                            <StatCard
-                                title="In-progress jobs"
-                                value={totalInProgressJobs ?? 0}
-                                description="Maintenance currently underway"
-                                icon={Clock3}
-                            />
-                        </Deferred>
-                        <Deferred
-                            data="totalCompletedJobs"
-                            fallback={<StatCardSkeleton />}
-                        >
-                            <StatCard
-                                title="Completed jobs"
-                                value={totalCompletedJobs ?? 0}
-                                description="Maintenance work completed"
-                                icon={CircleCheckBig}
-                            />
-                        </Deferred>
-                    </div>
-
-                    <Card>
-                        <CardHeader className="flex-row items-center justify-between gap-4">
-                            <div className="grid gap-1">
-                                <CardTitle>Current active jobs</CardTitle>
-                                <CardDescription>
-                                    Your five newest assigned or in-progress
-                                    jobs.
-                                </CardDescription>
-                            </div>
-                            <Button variant="ghost" size="sm" asChild>
-                                <Link href={maintenanceRequests().url} prefetch>
-                                    View all
-                                    <ArrowRight aria-hidden="true" />
-                                </Link>
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <Deferred
-                                data="currentActiveJobs"
-                                fallback={<ActiveJobsSkeleton />}
-                            >
-                                <ActiveJobs
-                                    jobs={currentActiveJobs?.data ?? []}
-                                />
-                            </Deferred>
-                        </CardContent>
-                    </Card>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <Deferred
+                        data="totalAssignedJobs"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Assigned jobs"
+                            value={totalAssignedJobs ?? 0}
+                            description="Ready for you to begin"
+                            icon={CircleAlert}
+                            tone="amber"
+                        />
+                    </Deferred>
+                    <Deferred
+                        data="totalInProgressJobs"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="In-progress jobs"
+                            value={totalInProgressJobs ?? 0}
+                            description="Maintenance currently underway"
+                            icon={Clock3}
+                            tone="violet"
+                        />
+                    </Deferred>
+                    <Deferred
+                        data="totalCompletedJobs"
+                        fallback={<StatCardSkeleton />}
+                    >
+                        <StatCard
+                            title="Completed jobs"
+                            value={totalCompletedJobs ?? 0}
+                            description="Maintenance work completed"
+                            icon={CircleCheckBig}
+                            tone="emerald"
+                        />
+                    </Deferred>
                 </div>
+
+                <Card className="overflow-hidden">
+                    <CardHeader className="flex-row items-center justify-between gap-4">
+                        <div className="grid gap-1">
+                            <CardTitle>Current active jobs</CardTitle>
+                            <CardDescription>
+                                Your five newest assigned or in-progress jobs.
+                            </CardDescription>
+                        </div>
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href={maintenanceRequests().url} prefetch>
+                                View all
+                                <ArrowRight aria-hidden="true" />
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Deferred
+                            data="currentActiveJobs"
+                            fallback={<ActiveJobsSkeleton />}
+                        >
+                            <ActiveJobs jobs={currentActiveJobs?.data ?? []} />
+                        </Deferred>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );
@@ -122,18 +126,20 @@ export default function Dashboard({
 function ActiveJobs({ jobs }: { jobs: ActiveJob[] }) {
     if (jobs.length === 0) {
         return (
-            <p className="py-4 text-sm text-muted-foreground">
-                You do not have any active jobs right now.
-            </p>
+            <EmptyState
+                icon={ClipboardList}
+                title="No active jobs"
+                description="Newly assigned maintenance work will appear here."
+            />
         );
     }
 
     return (
-        <div className="divide-y rounded-lg border">
+        <div className="divide-y overflow-hidden rounded-2xl border border-border/90">
             {jobs.map((job) => (
                 <div
                     key={job.id}
-                    className="grid gap-3 p-4 sm:grid-cols-[1fr_auto]"
+                    className="grid gap-3 p-4 transition-colors hover:bg-accent/45 sm:grid-cols-[1fr_auto]"
                 >
                     <div className="grid gap-1">
                         <p className="font-medium">{job.title}</p>
@@ -142,15 +148,9 @@ function ActiveJobs({ jobs }: { jobs: ActiveJob[] }) {
                         </p>
                     </div>
                     <div className="flex flex-wrap items-start gap-2 sm:justify-end">
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                            {job.category.label}
-                        </span>
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                            {job.priority.label}
-                        </span>
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                            {job.status.label}
-                        </span>
+                        <StatusBadge option={job.category} kind="neutral" />
+                        <StatusBadge option={job.priority} kind="priority" />
+                        <StatusBadge option={job.status} />
                     </div>
                 </div>
             ))}

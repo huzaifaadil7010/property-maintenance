@@ -27,10 +27,14 @@ export function AppSidebar() {
 
     return (
         <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+            <SidebarHeader className="p-3 pt-4">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton
+                            size="lg"
+                            asChild
+                            className="h-14 rounded-2xl px-2"
+                        >
                             <Link href={dashboardHref} prefetch>
                                 <AppLogo />
                             </Link>
@@ -43,7 +47,7 @@ export function AppSidebar() {
                 <NavMain items={items} label={label} />
             </SidebarContent>
 
-            <SidebarFooter>
+            <SidebarFooter className="border-t border-sidebar-border/70 p-3">
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

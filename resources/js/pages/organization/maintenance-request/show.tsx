@@ -75,13 +75,19 @@ const getStatusColor = (status: string | null | undefined): string => {
     if (!status) return 'border bg-muted text-muted-foreground';
     const colors: Record<string, string> = {
         open: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-        assigned: 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400',
-        'in-progress': 'border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400',
-        completed: 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400',
+        assigned:
+            'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        'in-progress':
+            'border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400',
+        completed:
+            'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400',
         closed: 'border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400',
-        reopened: 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+        reopened:
+            'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400',
     };
-    return colors[status.toLowerCase()] ?? 'border bg-muted text-muted-foreground';
+    return (
+        colors[status.toLowerCase()] ?? 'border bg-muted text-muted-foreground'
+    );
 };
 
 const getStatusDotColor = (status: string | null | undefined): string => {
@@ -105,7 +111,10 @@ const getPriorityColor = (priority: string | null | undefined): string => {
         normal: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
         low: 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400',
     };
-    return colors[priority.toLowerCase()] ?? 'border bg-muted text-muted-foreground';
+    return (
+        colors[priority.toLowerCase()] ??
+        'border bg-muted text-muted-foreground'
+    );
 };
 
 const getStatusIcon = (status: string | null | undefined) => {
@@ -158,8 +167,7 @@ export default function Show({
     const hasAssignedTechnician = Boolean(assignedTechnician);
 
     const baseTechnicians = availableTechnicians as
-        | TechnicianOption[]
-        | undefined;
+        TechnicianOption[] | undefined;
     const technicians =
         baseTechnicians && assignedTechnician
             ? baseTechnicians.some(
@@ -266,8 +274,8 @@ export default function Show({
         <>
             <Head title={maintenanceRequest.data.title} />
 
-            <div className="flex min-h-0 flex-1 flex-col p-4 md:p-6 lg:p-8">
-                <div className="mx-auto w-full max-w-6xl flex-1">
+            <div className="page-container">
+                <div className="mx-auto w-full max-w-7xl flex-1">
                     {/* Header Section */}
                     <div className="mb-8">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -306,9 +314,7 @@ export default function Show({
                                             ? 'outline'
                                             : 'default'
                                     }
-                                    onClick={() =>
-                                        setAssignDialogOpen(true)
-                                    }
+                                    onClick={() => setAssignDialogOpen(true)}
                                 >
                                     {hasAssignedTechnician
                                         ? 'Reassign Technician'
@@ -322,9 +328,7 @@ export default function Show({
                                             ? undefined
                                             : 'Assign a technician first'
                                     }
-                                    onClick={() =>
-                                        setStatusDialogOpen(true)
-                                    }
+                                    onClick={() => setStatusDialogOpen(true)}
                                 >
                                     Update Status
                                 </Button>
@@ -332,10 +336,10 @@ export default function Show({
                         </div>
                     </div>
 
-                    <div className="grid gap-6 lg:grid-cols-3">
-                        <div className="space-y-6 lg:col-span-2">
+                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.75fr)]">
+                        <div className="space-y-6">
                             {/* Description */}
-                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                            <div className="surface-card overflow-hidden">
                                 <div className="p-6">
                                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                                         <MessageSquare className="h-5 w-5 text-muted-foreground" />
@@ -350,7 +354,7 @@ export default function Show({
                             {/* Location & Category Grid */}
                             <div className="grid gap-4 sm:grid-cols-2">
                                 {/* Location Card */}
-                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                                <div className="surface-card overflow-hidden">
                                     <div className="p-6">
                                         <div className="mb-4 flex items-center gap-2">
                                             <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -365,9 +369,8 @@ export default function Show({
                                                 </p>
                                                 <p className="text-sm font-semibold">
                                                     {
-                                                        maintenanceRequest
-                                                            .data.property
-                                                            ?.name
+                                                        maintenanceRequest.data
+                                                            .property?.name
                                                     }
                                                 </p>
                                             </div>
@@ -387,7 +390,7 @@ export default function Show({
                                 </div>
 
                                 {/* Category Card */}
-                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                                <div className="surface-card overflow-hidden">
                                     <div className="p-6">
                                         <div className="mb-4 flex items-center gap-2">
                                             <Wrench className="h-4 w-4 text-muted-foreground" />
@@ -404,7 +407,7 @@ export default function Show({
                             </div>
 
                             {/* Timeline */}
-                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                            <div className="surface-card overflow-hidden">
                                 <div className="p-6">
                                     <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold">
                                         <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -414,7 +417,9 @@ export default function Show({
                                         {/* Created */}
                                         <div className="flex gap-4">
                                             <div className="flex flex-col items-center pt-1">
-                                                <div className={`h-3 w-3 rounded-full ${getStatusDotColor('open')}`} />
+                                                <div
+                                                    className={`h-3 w-3 rounded-full ${getStatusDotColor('open')}`}
+                                                />
                                                 <div className="mt-3 h-12 w-0.5 bg-border" />
                                             </div>
                                             <div className="pb-4">
@@ -442,7 +447,9 @@ export default function Show({
                                             .completed_at && (
                                             <div className="flex gap-4">
                                                 <div className="flex flex-col items-center pt-1">
-                                                    <div className={`h-3 w-3 rounded-full ${getStatusDotColor('completed')}`} />
+                                                    <div
+                                                        className={`h-3 w-3 rounded-full ${getStatusDotColor('completed')}`}
+                                                    />
                                                     <div className="mt-3 h-12 w-0.5 bg-border" />
                                                 </div>
                                                 <div className="pb-4">
@@ -466,7 +473,9 @@ export default function Show({
                                         {/* Last Updated */}
                                         <div className="flex gap-4">
                                             <div className="flex flex-col items-center pt-1">
-                                                <div className={`h-3 w-3 rounded-full ${getStatusDotColor(maintenanceRequest.data.status?.value)}`} />
+                                                <div
+                                                    className={`h-3 w-3 rounded-full ${getStatusDotColor(maintenanceRequest.data.status?.value)}`}
+                                                />
                                             </div>
                                             <div>
                                                 <p className="text-xs font-medium text-muted-foreground">
@@ -493,7 +502,7 @@ export default function Show({
 
                             {/* Completion Notes */}
                             {maintenanceRequest.data.completion_notes && (
-                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                                <div className="surface-card overflow-hidden">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                                             <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
@@ -511,7 +520,7 @@ export default function Show({
 
                             {/* Image Attachments */}
                             {imageAttachments.length > 0 && (
-                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                                <div className="surface-card overflow-hidden">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                                             <ImageIcon className="h-5 w-5 text-muted-foreground" />
@@ -531,7 +540,7 @@ export default function Show({
                                                                 name: attachment.original_name,
                                                             })
                                                         }
-                                                        className="group relative overflow-hidden rounded-lg border bg-transparent p-0 text-left transition-all hover:bg-transparent hover:shadow-md hover:border-ring/50"
+                                                        className="group relative overflow-hidden rounded-lg border bg-transparent p-0 text-left transition-all hover:border-ring/50 hover:bg-transparent hover:shadow-md"
                                                     >
                                                         <div className="aspect-square overflow-hidden bg-muted">
                                                             <img
@@ -585,7 +594,7 @@ export default function Show({
                             {/* Status History */}
                             {(maintenanceRequest.data.status_logs || [])
                                 .length > 0 && (
-                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                                <div className="surface-card overflow-hidden">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                                             <Clock className="h-5 w-5 text-muted-foreground" />
@@ -601,7 +610,9 @@ export default function Show({
                                                     className="flex gap-4 border-b pb-4 last:border-0 last:pb-0"
                                                 >
                                                     <div className="flex flex-col items-center">
-                                                        <div className={`h-3 w-3 rounded-full ${getStatusDotColor(log.to_status?.value)}`} />
+                                                        <div
+                                                            className={`h-3 w-3 rounded-full ${getStatusDotColor(log.to_status?.value)}`}
+                                                        />
                                                         {index <
                                                             (
                                                                 maintenanceRequest
@@ -685,7 +696,7 @@ export default function Show({
                         {/* Right Sidebar */}
                         <div className="space-y-6">
                             {/* Resident Card */}
-                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                            <div className="surface-card overflow-hidden">
                                 <div className="p-6">
                                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                                         <User className="h-5 w-5 text-muted-foreground" />
@@ -693,7 +704,7 @@ export default function Show({
                                     </h2>
                                     <div className="mb-4 flex items-center gap-3">
                                         <Avatar className="h-10 w-10">
-                                            <AvatarFallback className="font-semibold text-primary bg-primary/10">
+                                            <AvatarFallback className="bg-primary/10 font-semibold text-primary">
                                                 {maintenanceRequest.data
                                                     .resident?.name
                                                     ? maintenanceRequest.data.resident?.name
@@ -743,7 +754,7 @@ export default function Show({
                             </div>
 
                             {/* Assigned Technician Card */}
-                            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                            <div className="surface-card overflow-hidden">
                                 <div className="p-6">
                                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                                         <Wrench className="h-5 w-5 text-muted-foreground" />
@@ -754,7 +765,7 @@ export default function Show({
                                         <>
                                             <div className="mb-4 flex items-center gap-3">
                                                 <Avatar className="h-10 w-10">
-                                                    <AvatarFallback className="font-semibold text-primary bg-primary/10">
+                                                    <AvatarFallback className="bg-primary/10 font-semibold text-primary">
                                                         {maintenanceRequest.data.assigned_technician.name
                                                             .split(' ')
                                                             .map((n) => n[0])
@@ -816,7 +827,7 @@ export default function Show({
 
                             {/* Actual Cost Card */}
                             {maintenanceRequest.data.actual_cost && (
-                                <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                                <div className="surface-card overflow-hidden">
                                     <div className="p-6">
                                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                                             <DollarSign className="h-5 w-5 text-muted-foreground" />

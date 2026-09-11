@@ -17,7 +17,6 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { ImageModal } from '@/components/organization/maintenance-request/image-modal';
 import CompleteMaintenanceRequestDialogue from '@/components/technician/maintenance-request/complete-maintenance-request-dialogue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -27,6 +26,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { StatusBadge } from '@/components/ui/status-badge';
 import MaintenanceRequestStatus from '@/wayfinder/App/Enums/MaintenanceRequestStatus';
 import { index } from '@/wayfinder/App/Http/Controllers/Technician/MaintenanceRequestsController';
 import StartMaintenanceRequestWorkController from '@/wayfinder/App/Http/Controllers/Technician/StartMaintenanceRequestWorkController';
@@ -97,7 +97,7 @@ export default function Show(props: GeneratedPageProps) {
         <>
             <Head title={job.title} />
 
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
+            <div className="page-container">
                 <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6">
                     <Button variant="ghost" className="w-fit" asChild>
                         <Link href={index().url}>
@@ -119,12 +119,11 @@ export default function Show(props: GeneratedPageProps) {
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="px-3 py-1">
-                                {job.status.label}
-                            </Badge>
-                            <Badge variant="outline" className="px-3 py-1">
-                                {job.priority.label}
-                            </Badge>
+                            <StatusBadge option={job.status} />
+                            <StatusBadge
+                                option={job.priority}
+                                kind="priority"
+                            />
                             {isAssigned && (
                                 <Button
                                     onClick={startWork}

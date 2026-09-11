@@ -8,6 +8,8 @@ import CreateMaintenanceRequestDialogue from '@/components/resident/maintenance-
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
     Tooltip,
     TooltipContent,
@@ -77,14 +79,21 @@ export default function Index(props: GeneratedPageProps) {
         {
             accessorKey: 'category.label',
             header: 'Category',
+            cell: ({ row }) => (
+                <StatusBadge option={row.original.category} kind="neutral" />
+            ),
         },
         {
             accessorKey: 'priority.label',
             header: 'Priority',
+            cell: ({ row }) => (
+                <StatusBadge option={row.original.priority} kind="priority" />
+            ),
         },
         {
             accessorKey: 'status.label',
             header: 'Status',
+            cell: ({ row }) => <StatusBadge option={row.original.status} />,
         },
         {
             accessorKey: 'unit.name',
@@ -132,58 +141,77 @@ export default function Index(props: GeneratedPageProps) {
         <>
             <Head title="My Requests" />
 
-            <div className="flex min-h-0 flex-1 p-4 md:p-6 lg:p-8">
-                <div className="max-w-10xl mx-auto flex w-full flex-1 flex-col gap-6">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                My Requests
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                View and track your maintenance requests.
-                            </p>
-                        </div>
-
+            <div className="page-container">
+                <PageHeader
+                    eyebrow="Your home"
+                    title="My requests"
+                    description="View and track every maintenance request for your residence."
+                    actions={
                         <CreateMaintenanceRequestDialogue
                             categories={maintenanceCategories}
                             priorities={maintenancePriorities}
                             only={['myRequests']}
                         />
-                    </div>
+                    }
+                />
 
-                    <div className="flex min-h-0 flex-1 flex-col rounded-xl bg-card">
-                        <div className="flex w-full justify-end p-3 sm:p-4">
-                            <Input
-                                type="search"
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                placeholder="Search my requests..."
-                                aria-label="Search my requests"
-                                className="w-full sm:max-w-sm"
-                            />
-                        </div>
-
-                        <DataTable
-                            columns={columns}
-                            data={myRequests.data}
-                            pagination={{
-                                currentPage: myRequests.meta.current_page,
-                                lastPage: myRequests.meta.last_page,
-                                perPage:
-                                    requestedPerPage ||
-                                    myRequests.meta.per_page,
-                                total: myRequests.meta.total,
-                                onChange: (page, perPage) => {
-                                    router.reload({
-                                        data: { search, page, perPage },
-                                        only: ['myRequests'],
-                                    });
-                                },
-                            }}
+                <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="flex w-full justify-end border-b border-border/70 bg-muted/20 p-3 sm:p-4">
+                        <Input
+                            type="search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search my requests..."
+                            aria-label="Search my requests"
+                            className="w-full sm:max-w-sm"
                         />
                     </div>
+
+                    <DataTable
+                        columns={columns}
+                        data={myRequests.data}
+                        renderMobileCard={(request) => (
+                            <Link
+                                href={show(request.id).url}
+                                className="interactive-card grid gap-3 rounded-2xl border bg-card p-4"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="font-semibold">
+                                            {request.title}
+                                        </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            Unit {request.unit.name}
+                                        </p>
+                                    </div>
+                                    <StatusBadge option={request.status} />
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <StatusBadge
+                                        option={request.priority}
+                                        kind="priority"
+                                    />
+                                    <StatusBadge
+                                        option={request.category}
+                                        kind="neutral"
+                                    />
+                                </div>
+                            </Link>
+                        )}
+                        pagination={{
+                            currentPage: myRequests.meta.current_page,
+                            lastPage: myRequests.meta.last_page,
+                            perPage:
+                                requestedPerPage || myRequests.meta.per_page,
+                            total: myRequests.meta.total,
+                            onChange: (page, perPage) => {
+                                router.reload({
+                                    data: { search, page, perPage },
+                                    only: ['myRequests'],
+                                });
+                            },
+                        }}
+                    />
                 </div>
             </div>
         </>
