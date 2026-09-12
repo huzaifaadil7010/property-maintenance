@@ -27,7 +27,8 @@ export default function Welcome() {
                             </Link>
                         ) : (
                             <>
-                                <Link
+                                <div className="flex items-center gap-2">
+                                    <Link
                                     href={login()}
                                     className="inline-flex h-10 items-center rounded-lg px-4 font-semibold transition-colors hover:bg-accent"
                                 >
@@ -39,6 +40,7 @@ export default function Welcome() {
                                 >
                                     Register
                                 </Link>
+                                </div>
                             </>
                         )}
                     </nav>
