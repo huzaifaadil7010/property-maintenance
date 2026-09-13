@@ -58,11 +58,12 @@ class StartMaintenanceRequestWork
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_STARTED,
-            'title' => __('Maintenance work started'),
-            'description' => __('Technician :technician started work on maintenance request ":request".', [
-                'technician' => $technician->name,
-                'request' => $maintenanceRequest->title,
-            ]),
+            'title' => 'Maintenance work started',
+            'description' => sprintf(
+                'Technician %s started work on maintenance request "%s".',
+                $technician->name,
+                $maintenanceRequest->title,
+            ),
             'subject' => $maintenanceRequest,
             'actor' => $technician,
             'organization' => $organization,

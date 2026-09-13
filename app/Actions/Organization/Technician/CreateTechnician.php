@@ -106,11 +106,8 @@ class CreateTechnician
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::TECHNICIAN_CREATED,
-            'title' => __('Technician created'),
-            'description' => __(':actor created technician ":technician".', [
-                'actor' => $actor->name,
-                'technician' => $technician->name,
-            ]),
+            'title' => 'Technician created',
+            'description' => sprintf('%s created technician "%s".', $actor->name, $technician->name),
             'subject' => $technician,
             'actor' => $actor,
             'organization' => $organization,

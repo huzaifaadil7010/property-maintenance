@@ -80,11 +80,12 @@ class CompleteMaintenanceRequestWork
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_COMPLETED,
-            'title' => __('Maintenance work completed'),
-            'description' => __('Technician :technician completed maintenance request ":request".', [
-                'technician' => $technician->name,
-                'request' => $maintenanceRequest->title,
-            ]),
+            'title' => 'Maintenance work completed',
+            'description' => sprintf(
+                'Technician %s completed maintenance request "%s".',
+                $technician->name,
+                $maintenanceRequest->title,
+            ),
             'subject' => $maintenanceRequest,
             'actor' => $technician,
             'organization' => $organization,

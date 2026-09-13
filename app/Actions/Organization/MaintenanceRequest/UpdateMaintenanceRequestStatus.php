@@ -57,12 +57,13 @@ class UpdateMaintenanceRequestStatus
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_STATUS_UPDATED,
-            'title' => __('Maintenance request status updated'),
-            'description' => __(':actor changed maintenance request ":request" to :status.', [
-                'actor' => $actor->name,
-                'request' => $maintenanceRequest->title,
-                'status' => $maintenanceRequest->status->getLabel(),
-            ]),
+            'title' => 'Maintenance request status updated',
+            'description' => sprintf(
+                '%s changed maintenance request "%s" to %s.',
+                $actor->name,
+                $maintenanceRequest->title,
+                $maintenanceRequest->status->getLabel(),
+            ),
             'subject' => $maintenanceRequest,
             'actor' => $actor,
             'organization' => $organization,

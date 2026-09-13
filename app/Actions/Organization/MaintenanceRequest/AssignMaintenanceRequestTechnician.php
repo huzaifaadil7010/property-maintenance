@@ -53,12 +53,13 @@ class AssignMaintenanceRequestTechnician
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_TECHNICIAN_ASSIGNED,
-            'title' => __('Technician assigned'),
-            'description' => __(':actor assigned :technician to maintenance request ":request".', [
-                'actor' => $actor->name,
-                'technician' => $maintenanceRequest->assignedTechnician?->name ?? __('a technician'),
-                'request' => $maintenanceRequest->title,
-            ]),
+            'title' => 'Technician assigned',
+            'description' => sprintf(
+                '%s assigned %s to maintenance request "%s".',
+                $actor->name,
+                $maintenanceRequest->assignedTechnician?->name ?? 'a technician',
+                $maintenanceRequest->title,
+            ),
             'subject' => $maintenanceRequest,
             'actor' => $actor,
             'organization' => $organization,

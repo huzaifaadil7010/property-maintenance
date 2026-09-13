@@ -31,11 +31,8 @@ class CreateUnit
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::UNIT_CREATED,
-            'title' => __('Unit created'),
-            'description' => __(':actor created unit ":unit".', [
-                'actor' => $actor->name,
-                'unit' => $unit->name,
-            ]),
+            'title' => 'Unit created',
+            'description' => sprintf('%s created unit "%s".', $actor->name, $unit->name),
             'subject' => $unit,
             'actor' => $actor,
             'organization' => $organization,

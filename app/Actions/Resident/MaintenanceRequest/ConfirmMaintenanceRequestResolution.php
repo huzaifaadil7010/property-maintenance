@@ -52,11 +52,12 @@ class ConfirmMaintenanceRequestResolution
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_RESOLUTION_CONFIRMED,
-            'title' => __('Maintenance resolution confirmed'),
-            'description' => __('Resident :resident confirmed maintenance request ":request" as resolved.', [
-                'resident' => $resident->name,
-                'request' => $maintenanceRequest->title,
-            ]),
+            'title' => 'Maintenance resolution confirmed',
+            'description' => sprintf(
+                'Resident %s confirmed maintenance request "%s" as resolved.',
+                $resident->name,
+                $maintenanceRequest->title,
+            ),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
             'organization' => $organization,

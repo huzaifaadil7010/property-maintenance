@@ -34,11 +34,8 @@ class UpdateProperty
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::PROPERTY_UPDATED,
-            'title' => __('Property updated'),
-            'description' => __(':actor updated property ":property".', [
-                'actor' => $actor->name,
-                'property' => $property->name,
-            ]),
+            'title' => 'Property updated',
+            'description' => sprintf('%s updated property "%s".', $actor->name, $property->name),
             'subject' => $property,
             'actor' => $actor,
             'organization' => $organization,

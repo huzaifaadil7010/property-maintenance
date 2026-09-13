@@ -34,11 +34,8 @@ class UpdateUnit
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::UNIT_UPDATED,
-            'title' => __('Unit updated'),
-            'description' => __(':actor updated unit ":unit".', [
-                'actor' => $actor->name,
-                'unit' => $unit->name,
-            ]),
+            'title' => 'Unit updated',
+            'description' => sprintf('%s updated unit "%s".', $actor->name, $unit->name),
             'subject' => $unit,
             'actor' => $actor,
             'organization' => $organization,

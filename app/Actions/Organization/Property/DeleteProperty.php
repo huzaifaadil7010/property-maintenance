@@ -32,11 +32,8 @@ class DeleteProperty
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::PROPERTY_DELETED,
-            'title' => __('Property deleted'),
-            'description' => __(':actor deleted property ":property".', [
-                'actor' => $actor->name,
-                'property' => $property->name,
-            ]),
+            'title' => 'Property deleted',
+            'description' => sprintf('%s deleted property "%s".', $actor->name, $property->name),
             'subject' => $property,
             'actor' => $actor,
             'organization' => $organization,

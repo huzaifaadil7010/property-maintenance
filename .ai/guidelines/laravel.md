@@ -159,7 +159,7 @@ public function after(): array
     return [
         function (Validator $validator) {
             if ($this->date('starts_at')->gt($this->date('ends_at'))) {
-                $validator->errors()->add('ends_at', __('End date must be after the start date.'));
+                $validator->errors()->add('ends_at', 'End date must be after the start date.');
             }
         },
     ];
@@ -170,7 +170,7 @@ public function after(): array
 - Use the real field name as the key when the error belongs to an input. For
   whole-request rejections use a consistent non-field key such as `cannot_submit`
   so the frontend can surface it as a toast rather than an inline field error.
-- Wrap user-facing messages in `__()` on projects that are localized.
+- Follow the project-wide localization rule below for validation messages.
 - Keep each rule in its own closure — one closure per business rule, not one
   closure with a chain of `if`s.
 - Expensive lookups needed by the closure are resolved **before** the `return`, so
@@ -191,7 +191,7 @@ public function after(#[RouteParameter('submission')] Submission $submission): a
     return [
         function (Validator $validator) use ($submission) {
             if ($submission->status !== SubmissionStatus::APPROVED) {
-                $validator->errors()->add('cannot_submit', __('Only approved submissions can be toggled.'));
+                $validator->errors()->add('cannot_submit', 'Only approved submissions can be toggled.');
             }
         },
     ];
@@ -306,8 +306,36 @@ $surveyData = SurveyData::from([
 public ?array $statuses = null,
 ```
 
-- Share a `CommonFilterData` DTO for list endpoints (page, perPage, filters, sort)
-  with sane defaults behind getters (`getPerPage()`, `getPage()`).
+- Share a `CommonFilterData` DTO for list endpoints (page, perPage, filters, sort).
+  When a DTO contains nullable `page` and `perPage` input, it owns their defaults
+  and bounds through typed `getPage()` and `getPerPage()` methods. Query Actions
+  must not repeat that normalization; pass the getters directly to `paginate()`
+  using named arguments:
+
+```php
+class CommonFilterData extends Data
+{
+    public function __construct(
+        public ?int $page = null,
+        public ?int $perPage = null,
+    ) {}
+
+    public function getPage(): int
+    {
+        return max($this->page ?? 1, 1);
+    }
+
+    public function getPerPage(): int
+    {
+        return min(max($this->perPage ?? 20, 1), 50);
+    }
+}
+
+$projects->paginate(
+    perPage: $data->getPerPage(),
+    page: $data->getPage(),
+);
+```
 
 ### Enums
 
@@ -599,7 +627,7 @@ return Inertia::render('submissions/index', [
 return Inertia::flash('success', 'Submission created successfully')->back();
 
 return Inertia::flash([
-    'success' => __('Successfully created survey.'),
+    'success' => 'Successfully created survey.',
     'survey'  => $survey->load(['organization'])->toArray(),
 ])->back();
 ```
@@ -613,6 +641,18 @@ return Inertia::flash([
   them directly.
 - Wrap list and detail payloads in API Resources so the frontend contract is explicit.
 - Route model binding everywhere; never look a model up by id inside a controller.
+
+### Localization
+
+- Before wrapping any user-facing string in `__()` or `trans()`, detect whether the
+  project has an actual multilingual system. Check for maintained language files,
+  locale-switching behavior, and established translation-key usage; the default
+  `locale` entries in `config/app.php` alone do not make an application multilingual.
+- When localization exists, follow its established translation keys and helpers
+  consistently across validation, flash messages, notifications, and domain events.
+- When localization does not exist, use direct strings. Do not add translation
+  wrappers speculatively, because they hide the literal without providing a real
+  translation workflow.
 
 ### Facades over global helpers
 
@@ -650,10 +690,13 @@ request()->input('search');
 
 **Helpers with no facade equivalent — keep using these:**
 
-`__()` / `trans()`, `route()`, `url()`, `abort()`, `abort_if()`, `now()`,
+`route()`, `url()`, `abort()`, `abort_if()`, `now()`,
 `today()`, `collect()`, `str()`, `data_get()`, `dispatch()`, `back()`,
 `to_route()`, `redirect()`, `response()`, `old()`, `optional()`, `throw_if()`,
 `base_path()` / `storage_path()` / `public_path()`.
+
+`__()` and `trans()` also have no facade equivalent, but use them only after the
+project-wide localization check described above.
 
 Notes:
 

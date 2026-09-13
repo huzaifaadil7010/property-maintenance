@@ -10,4 +10,14 @@ class ActivityLogPaginationData extends Data
         public ?int $page = null,
         public ?int $perPage = null,
     ) {}
+
+    public function getPage(): int
+    {
+        return max($this->page ?? 1, 1);
+    }
+
+    public function getPerPage(): int
+    {
+        return min(max($this->perPage ?? 20, 1), 50);
+    }
 }

@@ -71,11 +71,12 @@ class CreateMaintenanceRequest
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_CREATED,
-            'title' => __('Maintenance request created'),
-            'description' => __('Resident :resident created maintenance request ":request".', [
-                'resident' => $resident->name,
-                'request' => $maintenanceRequest->title,
-            ]),
+            'title' => 'Maintenance request created',
+            'description' => sprintf(
+                'Resident %s created maintenance request "%s".',
+                $resident->name,
+                $maintenanceRequest->title,
+            ),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
             'organization' => $organization,

@@ -31,11 +31,8 @@ class CreateProperty
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::PROPERTY_CREATED,
-            'title' => __('Property created'),
-            'description' => __(':actor created property ":property".', [
-                'actor' => $actor->name,
-                'property' => $property->name,
-            ]),
+            'title' => 'Property created',
+            'description' => sprintf('%s created property "%s".', $actor->name, $property->name),
             'subject' => $property,
             'actor' => $actor,
             'organization' => $organization,

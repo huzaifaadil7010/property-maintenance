@@ -32,11 +32,8 @@ class DeleteUnit
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::UNIT_DELETED,
-            'title' => __('Unit deleted'),
-            'description' => __(':actor deleted unit ":unit".', [
-                'actor' => $actor->name,
-                'unit' => $unit->name,
-            ]),
+            'title' => 'Unit deleted',
+            'description' => sprintf('%s deleted unit "%s".', $actor->name, $unit->name),
             'subject' => $unit,
             'actor' => $actor,
             'organization' => $organization,

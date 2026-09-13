@@ -51,11 +51,12 @@ class ReopenMaintenanceRequest
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_REOPENED,
-            'title' => __('Maintenance request reopened'),
-            'description' => __('Resident :resident reopened maintenance request ":request".', [
-                'resident' => $resident->name,
-                'request' => $maintenanceRequest->title,
-            ]),
+            'title' => 'Maintenance request reopened',
+            'description' => sprintf(
+                'Resident %s reopened maintenance request "%s".',
+                $resident->name,
+                $maintenanceRequest->title,
+            ),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
             'organization' => $organization,
