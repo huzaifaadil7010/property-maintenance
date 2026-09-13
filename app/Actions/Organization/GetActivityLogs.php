@@ -12,7 +12,7 @@ class GetActivityLogs
     {
         return ActivityLog::query()
             ->inLog('organization')
-            ->orderByDesc('created_at')
+            ->latest()
             ->orderByDesc('id')
             ->paginate(
                 perPage: $data->getPerPage(),
