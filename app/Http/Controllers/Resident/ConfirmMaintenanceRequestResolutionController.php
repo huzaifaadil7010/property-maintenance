@@ -18,7 +18,6 @@ class ConfirmMaintenanceRequestResolutionController extends Controller
             $maintenanceRequest,
             MaintenanceRequestStatusData::from($request->validated()),
             $request->user(),
-            $request->user()->currentOrganization()->firstOrFail(),
         );
 
         return Inertia::flash('success', 'Request resolution confirmed.')->back();

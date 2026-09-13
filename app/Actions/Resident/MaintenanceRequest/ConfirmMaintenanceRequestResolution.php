@@ -7,7 +7,6 @@ use App\Data\ActivityLogData;
 use App\Data\MaintenanceRequestStatusData;
 use App\Enums\ActivityEventEnum;
 use App\Models\MaintenanceRequest;
-use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,7 +18,6 @@ class ConfirmMaintenanceRequestResolution
         MaintenanceRequest $maintenanceRequest,
         MaintenanceRequestStatusData $data,
         User $resident,
-        Organization $organization,
     ): MaintenanceRequest {
         $maintenanceRequest = DB::transaction(function () use ($maintenanceRequest, $data, $resident): MaintenanceRequest {
             $maintenanceRequest = MaintenanceRequest::query()
@@ -41,7 +39,7 @@ class ConfirmMaintenanceRequestResolution
             return $maintenanceRequest;
         });
 
-        self::logActivity($maintenanceRequest, $resident, $organization);
+        self::logActivity($maintenanceRequest, $resident);
 
         return $maintenanceRequest;
     }
@@ -49,7 +47,6 @@ class ConfirmMaintenanceRequestResolution
     private static function logActivity(
         MaintenanceRequest $maintenanceRequest,
         User $resident,
-        Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_RESOLUTION_CONFIRMED,
@@ -60,7 +57,7 @@ class ConfirmMaintenanceRequestResolution
             ], 'Resident :resident confirmed maintenance request ":request" as resolved.'),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
-            'organization' => $organization,
+            'organization' => $resident->currentOrganization,
         ]));
     }
 }

@@ -9,7 +9,6 @@ use App\Data\MaintenanceRequestData;
 use App\Enums\ActivityEventEnum;
 use App\Enums\UserRole;
 use App\Models\MaintenanceRequest;
-use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestCreatedNotification;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +21,10 @@ class CreateMaintenanceRequest
     public static function handle(
         MaintenanceRequestData $data,
         User $resident,
-        Organization $organization,
     ): MaintenanceRequest {
-        $maintenanceRequest = DB::transaction(function () use ($data, $resident): MaintenanceRequest {
+        $organization = $resident->currentOrganization;
+
+        $maintenanceRequest = DB::transaction(function () use ($data, $resident, $organization): MaintenanceRequest {
             $occupancy = $resident->occupancies()
                 ->active()
                 ->with('unit')
@@ -60,7 +60,7 @@ class CreateMaintenanceRequest
             new MaintenanceRequestCreatedNotification($maintenanceRequest),
         );
 
-        self::logActivity($maintenanceRequest, $resident, $organization);
+        self::logActivity($maintenanceRequest, $resident);
 
         return $maintenanceRequest;
     }
@@ -68,7 +68,6 @@ class CreateMaintenanceRequest
     private static function logActivity(
         MaintenanceRequest $maintenanceRequest,
         User $resident,
-        Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_CREATED,
@@ -79,7 +78,7 @@ class CreateMaintenanceRequest
             ], 'Resident :resident created maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
-            'organization' => $organization,
+            'organization' => $resident->currentOrganization,
         ]));
     }
 }

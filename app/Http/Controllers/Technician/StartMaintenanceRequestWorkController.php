@@ -19,7 +19,6 @@ class StartMaintenanceRequestWorkController extends Controller
             $maintenanceRequest,
             MaintenanceRequestStatusData::from(['status' => MaintenanceRequestStatus::IN_PROGRESS]),
             $request->user(),
-            $request->user()->currentOrganization()->firstOrFail(),
         );
 
         return Inertia::flash('success', 'Work started successfully.')->back();

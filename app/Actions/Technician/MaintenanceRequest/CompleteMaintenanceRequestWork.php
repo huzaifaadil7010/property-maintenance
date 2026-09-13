@@ -8,7 +8,6 @@ use App\Data\ActivityLogData;
 use App\Data\CompleteMaintenanceRequestData;
 use App\Enums\ActivityEventEnum;
 use App\Models\MaintenanceRequest;
-use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestCompletedNotification;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +22,6 @@ class CompleteMaintenanceRequestWork
         MaintenanceRequest $maintenanceRequest,
         CompleteMaintenanceRequestData $data,
         User $technician,
-        Organization $organization,
     ): MaintenanceRequest {
         $maintenanceRequest = DB::transaction(function () use ($maintenanceRequest, $data, $technician): MaintenanceRequest {
             $maintenanceRequest = MaintenanceRequest::query()
@@ -69,7 +67,7 @@ class CompleteMaintenanceRequestWork
             (new MaintenanceRequestCompletedNotification($maintenanceRequest))->afterCommit(),
         );
 
-        self::logActivity($maintenanceRequest, $technician, $organization);
+        self::logActivity($maintenanceRequest, $technician);
 
         return $maintenanceRequest;
     }
@@ -77,7 +75,6 @@ class CompleteMaintenanceRequestWork
     private static function logActivity(
         MaintenanceRequest $maintenanceRequest,
         User $technician,
-        Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_COMPLETED,
@@ -88,7 +85,7 @@ class CompleteMaintenanceRequestWork
             ], 'Technician :technician completed maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $technician,
-            'organization' => $organization,
+            'organization' => $technician->currentOrganization,
         ]));
     }
 }

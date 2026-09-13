@@ -18,7 +18,6 @@ class ReopenMaintenanceRequestController extends Controller
             $maintenanceRequest,
             MaintenanceRequestStatusData::from($request->validated()),
             $request->user(),
-            $request->user()->currentOrganization()->firstOrFail(),
         );
 
         return Inertia::flash('success', 'Request reopened successfully.')->back();

@@ -22,7 +22,6 @@ class CompleteMaintenanceRequestWorkController extends Controller
                 'status' => MaintenanceRequestStatus::COMPLETED,
             ]),
             $request->user(),
-            $request->user()->currentOrganization()->firstOrFail(),
         );
 
         return Inertia::flash('success', 'Work completed successfully.')->back();

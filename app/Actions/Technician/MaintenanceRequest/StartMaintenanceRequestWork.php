@@ -7,7 +7,6 @@ use App\Data\ActivityLogData;
 use App\Data\MaintenanceRequestStatusData;
 use App\Enums\ActivityEventEnum;
 use App\Models\MaintenanceRequest;
-use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,7 +18,6 @@ class StartMaintenanceRequestWork
         MaintenanceRequest $maintenanceRequest,
         MaintenanceRequestStatusData $data,
         User $technician,
-        Organization $organization,
     ): MaintenanceRequest {
         $maintenanceRequest = DB::transaction(function () use ($maintenanceRequest, $data, $technician): MaintenanceRequest {
             $maintenanceRequest = MaintenanceRequest::query()
@@ -47,7 +45,7 @@ class StartMaintenanceRequestWork
             return $maintenanceRequest;
         });
 
-        self::logActivity($maintenanceRequest, $technician, $organization);
+        self::logActivity($maintenanceRequest, $technician);
 
         return $maintenanceRequest;
     }
@@ -55,7 +53,6 @@ class StartMaintenanceRequestWork
     private static function logActivity(
         MaintenanceRequest $maintenanceRequest,
         User $technician,
-        Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_STARTED,
@@ -66,7 +63,7 @@ class StartMaintenanceRequestWork
             ], 'Technician :technician started work on maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $technician,
-            'organization' => $organization,
+            'organization' => $technician->currentOrganization,
         ]));
     }
 }
