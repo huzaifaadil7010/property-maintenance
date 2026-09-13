@@ -49,4 +49,9 @@ class Organization extends Model
     {
         return $this->hasMany(MaintenanceRequestStatusLog::class);
     }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
 }

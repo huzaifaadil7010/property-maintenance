@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\GetProperties;
 use App\Actions\Organization\Property\CreateProperty;
+use App\Actions\Organization\Property\DeleteProperty;
 use App\Actions\Organization\Property\UpdateProperty;
 use App\Data\PropertyData;
 use App\Data\PropertyFilterData;
@@ -28,11 +29,11 @@ class PropertiesController extends Controller
         ]);
     }
 
-    public function store(PropertiesRequest $request): RedirectResponse
+    public function store(PropertiesRequest $request, Organization $organization): RedirectResponse
     {
         $data = PropertyData::from($request->validated());
 
-        CreateProperty::handle($data);
+        CreateProperty::handle($data, $request->user(), $organization);
 
         return Inertia::flash('success', 'Property created successfully.')->back();
     }
@@ -44,14 +45,14 @@ class PropertiesController extends Controller
     ): RedirectResponse {
         $data = PropertyData::from($request->validated());
 
-        UpdateProperty::handle($property, $data);
+        UpdateProperty::handle($property, $data, $request->user(), $organization);
 
         return Inertia::flash('success', 'Property updated successfully.')->back();
     }
 
-    public function destroy(Organization $organization, Property $property): RedirectResponse
+    public function destroy(Request $request, Organization $organization, Property $property): RedirectResponse
     {
-        $property->delete();
+        DeleteProperty::handle($property, $request->user(), $organization);
 
         return Inertia::flash('success', 'Property deleted successfully.')->back();
     }

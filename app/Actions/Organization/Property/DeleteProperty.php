@@ -4,25 +4,26 @@ namespace App\Actions\Organization\Property;
 
 use App\Actions\Common\LogActivity;
 use App\Data\ActivityLogData;
-use App\Data\PropertyData;
 use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Str;
 
-class CreateProperty
+class DeleteProperty
 {
     public static function handle(
-        PropertyData $data,
+        Property $property,
         User $actor,
         Organization $organization,
-    ): Property {
-        $property = Property::create($data->toArray());
+    ): bool {
+        $deleted = (bool) $property->delete();
 
-        self::logActivity($property, $actor, $organization);
+        if ($deleted) {
+            self::logActivity($property, $actor, $organization);
+        }
 
-        return $property;
+        return $deleted;
     }
 
     private static function logActivity(
@@ -31,12 +32,12 @@ class CreateProperty
         Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
-            'event' => ActivityEventEnum::PROPERTY_CREATED,
-            'title' => 'Property created',
+            'event' => ActivityEventEnum::PROPERTY_DELETED,
+            'title' => 'Property deleted',
             'description' => Str::swap([
                 ':actor' => $actor->name,
                 ':property' => $property->name,
-            ], ':actor created property ":property".'),
+            ], ':actor deleted property ":property".'),
             'subject' => $property,
             'actor' => $actor,
             'organization' => $organization,

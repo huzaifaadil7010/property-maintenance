@@ -32,7 +32,7 @@ class TechniciansController extends Controller
     {
         $data = TechnicianData::from($request->validated());
 
-        CreateTechnician::handle($data, $organization);
+        CreateTechnician::handle($data, $organization, $request->user());
 
         return Inertia::flash('success', 'Technician created successfully.')->back();
     }

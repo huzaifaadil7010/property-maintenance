@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Organization\ActivityLogsController;
 use App\Http\Controllers\Organization\AssignMaintenanceRequestTechnicianController;
 use App\Http\Controllers\Organization\DashboardController;
 use App\Http\Controllers\Organization\MaintenanceRequestsController;
@@ -18,6 +19,7 @@ Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
     ->scopeBindings()
     ->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('activity-logs', [ActivityLogsController::class, 'index'])->name('activity-logs.index');
 
         Route::get('properties', [PropertiesController::class, 'index'])->name('properties');
         Route::post('properties', [PropertiesController::class, 'store'])->name('properties.store');

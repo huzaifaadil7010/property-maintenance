@@ -2,11 +2,16 @@
 
 namespace App\Actions\Organization\MaintenanceRequest;
 
+use App\Actions\Common\LogActivity;
+use App\Data\ActivityLogData;
 use App\Data\AssignMaintenanceRequestTechnicianData;
+use App\Enums\ActivityEventEnum;
 use App\Models\MaintenanceRequest;
+use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestAssignedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AssignMaintenanceRequestTechnician
 {
@@ -14,6 +19,7 @@ class AssignMaintenanceRequestTechnician
         MaintenanceRequest $maintenanceRequest,
         AssignMaintenanceRequestTechnicianData $data,
         User $user,
+        Organization $organization,
     ): MaintenanceRequest {
         $maintenanceRequest = DB::transaction(function () use ($maintenanceRequest, $data, $user): MaintenanceRequest {
             $fromStatus = $maintenanceRequest->status;
@@ -36,6 +42,27 @@ class AssignMaintenanceRequestTechnician
             new MaintenanceRequestAssignedNotification($maintenanceRequest),
         );
 
+        self::logActivity($maintenanceRequest, $user, $organization);
+
         return $maintenanceRequest;
+    }
+
+    private static function logActivity(
+        MaintenanceRequest $maintenanceRequest,
+        User $actor,
+        Organization $organization,
+    ): void {
+        LogActivity::handle(ActivityLogData::from([
+            'event' => ActivityEventEnum::MAINTENANCE_REQUEST_TECHNICIAN_ASSIGNED,
+            'title' => 'Technician assigned',
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':technician' => $maintenanceRequest->assignedTechnician?->name ?? 'a technician',
+                ':request' => $maintenanceRequest->title,
+            ], ':actor assigned :technician to maintenance request ":request".'),
+            'subject' => $maintenanceRequest,
+            'actor' => $actor,
+            'organization' => $organization,
+        ]));
     }
 }

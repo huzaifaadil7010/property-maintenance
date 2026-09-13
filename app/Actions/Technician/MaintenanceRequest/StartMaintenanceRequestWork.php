@@ -2,10 +2,14 @@
 
 namespace App\Actions\Technician\MaintenanceRequest;
 
+use App\Actions\Common\LogActivity;
+use App\Data\ActivityLogData;
 use App\Data\MaintenanceRequestStatusData;
+use App\Enums\ActivityEventEnum;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class StartMaintenanceRequestWork
@@ -15,7 +19,7 @@ class StartMaintenanceRequestWork
         MaintenanceRequestStatusData $data,
         User $technician,
     ): MaintenanceRequest {
-        return DB::transaction(function () use ($maintenanceRequest, $data, $technician): MaintenanceRequest {
+        $maintenanceRequest = DB::transaction(function () use ($maintenanceRequest, $data, $technician): MaintenanceRequest {
             $maintenanceRequest = MaintenanceRequest::query()
                 ->whereKey($maintenanceRequest->getKey())
                 ->whereBelongsTo($technician, 'assignedTechnician')
@@ -40,5 +44,26 @@ class StartMaintenanceRequestWork
 
             return $maintenanceRequest;
         });
+
+        self::logActivity($maintenanceRequest, $technician);
+
+        return $maintenanceRequest;
+    }
+
+    private static function logActivity(
+        MaintenanceRequest $maintenanceRequest,
+        User $technician,
+    ): void {
+        LogActivity::handle(ActivityLogData::from([
+            'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_STARTED,
+            'title' => 'Maintenance work started',
+            'description' => Str::swap([
+                ':technician' => $technician->name,
+                ':request' => $maintenanceRequest->title,
+            ], 'Technician :technician started work on maintenance request ":request".'),
+            'subject' => $maintenanceRequest,
+            'actor' => $technician,
+            'organization' => $technician->currentOrganization,
+        ]));
     }
 }

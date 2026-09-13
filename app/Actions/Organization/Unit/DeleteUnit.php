@@ -1,43 +1,44 @@
 <?php
 
-namespace App\Actions\Organization\Property;
+namespace App\Actions\Organization\Unit;
 
 use App\Actions\Common\LogActivity;
 use App\Data\ActivityLogData;
-use App\Data\PropertyData;
 use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
-use App\Models\Property;
+use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Str;
 
-class CreateProperty
+class DeleteUnit
 {
     public static function handle(
-        PropertyData $data,
+        Unit $unit,
         User $actor,
         Organization $organization,
-    ): Property {
-        $property = Property::create($data->toArray());
+    ): bool {
+        $deleted = (bool) $unit->delete();
 
-        self::logActivity($property, $actor, $organization);
+        if ($deleted) {
+            self::logActivity($unit, $actor, $organization);
+        }
 
-        return $property;
+        return $deleted;
     }
 
     private static function logActivity(
-        Property $property,
+        Unit $unit,
         User $actor,
         Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
-            'event' => ActivityEventEnum::PROPERTY_CREATED,
-            'title' => 'Property created',
+            'event' => ActivityEventEnum::UNIT_DELETED,
+            'title' => 'Unit deleted',
             'description' => Str::swap([
                 ':actor' => $actor->name,
-                ':property' => $property->name,
-            ], ':actor created property ":property".'),
-            'subject' => $property,
+                ':unit' => $unit->name,
+            ], ':actor deleted unit ":unit".'),
+            'subject' => $unit,
             'actor' => $actor,
             'organization' => $organization,
         ]));

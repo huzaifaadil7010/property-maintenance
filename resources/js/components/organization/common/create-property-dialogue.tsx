@@ -38,7 +38,7 @@ type CreatePropertyFormData = {
 };
 
 type CreatePropertyDialogueProps = {
-    only: Array<'properties' | 'totalProperties'>;
+    only: Array<'properties' | 'totalProperties' | 'recentActivityLogs'>;
 };
 
 export default function CreatePropertyDialogue({

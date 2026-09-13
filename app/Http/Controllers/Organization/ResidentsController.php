@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\Common\GetAvailableUnitsForResidentDropdown;
 use App\Actions\Organization\Common\GetPropertiesForResidentDropdown;
-use App\Actions\Organization\Resident\CreateResident;
 use App\Actions\Organization\GetResidents;
+use App\Actions\Organization\Resident\CreateResident;
 use App\Data\ResidentData;
 use App\Data\ResidentFilterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ResidentsRequest;
-use App\Http\Resources\ResidentResource;
 use App\Http\Resources\PropertyResource;
+use App\Http\Resources\ResidentResource;
 use App\Http\Resources\UnitResource;
 use App\Models\Organization;
 use Illuminate\Http\Request;
@@ -45,7 +45,7 @@ class ResidentsController extends Controller
     {
         $data = ResidentData::from($request->validated());
 
-        CreateResident::handle($data, $organization);
+        CreateResident::handle($data, $organization, $request->user());
 
         return Inertia::flash('success', 'Resident created successfully.')->back();
     }

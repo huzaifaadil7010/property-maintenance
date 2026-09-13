@@ -29,7 +29,12 @@ class AssignMaintenanceRequestTechnicianController extends Controller
             'status' => $status,
         ]);
 
-        AssignMaintenanceRequestTechnician::handle($maintenanceRequest, $data, Auth::user());
+        AssignMaintenanceRequestTechnician::handle(
+            $maintenanceRequest,
+            $data,
+            Auth::user(),
+            $organization,
+        );
 
         return Inertia::flash('success', 'Technician assigned successfully.')->back();
     }

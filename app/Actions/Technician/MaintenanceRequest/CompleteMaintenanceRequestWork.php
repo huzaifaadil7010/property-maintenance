@@ -2,12 +2,16 @@
 
 namespace App\Actions\Technician\MaintenanceRequest;
 
+use App\Actions\Common\LogActivity;
 use App\Concerns\HasMediaLibraryUploadHelpers;
+use App\Data\ActivityLogData;
 use App\Data\CompleteMaintenanceRequestData;
+use App\Enums\ActivityEventEnum;
 use App\Models\MaintenanceRequest;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestCompletedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CompleteMaintenanceRequestWork
@@ -63,6 +67,25 @@ class CompleteMaintenanceRequestWork
             (new MaintenanceRequestCompletedNotification($maintenanceRequest))->afterCommit(),
         );
 
+        self::logActivity($maintenanceRequest, $technician);
+
         return $maintenanceRequest;
+    }
+
+    private static function logActivity(
+        MaintenanceRequest $maintenanceRequest,
+        User $technician,
+    ): void {
+        LogActivity::handle(ActivityLogData::from([
+            'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_COMPLETED,
+            'title' => 'Maintenance work completed',
+            'description' => Str::swap([
+                ':technician' => $technician->name,
+                ':request' => $maintenanceRequest->title,
+            ], 'Technician :technician completed maintenance request ":request".'),
+            'subject' => $maintenanceRequest,
+            'actor' => $technician,
+            'organization' => $technician->currentOrganization,
+        ]));
     }
 }

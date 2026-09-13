@@ -10,9 +10,12 @@ use App\Actions\Organization\Dashboard\GetTotalOccupiedUnits;
 use App\Actions\Organization\Dashboard\GetTotalProperties;
 use App\Actions\Organization\Dashboard\GetTotalUnits;
 use App\Actions\Organization\Dashboard\GetTotalVacantUnits;
+use App\Actions\Organization\GetActivityLogs;
+use App\Data\ActivityLogPaginationData;
 use App\Enums\MaintenanceRequestStatus;
 use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ActivityLogResource;
 use Illuminate\Database\Eloquent\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,6 +29,15 @@ class DashboardController extends Controller
                 fn (): Collection => GetPropertiesForDropDown::handle(),
             )->once(),
             'unitStatuses' => UnitStatus::getLabeledValues(),
+            'recentActivityLogs' => Inertia::defer(
+                fn () => ActivityLogResource::collection(
+                    GetActivityLogs::handle(ActivityLogPaginationData::from([
+                        'page' => 1,
+                        'perPage' => 6,
+                    ])),
+                ),
+                'recentActivityLogs',
+            ),
             'totalActiveResidents' => Inertia::defer(
                 fn (): int => GetTotalActiveResidents::handle(),
                 'totalActiveResidents',
