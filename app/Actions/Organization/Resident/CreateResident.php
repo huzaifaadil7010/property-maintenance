@@ -2,9 +2,12 @@
 
 namespace App\Actions\Organization\Resident;
 
+use App\Actions\Common\LogActivity;
+use App\Data\ActivityLogData;
 use App\Data\OccupancyData;
 use App\Data\ResidentData;
 use App\Data\ResidentUserData;
+use App\Enums\ActivityEventEnum;
 use App\Enums\OccupancyStatus;
 use App\Enums\UserRole;
 use App\Models\Occupancy;
@@ -20,8 +23,11 @@ use Spatie\Permission\PermissionRegistrar;
 
 class CreateResident
 {
-    public static function handle(ResidentData $data, Organization $organization): User
-    {
+    public static function handle(
+        ResidentData $data,
+        Organization $organization,
+        User $actor,
+    ): User {
         $permissionRegistrar = app(PermissionRegistrar::class);
         $originalTeamId = $permissionRegistrar->getPermissionsTeamId();
         $temporaryPassword = Str::password(16, true, true, false, false);
@@ -29,7 +35,7 @@ class CreateResident
         try {
             $permissionRegistrar->setPermissionsTeamId($organization->id);
 
-            return DB::transaction(function () use ($data, $organization, $temporaryPassword): User {
+            $resident = DB::transaction(function () use ($data, $organization, $temporaryPassword): User {
                 $unit = self::getAvailableLockedUnit($data);
                 $resident = self::createResidentUser($data, $temporaryPassword);
 
@@ -43,6 +49,10 @@ class CreateResident
             $permissionRegistrar->setPermissionsTeamId($originalTeamId);
             $permissionRegistrar->forgetCachedPermissions();
         }
+
+        self::logActivity($resident, $actor, $organization);
+
+        return $resident;
     }
 
     private static function getAvailableLockedUnit(ResidentData $data): Unit
@@ -116,5 +126,23 @@ class CreateResident
         DB::afterCommit(function () use ($resident, $temporaryPassword): void {
             $resident->notify(new ResidentAccountCreatedNotification($temporaryPassword));
         });
+    }
+
+    private static function logActivity(
+        User $resident,
+        User $actor,
+        Organization $organization,
+    ): void {
+        LogActivity::handle(ActivityLogData::from([
+            'event' => ActivityEventEnum::RESIDENT_CREATED,
+            'title' => __('Resident created'),
+            'description' => __(':actor created resident ":resident".', [
+                'actor' => $actor->name,
+                'resident' => $resident->name,
+            ]),
+            'subject' => $resident,
+            'actor' => $actor,
+            'organization' => $organization,
+        ]));
     }
 }

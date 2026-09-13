@@ -48,7 +48,11 @@ type CreateUnitDialogueProps = {
     properties: PropertyOption[];
     unitStatuses: UnitStatusOption[];
     only: Array<
-        'units' | 'totalUnits' | 'totalVacantUnits' | 'totalOccupiedUnits'
+        | 'units'
+        | 'totalUnits'
+        | 'totalVacantUnits'
+        | 'totalOccupiedUnits'
+        | 'recentActivityLogs'
     >;
 };
 

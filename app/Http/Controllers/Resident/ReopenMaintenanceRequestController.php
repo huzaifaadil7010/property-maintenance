@@ -14,7 +14,12 @@ class ReopenMaintenanceRequestController extends Controller
 {
     public function __invoke(ReopenMaintenanceRequestRequest $request, MaintenanceRequest $maintenanceRequest): RedirectResponse
     {
-        ReopenMaintenanceRequest::handle($maintenanceRequest, MaintenanceRequestStatusData::from($request->validated()), $request->user());
+        ReopenMaintenanceRequest::handle(
+            $maintenanceRequest,
+            MaintenanceRequestStatusData::from($request->validated()),
+            $request->user(),
+            $request->user()->currentOrganization()->firstOrFail(),
+        );
 
         return Inertia::flash('success', 'Request reopened successfully.')->back();
     }

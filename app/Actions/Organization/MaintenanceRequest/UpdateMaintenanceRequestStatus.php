@@ -2,9 +2,13 @@
 
 namespace App\Actions\Organization\MaintenanceRequest;
 
+use App\Actions\Common\LogActivity;
+use App\Data\ActivityLogData;
 use App\Data\MaintenanceRequestStatusData;
+use App\Enums\ActivityEventEnum;
 use App\Enums\MaintenanceRequestStatus as MaintenanceRequestStatusEnum;
 use App\Models\MaintenanceRequest;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -14,8 +18,9 @@ class UpdateMaintenanceRequestStatus
         MaintenanceRequest $maintenanceRequest,
         MaintenanceRequestStatusData $data,
         User $user,
+        Organization $organization,
     ): MaintenanceRequest {
-        return DB::transaction(function () use ($maintenanceRequest, $data, $user): MaintenanceRequest {
+        $maintenanceRequest = DB::transaction(function () use ($maintenanceRequest, $data, $user): MaintenanceRequest {
             $fromStatus = $maintenanceRequest->status;
 
             $maintenanceRequest->status = $data->status;
@@ -39,5 +44,28 @@ class UpdateMaintenanceRequestStatus
 
             return $maintenanceRequest;
         });
+
+        self::logActivity($maintenanceRequest, $user, $organization);
+
+        return $maintenanceRequest;
+    }
+
+    private static function logActivity(
+        MaintenanceRequest $maintenanceRequest,
+        User $actor,
+        Organization $organization,
+    ): void {
+        LogActivity::handle(ActivityLogData::from([
+            'event' => ActivityEventEnum::MAINTENANCE_REQUEST_STATUS_UPDATED,
+            'title' => __('Maintenance request status updated'),
+            'description' => __(':actor changed maintenance request ":request" to :status.', [
+                'actor' => $actor->name,
+                'request' => $maintenanceRequest->title,
+                'status' => $maintenanceRequest->status->getLabel(),
+            ]),
+            'subject' => $maintenanceRequest,
+            'actor' => $actor,
+            'organization' => $organization,
+        ]));
     }
 }

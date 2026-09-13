@@ -4,27 +4,25 @@ namespace App\Actions\Organization\Property;
 
 use App\Actions\Common\LogActivity;
 use App\Data\ActivityLogData;
-use App\Data\PropertyData;
 use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Property;
 use App\Models\User;
 
-class UpdateProperty
+class DeleteProperty
 {
     public static function handle(
         Property $property,
-        PropertyData $data,
         User $actor,
         Organization $organization,
     ): bool {
-        $updated = $property->update($data->toArray());
+        $deleted = (bool) $property->delete();
 
-        if ($updated) {
+        if ($deleted) {
             self::logActivity($property, $actor, $organization);
         }
 
-        return $updated;
+        return $deleted;
     }
 
     private static function logActivity(
@@ -33,9 +31,9 @@ class UpdateProperty
         Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
-            'event' => ActivityEventEnum::PROPERTY_UPDATED,
-            'title' => __('Property updated'),
-            'description' => __(':actor updated property ":property".', [
+            'event' => ActivityEventEnum::PROPERTY_DELETED,
+            'title' => __('Property deleted'),
+            'description' => __(':actor deleted property ":property".', [
                 'actor' => $actor->name,
                 'property' => $property->name,
             ]),

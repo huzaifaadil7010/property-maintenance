@@ -40,6 +40,7 @@ class MaintenanceRequestsController extends Controller
         CreateMaintenanceRequest::handle(
             MaintenanceRequestData::from($request->validated()),
             $request->user(),
+            $request->user()->currentOrganization()->firstOrFail(),
         );
 
         return Inertia::flash('success', 'Maintenance request reported successfully.')->back();

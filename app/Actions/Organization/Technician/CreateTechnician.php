@@ -2,9 +2,12 @@
 
 namespace App\Actions\Organization\Technician;
 
+use App\Actions\Common\LogActivity;
+use App\Data\ActivityLogData;
 use App\Data\TechnicianData;
 use App\Data\TechnicianProfileData;
 use App\Data\TechnicianUserData;
+use App\Enums\ActivityEventEnum;
 use App\Enums\UserRole;
 use App\Models\Organization;
 use App\Models\TechnicianProfile;
@@ -17,8 +20,11 @@ use Spatie\Permission\PermissionRegistrar;
 
 class CreateTechnician
 {
-    public static function handle(TechnicianData $data, Organization $organization): User
-    {
+    public static function handle(
+        TechnicianData $data,
+        Organization $organization,
+        User $actor,
+    ): User {
         $permissionRegistrar = app(PermissionRegistrar::class);
         $originalTeamId = $permissionRegistrar->getPermissionsTeamId();
         $temporaryPassword = Str::password(16, true, true, false, false);
@@ -26,7 +32,7 @@ class CreateTechnician
         try {
             $permissionRegistrar->setPermissionsTeamId($organization->id);
 
-            return DB::transaction(function () use ($data, $organization, $temporaryPassword): User {
+            $technician = DB::transaction(function () use ($data, $organization, $temporaryPassword): User {
                 $technician = self::createTechnicianUser($data, $temporaryPassword);
 
                 self::configureTechnician($technician, $organization);
@@ -39,6 +45,10 @@ class CreateTechnician
             $permissionRegistrar->setPermissionsTeamId($originalTeamId);
             $permissionRegistrar->forgetCachedPermissions();
         }
+
+        self::logActivity($technician, $actor, $organization);
+
+        return $technician;
     }
 
     private static function createTechnicianUser(TechnicianData $data, string $temporaryPassword): User
@@ -87,5 +97,23 @@ class CreateTechnician
         DB::afterCommit(function () use ($technician, $temporaryPassword): void {
             $technician->notify(new TechnicianAccountCreatedNotification($temporaryPassword));
         });
+    }
+
+    private static function logActivity(
+        User $technician,
+        User $actor,
+        Organization $organization,
+    ): void {
+        LogActivity::handle(ActivityLogData::from([
+            'event' => ActivityEventEnum::TECHNICIAN_CREATED,
+            'title' => __('Technician created'),
+            'description' => __(':actor created technician ":technician".', [
+                'actor' => $actor->name,
+                'technician' => $technician->name,
+            ]),
+            'subject' => $technician,
+            'actor' => $actor,
+            'organization' => $organization,
+        ]));
     }
 }

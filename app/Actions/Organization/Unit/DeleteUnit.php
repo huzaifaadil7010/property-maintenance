@@ -4,27 +4,25 @@ namespace App\Actions\Organization\Unit;
 
 use App\Actions\Common\LogActivity;
 use App\Data\ActivityLogData;
-use App\Data\UnitData;
 use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Unit;
 use App\Models\User;
 
-class UpdateUnit
+class DeleteUnit
 {
     public static function handle(
         Unit $unit,
-        UnitData $data,
         User $actor,
         Organization $organization,
     ): bool {
-        $updated = $unit->update($data->toArray());
+        $deleted = (bool) $unit->delete();
 
-        if ($updated) {
+        if ($deleted) {
             self::logActivity($unit, $actor, $organization);
         }
 
-        return $updated;
+        return $deleted;
     }
 
     private static function logActivity(
@@ -33,9 +31,9 @@ class UpdateUnit
         Organization $organization,
     ): void {
         LogActivity::handle(ActivityLogData::from([
-            'event' => ActivityEventEnum::UNIT_UPDATED,
-            'title' => __('Unit updated'),
-            'description' => __(':actor updated unit ":unit".', [
+            'event' => ActivityEventEnum::UNIT_DELETED,
+            'title' => __('Unit deleted'),
+            'description' => __(':actor deleted unit ":unit".', [
                 'actor' => $actor->name,
                 'unit' => $unit->name,
             ]),

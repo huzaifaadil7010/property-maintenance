@@ -21,7 +21,12 @@ class UpdateMaintenanceRequestStatusController extends Controller
     ): RedirectResponse {
         $data = MaintenanceRequestStatusData::from($request->validated());
 
-        UpdateMaintenanceRequestStatus::handle($maintenanceRequest, $data, Auth::user());
+        UpdateMaintenanceRequestStatus::handle(
+            $maintenanceRequest,
+            $data,
+            Auth::user(),
+            $organization,
+        );
 
         return Inertia::flash('success', 'Status updated successfully.')->back();
     }

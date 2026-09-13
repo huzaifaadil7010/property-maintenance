@@ -14,7 +14,12 @@ class ConfirmMaintenanceRequestResolutionController extends Controller
 {
     public function __invoke(ConfirmMaintenanceRequestResolutionRequest $request, MaintenanceRequest $maintenanceRequest): RedirectResponse
     {
-        ConfirmMaintenanceRequestResolution::handle($maintenanceRequest, MaintenanceRequestStatusData::from($request->validated()), $request->user());
+        ConfirmMaintenanceRequestResolution::handle(
+            $maintenanceRequest,
+            MaintenanceRequestStatusData::from($request->validated()),
+            $request->user(),
+            $request->user()->currentOrganization()->firstOrFail(),
+        );
 
         return Inertia::flash('success', 'Request resolution confirmed.')->back();
     }

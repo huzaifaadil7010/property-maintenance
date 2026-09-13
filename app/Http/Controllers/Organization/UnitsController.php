@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Organization;
 use App\Actions\Organization\Common\GetPropertiesForDropDown;
 use App\Actions\Organization\GetUnits;
 use App\Actions\Organization\Unit\CreateUnit;
+use App\Actions\Organization\Unit\DeleteUnit;
 use App\Actions\Organization\Unit\UpdateUnit;
 use App\Data\UnitData;
 use App\Data\UnitFilterData;
@@ -35,11 +36,11 @@ class UnitsController extends Controller
         ]);
     }
 
-    public function store(UnitsRequest $request): RedirectResponse
+    public function store(UnitsRequest $request, Organization $organization): RedirectResponse
     {
         $data = UnitData::from($request->validated());
 
-        CreateUnit::handle($data);
+        CreateUnit::handle($data, $request->user(), $organization);
 
         return Inertia::flash('success', 'Unit created successfully.')->back();
     }
@@ -51,14 +52,14 @@ class UnitsController extends Controller
     ): RedirectResponse {
         $data = UnitData::from($request->validated());
 
-        UpdateUnit::handle($unit, $data);
+        UpdateUnit::handle($unit, $data, $request->user(), $organization);
 
         return Inertia::flash('success', 'Unit updated successfully.')->back();
     }
 
-    public function destroy(Organization $organization, Unit $unit): RedirectResponse
+    public function destroy(Request $request, Organization $organization, Unit $unit): RedirectResponse
     {
-        $unit->delete();
+        DeleteUnit::handle($unit, $request->user(), $organization);
 
         return Inertia::flash('success', 'Unit deleted successfully.')->back();
     }

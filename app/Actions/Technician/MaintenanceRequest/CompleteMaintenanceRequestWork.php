@@ -2,9 +2,13 @@
 
 namespace App\Actions\Technician\MaintenanceRequest;
 
+use App\Actions\Common\LogActivity;
 use App\Concerns\HasMediaLibraryUploadHelpers;
+use App\Data\ActivityLogData;
 use App\Data\CompleteMaintenanceRequestData;
+use App\Enums\ActivityEventEnum;
 use App\Models\MaintenanceRequest;
+use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestCompletedNotification;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +22,7 @@ class CompleteMaintenanceRequestWork
         MaintenanceRequest $maintenanceRequest,
         CompleteMaintenanceRequestData $data,
         User $technician,
+        Organization $organization,
     ): MaintenanceRequest {
         $maintenanceRequest = DB::transaction(function () use ($maintenanceRequest, $data, $technician): MaintenanceRequest {
             $maintenanceRequest = MaintenanceRequest::query()
@@ -63,6 +68,26 @@ class CompleteMaintenanceRequestWork
             (new MaintenanceRequestCompletedNotification($maintenanceRequest))->afterCommit(),
         );
 
+        self::logActivity($maintenanceRequest, $technician, $organization);
+
         return $maintenanceRequest;
+    }
+
+    private static function logActivity(
+        MaintenanceRequest $maintenanceRequest,
+        User $technician,
+        Organization $organization,
+    ): void {
+        LogActivity::handle(ActivityLogData::from([
+            'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_COMPLETED,
+            'title' => __('Maintenance work completed'),
+            'description' => __('Technician :technician completed maintenance request ":request".', [
+                'technician' => $technician->name,
+                'request' => $maintenanceRequest->title,
+            ]),
+            'subject' => $maintenanceRequest,
+            'actor' => $technician,
+            'organization' => $organization,
+        ]));
     }
 }
