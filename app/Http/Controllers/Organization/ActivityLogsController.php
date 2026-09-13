@@ -18,10 +18,7 @@ class ActivityLogsController extends Controller
         return Inertia::render('organization/activity-log/index', [
             'activityLogs' => Inertia::scroll(
                 fn () => ActivityLogResource::collection(
-                    GetActivityLogs::handle(ActivityLogPaginationData::from([
-                        'page' => $request->integer('page', 1),
-                        'perPage' => 20,
-                    ])),
+                    GetActivityLogs::handle(ActivityLogPaginationData::from($request->all())),
                 ),
             ),
         ]);
