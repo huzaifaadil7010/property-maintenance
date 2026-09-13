@@ -9,6 +9,7 @@ use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Unit;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class UpdateUnit
 {
@@ -35,7 +36,10 @@ class UpdateUnit
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::UNIT_UPDATED,
             'title' => 'Unit updated',
-            'description' => sprintf('%s updated unit "%s".', $actor->name, $unit->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':unit' => $unit->name,
+            ], ':actor updated unit ":unit".'),
             'subject' => $unit,
             'actor' => $actor,
             'organization' => $organization,

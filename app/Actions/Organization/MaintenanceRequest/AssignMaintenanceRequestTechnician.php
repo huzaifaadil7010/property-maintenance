@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestAssignedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AssignMaintenanceRequestTechnician
 {
@@ -54,12 +55,11 @@ class AssignMaintenanceRequestTechnician
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_TECHNICIAN_ASSIGNED,
             'title' => 'Technician assigned',
-            'description' => sprintf(
-                '%s assigned %s to maintenance request "%s".',
-                $actor->name,
-                $maintenanceRequest->assignedTechnician?->name ?? 'a technician',
-                $maintenanceRequest->title,
-            ),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':technician' => $maintenanceRequest->assignedTechnician?->name ?? 'a technician',
+                ':request' => $maintenanceRequest->title,
+            ], ':actor assigned :technician to maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $actor,
             'organization' => $organization,

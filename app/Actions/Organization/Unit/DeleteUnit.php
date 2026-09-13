@@ -8,6 +8,7 @@ use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Unit;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class DeleteUnit
 {
@@ -33,7 +34,10 @@ class DeleteUnit
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::UNIT_DELETED,
             'title' => 'Unit deleted',
-            'description' => sprintf('%s deleted unit "%s".', $actor->name, $unit->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':unit' => $unit->name,
+            ], ':actor deleted unit ":unit".'),
             'subject' => $unit,
             'actor' => $actor,
             'organization' => $organization,

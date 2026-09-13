@@ -136,7 +136,10 @@ class CreateResident
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::RESIDENT_CREATED,
             'title' => 'Resident created',
-            'description' => sprintf('%s created resident "%s".', $actor->name, $resident->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':resident' => $resident->name,
+            ], ':actor created resident ":resident".'),
             'subject' => $resident,
             'actor' => $actor,
             'organization' => $organization,

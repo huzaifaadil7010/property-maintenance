@@ -12,6 +12,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestCompletedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CompleteMaintenanceRequestWork
@@ -81,11 +82,10 @@ class CompleteMaintenanceRequestWork
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_COMPLETED,
             'title' => 'Maintenance work completed',
-            'description' => sprintf(
-                'Technician %s completed maintenance request "%s".',
-                $technician->name,
-                $maintenanceRequest->title,
-            ),
+            'description' => Str::swap([
+                ':technician' => $technician->name,
+                ':request' => $maintenanceRequest->title,
+            ], 'Technician :technician completed maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $technician,
             'organization' => $organization,

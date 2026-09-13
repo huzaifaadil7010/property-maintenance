@@ -9,6 +9,7 @@ use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Property;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class CreateProperty
 {
@@ -32,7 +33,10 @@ class CreateProperty
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::PROPERTY_CREATED,
             'title' => 'Property created',
-            'description' => sprintf('%s created property "%s".', $actor->name, $property->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':property' => $property->name,
+            ], ':actor created property ":property".'),
             'subject' => $property,
             'actor' => $actor,
             'organization' => $organization,

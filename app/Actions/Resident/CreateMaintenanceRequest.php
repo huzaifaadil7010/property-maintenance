@@ -13,6 +13,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MaintenanceRequestCreatedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CreateMaintenanceRequest
 {
@@ -72,11 +73,10 @@ class CreateMaintenanceRequest
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_CREATED,
             'title' => 'Maintenance request created',
-            'description' => sprintf(
-                'Resident %s created maintenance request "%s".',
-                $resident->name,
-                $maintenanceRequest->title,
-            ),
+            'description' => Str::swap([
+                ':resident' => $resident->name,
+                ':request' => $maintenanceRequest->title,
+            ], 'Resident :resident created maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
             'organization' => $organization,

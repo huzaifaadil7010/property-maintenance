@@ -8,6 +8,7 @@ use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Property;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class DeleteProperty
 {
@@ -33,7 +34,10 @@ class DeleteProperty
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::PROPERTY_DELETED,
             'title' => 'Property deleted',
-            'description' => sprintf('%s deleted property "%s".', $actor->name, $property->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':property' => $property->name,
+            ], ':actor deleted property ":property".'),
             'subject' => $property,
             'actor' => $actor,
             'organization' => $organization,

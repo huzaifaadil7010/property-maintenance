@@ -11,6 +11,7 @@ use App\Models\MaintenanceRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class UpdateMaintenanceRequestStatus
 {
@@ -58,12 +59,11 @@ class UpdateMaintenanceRequestStatus
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_STATUS_UPDATED,
             'title' => 'Maintenance request status updated',
-            'description' => sprintf(
-                '%s changed maintenance request "%s" to %s.',
-                $actor->name,
-                $maintenanceRequest->title,
-                $maintenanceRequest->status->getLabel(),
-            ),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':request' => $maintenanceRequest->title,
+                ':status' => $maintenanceRequest->status->getLabel(),
+            ], ':actor changed maintenance request ":request" to :status.'),
             'subject' => $maintenanceRequest,
             'actor' => $actor,
             'organization' => $organization,

@@ -9,6 +9,7 @@ use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Unit;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class CreateUnit
 {
@@ -32,7 +33,10 @@ class CreateUnit
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::UNIT_CREATED,
             'title' => 'Unit created',
-            'description' => sprintf('%s created unit "%s".', $actor->name, $unit->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':unit' => $unit->name,
+            ], ':actor created unit ":unit".'),
             'subject' => $unit,
             'actor' => $actor,
             'organization' => $organization,

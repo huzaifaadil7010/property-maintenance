@@ -10,6 +10,7 @@ use App\Models\MaintenanceRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ReopenMaintenanceRequest
@@ -52,11 +53,10 @@ class ReopenMaintenanceRequest
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_REOPENED,
             'title' => 'Maintenance request reopened',
-            'description' => sprintf(
-                'Resident %s reopened maintenance request "%s".',
-                $resident->name,
-                $maintenanceRequest->title,
-            ),
+            'description' => Str::swap([
+                ':resident' => $resident->name,
+                ':request' => $maintenanceRequest->title,
+            ], 'Resident :resident reopened maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
             'organization' => $organization,

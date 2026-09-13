@@ -10,6 +10,7 @@ use App\Models\MaintenanceRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ConfirmMaintenanceRequestResolution
@@ -53,11 +54,10 @@ class ConfirmMaintenanceRequestResolution
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_RESOLUTION_CONFIRMED,
             'title' => 'Maintenance resolution confirmed',
-            'description' => sprintf(
-                'Resident %s confirmed maintenance request "%s" as resolved.',
-                $resident->name,
-                $maintenanceRequest->title,
-            ),
+            'description' => Str::swap([
+                ':resident' => $resident->name,
+                ':request' => $maintenanceRequest->title,
+            ], 'Resident :resident confirmed maintenance request ":request" as resolved.'),
             'subject' => $maintenanceRequest,
             'actor' => $resident,
             'organization' => $organization,

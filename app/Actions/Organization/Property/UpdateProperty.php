@@ -9,6 +9,7 @@ use App\Enums\ActivityEventEnum;
 use App\Models\Organization;
 use App\Models\Property;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class UpdateProperty
 {
@@ -35,7 +36,10 @@ class UpdateProperty
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::PROPERTY_UPDATED,
             'title' => 'Property updated',
-            'description' => sprintf('%s updated property "%s".', $actor->name, $property->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':property' => $property->name,
+            ], ':actor updated property ":property".'),
             'subject' => $property,
             'actor' => $actor,
             'organization' => $organization,

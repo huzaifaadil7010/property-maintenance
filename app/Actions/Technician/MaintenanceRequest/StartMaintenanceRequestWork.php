@@ -10,6 +10,7 @@ use App\Models\MaintenanceRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class StartMaintenanceRequestWork
@@ -59,11 +60,10 @@ class StartMaintenanceRequestWork
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::MAINTENANCE_REQUEST_WORK_STARTED,
             'title' => 'Maintenance work started',
-            'description' => sprintf(
-                'Technician %s started work on maintenance request "%s".',
-                $technician->name,
-                $maintenanceRequest->title,
-            ),
+            'description' => Str::swap([
+                ':technician' => $technician->name,
+                ':request' => $maintenanceRequest->title,
+            ], 'Technician :technician started work on maintenance request ":request".'),
             'subject' => $maintenanceRequest,
             'actor' => $technician,
             'organization' => $organization,

@@ -107,7 +107,10 @@ class CreateTechnician
         LogActivity::handle(ActivityLogData::from([
             'event' => ActivityEventEnum::TECHNICIAN_CREATED,
             'title' => 'Technician created',
-            'description' => sprintf('%s created technician "%s".', $actor->name, $technician->name),
+            'description' => Str::swap([
+                ':actor' => $actor->name,
+                ':technician' => $technician->name,
+            ], ':actor created technician ":technician".'),
             'subject' => $technician,
             'actor' => $actor,
             'organization' => $organization,
