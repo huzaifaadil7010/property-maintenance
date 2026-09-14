@@ -1,4 +1,4 @@
-import { Deferred, Head, Link, usePage } from '@inertiajs/react';
+import { Deferred, Head, Link, usePage, usePoll } from '@inertiajs/react';
 import { format } from 'date-fns';
 import {
     Activity,
@@ -93,6 +93,22 @@ export default function Dashboard({
     totalVacantUnits,
     unitStatuses,
 }: DashboardProps) {
+    usePoll(
+        60_000,
+        {
+            only: [
+                'maintenanceRequestsNeedingAttention',
+                'totalOpenRequests',
+                'totalInProgressRequests',
+                'totalCompletedRequests',
+                'recentActivityLogs',
+            ],
+        },
+        {
+            mode: 'rest',
+        },
+    );
+
     const { currentOrganization } = usePage().props;
 
     return (
@@ -209,6 +225,16 @@ export default function Dashboard({
                                     Maintenance
                                 </h2>
                                 <div className="h-px flex-1 bg-border/80" />
+                                <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary">
+                                    <span
+                                        className="relative flex size-2"
+                                        aria-hidden="true"
+                                    >
+                                        <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-50 motion-reduce:animate-none" />
+                                        <span className="relative inline-flex size-2 rounded-full bg-primary" />
+                                    </span>
+                                    Auto-updates every minute
+                                </div>
                             </div>
                             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                 <Deferred
