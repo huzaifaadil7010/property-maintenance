@@ -206,42 +206,6 @@ export default function Dashboard({
                         <section className="grid gap-3">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-sm font-semibold">
-                                    People
-                                </h2>
-                                <div className="h-px flex-1 bg-border/80" />
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Deferred
-                                    data="totalActiveResidents"
-                                    fallback={<StatCardSkeleton />}
-                                >
-                                    <StatCard
-                                        title="Total active residents"
-                                        value={totalActiveResidents}
-                                        description="Residents with an active occupancy"
-                                        icon={UserRoundCheck}
-                                        tone="emerald"
-                                    />
-                                </Deferred>
-
-                                <Deferred
-                                    data="totalAvailableTechnicians"
-                                    fallback={<StatCardSkeleton />}
-                                >
-                                    <StatCard
-                                        title="Available technicians"
-                                        value={totalAvailableTechnicians}
-                                        description="Technicians currently available"
-                                        icon={Wrench}
-                                        tone="sky"
-                                    />
-                                </Deferred>
-                            </div>
-                        </section>
-
-                        <section className="grid gap-3">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-sm font-semibold">
                                     Maintenance
                                 </h2>
                                 <div className="h-px flex-1 bg-border/80" />
@@ -338,71 +302,111 @@ export default function Dashboard({
                         </Card>
                     </div>
 
-                    <aside className="surface-card p-5 sm:p-6 xl:sticky xl:top-6">
-                        <div className="mb-6 flex items-start justify-between gap-4">
-                            <div>
-                                <p className="text-sm font-semibold">
-                                    Recent activity
-                                </p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    Latest changes across your organization
-                                </p>
+                    <div className="grid gap-6">
+                        <aside className="surface-card p-5 sm:p-6">
+                            <div className="mb-6 flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold">
+                                        Recent activity
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Latest changes across your organization
+                                    </p>
+                                </div>
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <Activity
+                                        className="size-4.5"
+                                        aria-hidden="true"
+                                    />
+                                </div>
                             </div>
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                <Activity
-                                    className="size-4.5"
-                                    aria-hidden="true"
-                                />
-                            </div>
-                        </div>
 
-                        <Deferred
-                            data="recentActivityLogs"
-                            fallback={<ActivityFeedSkeleton />}
-                        >
-                            {(recentActivityLogs?.data.length ?? 0) > 0 ? (
-                                <ActivityFeed
-                                    activities={recentActivityLogs?.data ?? []}
-                                />
-                            ) : (
-                                <EmptyState
-                                    icon={Activity}
-                                    title="No activity yet"
-                                    description="New organization activity will appear here."
-                                />
-                            )}
-                        </Deferred>
-
-                        <div className="mt-6 border-t border-border pt-4">
-                            {currentOrganization ? (
-                                <Button
-                                    asChild
-                                    variant="outline"
-                                    className="w-full"
-                                >
-                                    <Link
-                                        href={
-                                            activityLogsIndex(
-                                                currentOrganization.uuid,
-                                            ).url
+                            <Deferred
+                                data="recentActivityLogs"
+                                fallback={<ActivityFeedSkeleton />}
+                            >
+                                {(recentActivityLogs?.data.length ?? 0) > 0 ? (
+                                    <ActivityFeed
+                                        activities={
+                                            recentActivityLogs?.data ?? []
                                         }
+                                    />
+                                ) : (
+                                    <EmptyState
+                                        icon={Activity}
+                                        title="No activity yet"
+                                        description="New organization activity will appear here."
+                                    />
+                                )}
+                            </Deferred>
+
+                            <div className="mt-6 border-t border-border pt-4">
+                                {currentOrganization ? (
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        className="w-full"
+                                    >
+                                        <Link
+                                            href={
+                                                activityLogsIndex(
+                                                    currentOrganization.uuid,
+                                                ).url
+                                            }
+                                        >
+                                            View all activity
+                                            <ArrowRight />
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        disabled
                                     >
                                         View all activity
                                         <ArrowRight />
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    disabled
+                                    </Button>
+                                )}
+                            </div>
+                        </aside>
+
+                        <section className="grid gap-3">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-sm font-semibold">
+                                    People
+                                </h2>
+                                <div className="h-px flex-1 bg-border/80" />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                                <Deferred
+                                    data="totalActiveResidents"
+                                    fallback={<StatCardSkeleton />}
                                 >
-                                    View all activity
-                                    <ArrowRight />
-                                </Button>
-                            )}
-                        </div>
-                    </aside>
+                                    <StatCard
+                                        title="Total active residents"
+                                        value={totalActiveResidents}
+                                        description="Residents with an active occupancy"
+                                        icon={UserRoundCheck}
+                                        tone="emerald"
+                                    />
+                                </Deferred>
+
+                                <Deferred
+                                    data="totalAvailableTechnicians"
+                                    fallback={<StatCardSkeleton />}
+                                >
+                                    <StatCard
+                                        title="Available technicians"
+                                        value={totalAvailableTechnicians}
+                                        description="Technicians currently available"
+                                        icon={Wrench}
+                                        tone="sky"
+                                    />
+                                </Deferred>
+                            </div>
+                        </section>
+                    </div>
                 </div>
             </div>
         </>
