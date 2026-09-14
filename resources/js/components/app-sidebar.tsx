@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { getSidebarNavigation } from '@/lib/navigation';
 import type { Auth } from '@/types';
+import { home } from '@/wayfinder/routes';
 
 export function AppSidebar() {
     const { auth, currentOrganization } = usePage<{
@@ -20,7 +21,7 @@ export function AppSidebar() {
         currentOrganization: { uuid: string; name: string } | null;
     }>().props;
 
-    const { items, label, dashboardHref } = getSidebarNavigation(
+    const { items, label } = getSidebarNavigation(
         auth.role,
         currentOrganization,
     );
@@ -35,7 +36,7 @@ export function AppSidebar() {
                             asChild
                             className="h-14 rounded-2xl px-2"
                         >
-                            <Link href={dashboardHref} prefetch>
+                            <Link href={home()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
