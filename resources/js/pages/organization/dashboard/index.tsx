@@ -1,10 +1,12 @@
 import { Deferred, Head, Link, usePage } from '@inertiajs/react';
+import { format } from 'date-fns';
 import {
     Activity,
     ArrowRight,
     Building2,
     CircleAlert,
     CircleCheckBig,
+    ClipboardList,
     Clock3,
     DoorOpen,
     KeyRound,
@@ -24,13 +26,42 @@ import type {
 import { StatCard } from '@/components/organization/dashboard/stat-card';
 import { StatCardSkeleton } from '@/components/organization/dashboard/stat-card-skeleton';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { index as activityLogsIndex } from '@/wayfinder/App/Http/Controllers/Organization/ActivityLogsController';
 import { dashboard } from '@/wayfinder/routes';
+import { maintenanceRequests } from '@/wayfinder/routes/organization';
+
+type EnumOption = {
+    label: string;
+    value: string;
+};
+
+type MaintenanceRequestNeedingAttention = {
+    id: number;
+    title: string;
+    property: { id: number; name: string };
+    unit: { id: number; name: string };
+    category: EnumOption;
+    priority: EnumOption;
+    status: EnumOption;
+    created_at: string | null;
+};
 
 type DashboardProps = {
+    maintenanceRequestsNeedingAttention?: {
+        data: MaintenanceRequestNeedingAttention[];
+    };
     properties?: PropertyOption[];
     recentActivityLogs?: {
         data: ActivityLogItem[];
@@ -48,6 +79,7 @@ type DashboardProps = {
 };
 
 export default function Dashboard({
+    maintenanceRequestsNeedingAttention,
     properties,
     recentActivityLogs,
     totalActiveResidents,
@@ -255,6 +287,55 @@ export default function Dashboard({
                                 </Deferred>
                             </div>
                         </section>
+
+                        <Card className="overflow-hidden">
+                            <CardHeader className="flex-row items-start justify-between gap-4">
+                                <div className="grid gap-1">
+                                    <CardTitle>
+                                        Requests needing attention
+                                    </CardTitle>
+                                    <CardDescription>
+                                        The five newest requests awaiting review
+                                        or assignment.
+                                    </CardDescription>
+                                </div>
+                                {currentOrganization ? (
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <Link
+                                            href={
+                                                maintenanceRequests(
+                                                    currentOrganization.uuid,
+                                                ).url
+                                            }
+                                            prefetch
+                                        >
+                                            View all
+                                            <ArrowRight aria-hidden="true" />
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button variant="ghost" size="sm" disabled>
+                                        View all
+                                        <ArrowRight aria-hidden="true" />
+                                    </Button>
+                                )}
+                            </CardHeader>
+                            <CardContent>
+                                <Deferred
+                                    data="maintenanceRequestsNeedingAttention"
+                                    fallback={
+                                        <RequestsNeedingAttentionSkeleton />
+                                    }
+                                >
+                                    <RequestsNeedingAttention
+                                        requests={
+                                            maintenanceRequestsNeedingAttention?.data ??
+                                            []
+                                        }
+                                    />
+                                </Deferred>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     <aside className="surface-card p-5 sm:p-6 xl:sticky xl:top-6">
@@ -325,6 +406,73 @@ export default function Dashboard({
                 </div>
             </div>
         </>
+    );
+}
+
+function RequestsNeedingAttention({
+    requests,
+}: {
+    requests: MaintenanceRequestNeedingAttention[];
+}) {
+    if (requests.length === 0) {
+        return (
+            <EmptyState
+                icon={ClipboardList}
+                title="No requests need attention"
+                description="Open or reopened maintenance requests will appear here."
+            />
+        );
+    }
+
+    return (
+        <div className="divide-y overflow-hidden rounded-2xl border border-border/90">
+            {requests.map((request) => (
+                <div
+                    key={request.id}
+                    className="grid gap-3 p-4 transition-colors hover:bg-accent/45 sm:grid-cols-[1fr_auto]"
+                >
+                    <div className="grid gap-1">
+                        <p className="font-medium">{request.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {request.property.name} · Unit {request.unit.name}
+                            {request.created_at
+                                ? ` · ${format(request.created_at, 'MMM d, yyyy')}`
+                                : ''}
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-start gap-2 sm:justify-end">
+                        <StatusBadge option={request.category} kind="neutral" />
+                        <StatusBadge
+                            option={request.priority}
+                            kind="priority"
+                        />
+                        <StatusBadge option={request.status} />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function RequestsNeedingAttentionSkeleton() {
+    return (
+        <div className="grid gap-3">
+            {[1, 2, 3].map((item) => (
+                <div
+                    key={item}
+                    className="flex items-center justify-between gap-4"
+                >
+                    <div className="grid flex-1 gap-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-36" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 }
 

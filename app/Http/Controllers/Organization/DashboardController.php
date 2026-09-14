@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\Common\GetPropertiesForDropDown;
+use App\Actions\Organization\Dashboard\GetMaintenanceRequestsNeedingAttention;
 use App\Actions\Organization\Dashboard\GetTotalActiveResidents;
 use App\Actions\Organization\Dashboard\GetTotalAvailableTechnicians;
 use App\Actions\Organization\Dashboard\GetTotalMaintenanceRequestsByStatus;
@@ -16,6 +17,7 @@ use App\Enums\MaintenanceRequestStatus;
 use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ActivityLogResource;
+use App\Http\Resources\OrganizationDashboardMaintenanceRequestResource;
 use Illuminate\Database\Eloquent\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,6 +39,12 @@ class DashboardController extends Controller
                     ])),
                 ),
                 'recentActivityLogs',
+            ),
+            'maintenanceRequestsNeedingAttention' => Inertia::defer(
+                fn () => OrganizationDashboardMaintenanceRequestResource::collection(
+                    GetMaintenanceRequestsNeedingAttention::handle(),
+                ),
+                'maintenanceRequestsNeedingAttention',
             ),
             'totalActiveResidents' => Inertia::defer(
                 fn (): int => GetTotalActiveResidents::handle(),
