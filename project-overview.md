@@ -16,6 +16,12 @@ The central product promise is:
 
 > Manage properties, units, residents, technicians, and maintenance work through one clear, accountable workflow.
 
+## Public landing page
+
+The public welcome page presents the product as one accountable residential-maintenance workflow. It combines a dashboard preview with a problem-and-solution comparison, core capabilities, the five-step **Report → Assign → Start Work → Complete → Confirm** lifecycle, role-specific benefits, pricing content, and final calls to action.
+
+Its responsive header links directly to the Features, Workflow, Roles, and Pricing sections, with a mobile navigation drawer. Guests are directed to log in or create an owner account, while authenticated users are directed to their dashboard. The page follows the warm-premium light visual system used throughout the application. Pricing, trial, testimonials, and performance figures shown on this page are marketing content only; billing and subscription management are not implemented in the current MVP.
+
 ## Business model and market position
 
 Property Maintenance is designed as a business-to-business SaaS product for residential property owners and property-management operations. The owner is the primary customer and administrative user. Residents and technicians use focused role-specific workspaces provided through the owner's organization.
