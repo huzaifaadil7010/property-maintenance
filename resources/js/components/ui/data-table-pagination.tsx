@@ -31,12 +31,12 @@ export function DataTablePagination<TData>({
     totalRows,
 }: DataTablePaginationProps<TData>) {
     return (
-        <div className="flex flex-col gap-4 px-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="shrink-0 text-sm whitespace-nowrap text-muted-foreground">
                 {totalRows} row(s) total.
             </div>
-            <div className="flex w-full flex-wrap items-center justify-between gap-4 xl:w-auto xl:flex-nowrap xl:justify-end xl:gap-8">
-                <div className="flex shrink-0 items-center gap-2">
+            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:w-auto sm:flex-nowrap sm:justify-end sm:gap-6 xl:gap-8">
+                <div className="col-span-2 flex shrink-0 items-center gap-2 sm:col-auto">
                     <p className="text-sm font-medium whitespace-nowrap">
                         Rows per page
                     </p>
@@ -62,10 +62,10 @@ export function DataTablePagination<TData>({
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex w-[100px] shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap">
+                <div className="flex shrink-0 items-center justify-start text-sm font-medium whitespace-nowrap sm:w-[100px] sm:justify-center">
                     Page {currentPage} of {lastPage}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center justify-end gap-2">
                     <Button
                         variant="outline"
                         size="icon"
