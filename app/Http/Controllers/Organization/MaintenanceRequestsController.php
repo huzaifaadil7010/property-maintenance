@@ -8,6 +8,7 @@ use App\Data\MaintenanceRequestFilterData;
 use App\Enums\MaintenanceRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MaintenanceRequestResource;
+use App\Http\Resources\OrganizationMaintenanceRequestDetailResource;
 use App\Models\MaintenanceRequest;
 use App\Models\Organization;
 use Illuminate\Database\Eloquent\Collection;
@@ -40,7 +41,7 @@ class MaintenanceRequestsController extends Controller
         ]);
 
         return Inertia::render('organization/maintenance-request/show', [
-            'maintenanceRequest' => $maintenanceRequest->toResource(),
+            'maintenanceRequest' => new OrganizationMaintenanceRequestDetailResource($maintenanceRequest),
             'maintenanceRequestStatuses' => MaintenanceRequestStatus::getLabeledValues(),
             'availableTechnicians' => Inertia::defer(
                 fn (): Collection => GetAvailableTechniciansForDropdown::handle(),

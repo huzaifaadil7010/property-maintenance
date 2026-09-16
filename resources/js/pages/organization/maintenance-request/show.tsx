@@ -1,4 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
+import { format } from 'date-fns';
 import {
     AlertCircle,
     Calendar,
@@ -14,21 +15,23 @@ import {
     UserCog,
     Wrench,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import type { FormEvent, ReactElement } from 'react';
 import { toast } from 'sonner';
+import AssignTechnicianDialog from '@/components/organization/maintenance-request/assign-technician-dialog';
+import type {
+    AssignTechnicianFormData,
+    TechnicianOption,
+} from '@/components/organization/maintenance-request/assign-technician-dialog';
+import { ImageModal } from '@/components/organization/maintenance-request/image-modal';
+import StatusUpdateDialog from '@/components/organization/maintenance-request/status-update-dialog';
+import type {
+    MaintenanceRequestStatusOption,
+    StatusUpdateFormData,
+} from '@/components/organization/maintenance-request/status-update-dialog';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ImageModal } from '@/components/organization/maintenance-request/image-modal';
-import AssignTechnicianDialog, {
-    type AssignTechnicianFormData,
-    type TechnicianOption,
-} from '@/components/organization/maintenance-request/assign-technician-dialog';
-import StatusUpdateDialog, {
-    type MaintenanceRequestStatusOption,
-    type StatusUpdateFormData,
-} from '@/components/organization/maintenance-request/status-update-dialog';
 import AssignMaintenanceRequestTechnicianController from '@/wayfinder/App/Http/Controllers/Organization/AssignMaintenanceRequestTechnicianController';
 import UpdateMaintenanceRequestStatusController from '@/wayfinder/App/Http/Controllers/Organization/UpdateMaintenanceRequestStatusController';
 import type { Inertia } from '@/wayfinder/types';
@@ -42,10 +45,6 @@ type Attachment = {
     original_name: string;
     mime_type: string;
     size: number;
-    type: {
-        label: string;
-        value: string;
-    };
     uploader: {
         id: number;
         name: string;
@@ -71,8 +70,43 @@ type StatusLog = {
     created_at: string;
 };
 
+type RequestData = {
+    id: number;
+    title: string;
+    description: string;
+    property: { id: number; name: string };
+    unit: { id: number; name: string };
+    resident: {
+        id: number;
+        name: string;
+        email: string | null;
+        phone: string | null;
+    };
+    assigned_technician: {
+        id: number;
+        name: string;
+        email: string | null;
+        phone: string | null;
+    } | null;
+    category: { label: string; value: string };
+    priority: { label: string; value: string };
+    status: { label: string; value: string };
+    completion_notes: string | null;
+    actual_cost: string | null;
+    completed_at: string | null;
+    closed_at: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    issue_images: { data: Attachment[] };
+    completion_images: { data: Attachment[] };
+    status_logs: StatusLog[];
+};
+
 const getStatusColor = (status: string | null | undefined): string => {
-    if (!status) return 'border bg-muted text-muted-foreground';
+    if (!status) {
+        return 'border bg-muted text-muted-foreground';
+    }
+
     const colors: Record<string, string> = {
         open: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
         assigned:
@@ -85,13 +119,17 @@ const getStatusColor = (status: string | null | undefined): string => {
         reopened:
             'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400',
     };
+
     return (
         colors[status.toLowerCase()] ?? 'border bg-muted text-muted-foreground'
     );
 };
 
 const getStatusDotColor = (status: string | null | undefined): string => {
-    if (!status) return 'bg-muted-foreground';
+    if (!status) {
+        return 'bg-muted-foreground';
+    }
+
     const colors: Record<string, string> = {
         open: 'bg-amber-500',
         assigned: 'bg-blue-500',
@@ -100,17 +138,22 @@ const getStatusDotColor = (status: string | null | undefined): string => {
         closed: 'bg-slate-400',
         reopened: 'bg-rose-500',
     };
+
     return colors[status.toLowerCase()] ?? 'bg-muted-foreground';
 };
 
 const getPriorityColor = (priority: string | null | undefined): string => {
-    if (!priority) return 'border bg-muted text-muted-foreground';
+    if (!priority) {
+        return 'border bg-muted text-muted-foreground';
+    }
+
     const colors: Record<string, string> = {
         urgent: 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400',
         high: 'border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400',
         normal: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
         low: 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400',
     };
+
     return (
         colors[priority.toLowerCase()] ??
         'border bg-muted text-muted-foreground'
@@ -118,7 +161,7 @@ const getPriorityColor = (priority: string | null | undefined): string => {
 };
 
 const getStatusIcon = (status: string | null | undefined) => {
-    const icons: Record<string, JSX.Element> = {
+    const icons: Record<string, ReactElement> = {
         open: <AlertCircle className="h-4 w-4" />,
         assigned: <UserCog className="h-4 w-4" />,
         'in-progress': <Clock className="h-4 w-4" />,
@@ -127,7 +170,9 @@ const getStatusIcon = (status: string | null | undefined) => {
         reopened: <RotateCcw className="h-4 w-4" />,
     };
 
-    if (!status) return <AlertCircle className="h-4 w-4" />;
+    if (!status) {
+        return <AlertCircle className="h-4 w-4" />;
+    }
 
     return icons[status.toLowerCase()] || <AlertCircle className="h-4 w-4" />;
 };
@@ -137,18 +182,22 @@ const isImageFile = (mimeType: string): boolean => {
 };
 
 const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {
+        return '0 Bytes';
+    }
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
+
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
-export default function Show({
-    maintenanceRequest,
-    maintenanceRequestStatuses,
-    availableTechnicians,
-}: GeneratedPageProps) {
+export default function Show(props: GeneratedPageProps) {
+    const maintenanceRequest = props.maintenanceRequest as unknown as {
+        data: RequestData;
+    };
+    const { maintenanceRequestStatuses, availableTechnicians } = props;
     const [selectedImage, setSelectedImage] = useState<{
         url: string;
         srcSet: string | null;
@@ -157,9 +206,13 @@ export default function Show({
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
     const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
-    const imageAttachments = (maintenanceRequest.data.attachments || []).filter(
+    const issueImages = maintenanceRequest.data.issue_images.data.filter(
         (attachment) => isImageFile(attachment.mime_type),
     );
+    const completionImages =
+        maintenanceRequest.data.completion_images.data.filter((attachment) =>
+            isImageFile(attachment.mime_type),
+        );
 
     const statuses = (maintenanceRequestStatuses ||
         []) as MaintenanceRequestStatusOption[];
@@ -518,78 +571,17 @@ export default function Show({
                                 </div>
                             )}
 
-                            {/* Image Attachments */}
-                            {imageAttachments.length > 0 && (
-                                <div className="surface-card overflow-hidden">
-                                    <div className="p-6">
-                                        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                                            Attachments (
-                                            {imageAttachments.length})
-                                        </h2>
-                                        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                                            {imageAttachments.map(
-                                                (attachment) => (
-                                                    <button
-                                                        key={attachment.id}
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setSelectedImage({
-                                                                url: attachment.file_path,
-                                                                srcSet: attachment.srcset,
-                                                                name: attachment.original_name,
-                                                            })
-                                                        }
-                                                        className="group relative overflow-hidden rounded-lg border bg-transparent p-0 text-left transition-all hover:border-ring/50 hover:bg-transparent hover:shadow-md"
-                                                    >
-                                                        <div className="aspect-square overflow-hidden bg-muted">
-                                                            <img
-                                                                src={
-                                                                    attachment.file_path
-                                                                }
-                                                                srcSet={
-                                                                    attachment.srcset ??
-                                                                    undefined
-                                                                }
-                                                                sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-                                                                alt={
-                                                                    attachment.original_name
-                                                                }
-                                                                className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                                                            />
-                                                        </div>
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                                                            <div className="opacity-0 transition-opacity group-hover:opacity-100">
-                                                                <ImageIcon className="h-6 w-6 text-white" />
-                                                            </div>
-                                                        </div>
-                                                        <div className="bg-card p-3">
-                                                            <p className="truncate text-xs font-medium">
-                                                                {
-                                                                    attachment.original_name
-                                                                }
-                                                            </p>
-                                                            <p className="truncate text-xs text-muted-foreground">
-                                                                {formatBytes(
-                                                                    attachment.size,
-                                                                )}
-                                                            </p>
-                                                            <p className="mt-1 truncate text-xs text-muted-foreground">
-                                                                by{' '}
-                                                                {
-                                                                    attachment
-                                                                        .uploader
-                                                                        .name
-                                                                }
-                                                            </p>
-                                                        </div>
-                                                    </button>
-                                                ),
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            <ImageAttachmentsSection
+                                title="Issue photos"
+                                attachments={issueImages}
+                                onSelect={setSelectedImage}
+                            />
+
+                            <ImageAttachmentsSection
+                                title="Completion photos"
+                                attachments={completionImages}
+                                onSelect={setSelectedImage}
+                            />
 
                             {/* Status History */}
                             {(maintenanceRequest.data.status_logs || [])
@@ -881,5 +873,78 @@ export default function Show({
                 onOpenChange={setStatusDialogOpen}
             />
         </>
+    );
+}
+
+function ImageAttachmentsSection({
+    title,
+    attachments,
+    onSelect,
+}: {
+    title: string;
+    attachments: Attachment[];
+    onSelect: (image: {
+        url: string;
+        srcSet: string | null;
+        name: string;
+    }) => void;
+}) {
+    return (
+        <div className="surface-card overflow-hidden">
+            <div className="p-6">
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    {title} ({attachments.length})
+                </h2>
+                {attachments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        No {title.toLowerCase()} available.
+                    </p>
+                ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                        {attachments.map((attachment) => (
+                            <button
+                                key={attachment.id}
+                                type="button"
+                                onClick={() =>
+                                    onSelect({
+                                        url: attachment.file_path,
+                                        srcSet: attachment.srcset,
+                                        name: attachment.original_name,
+                                    })
+                                }
+                                className="group relative overflow-hidden rounded-lg border bg-transparent p-0 text-left transition-all hover:border-ring/50 hover:bg-transparent hover:shadow-md"
+                            >
+                                <div className="aspect-square overflow-hidden bg-muted">
+                                    <img
+                                        src={attachment.file_path}
+                                        srcSet={attachment.srcset ?? undefined}
+                                        sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                                        alt={attachment.original_name}
+                                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                    />
+                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                                    <div className="opacity-0 transition-opacity group-hover:opacity-100">
+                                        <ImageIcon className="h-6 w-6 text-white" />
+                                    </div>
+                                </div>
+                                <div className="bg-card p-3">
+                                    <p className="truncate text-xs font-medium">
+                                        {attachment.original_name}
+                                    </p>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                        {formatBytes(attachment.size)}
+                                    </p>
+                                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                                        by {attachment.uploader.name}
+                                    </p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
