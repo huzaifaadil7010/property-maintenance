@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             OwnerPortfolioSeeder::class,
             MaintenanceRequestSeeder::class,
+            ActivityLogSeeder::class,
         ]);
     }
 }

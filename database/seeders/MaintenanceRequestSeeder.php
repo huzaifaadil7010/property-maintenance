@@ -2,533 +2,222 @@
 
 namespace Database\Seeders;
 
-use App\Enums\MaintenanceCategory;
-use App\Enums\MaintenancePriority;
 use App\Enums\MaintenanceRequestStatus;
-use App\Enums\OccupancyStatus;
-use App\Enums\TechnicianSpecialty;
-use App\Enums\UserRole;
 use App\Models\MaintenanceRequest;
-use App\Models\User;
-use DateTimeInterface;
+use Carbon\CarbonInterface;
+use Database\Seeders\Support\DemoDataset;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 use RuntimeException;
-use Spatie\Permission\PermissionRegistrar;
 
 class MaintenanceRequestSeeder extends Seeder
 {
-    private const int REQUESTS_PER_ORGANIZATION = 5;
-
     public function run(): void
     {
-        $permissionRegistrar = app(PermissionRegistrar::class);
-        $permissionRegistrar->forgetCachedPermissions();
+        $organizationId = DB::table('organizations')
+            ->where('slug', DemoDataset::ORGANIZATION_SLUG)
+            ->value('id');
 
-        $placeholderImages = $this->generatePlaceholderImages();
-
-        try {
-            $this->seedMaintenanceRequests($placeholderImages);
-        } finally {
-            File::delete(array_values($placeholderImages));
+        if ($organizationId === null) {
+            throw new RuntimeException('Run OwnerPortfolioSeeder before MaintenanceRequestSeeder.');
         }
 
-        $permissionRegistrar->forgetCachedPermissions();
+        $scenarios = DemoDataset::maintenanceRequests();
+        $this->ensureMediaAssetsExist($scenarios);
+        $this->removeExistingScenarios($organizationId, $scenarios);
+        $contexts = $this->seedRequestsAndStatusLogs($organizationId, $scenarios);
+        $this->attachMedia($contexts);
     }
 
-    /**
-     * @param  array{jpg: string, png: string}  $placeholderImages
-     */
-    private function seedMaintenanceRequests(array $placeholderImages): void
+    private function removeExistingScenarios(int $organizationId, array $scenarios): void
     {
-        DB::transaction(function () use ($placeholderImages): void {
-            $timestamp = now();
-            $portfolios = $this->portfolios();
-            $scenarios = $this->scenarios();
+        $titles = array_column($scenarios, 'title');
+        $existingRequests = MaintenanceRequest::query()
+            ->where('organization_id', $organizationId)
+            ->whereIn('title', $titles)
+            ->get();
 
-            if (count($scenarios) !== 10) {
-                throw new RuntimeException('The maintenance request seeder must contain exactly 10 scenarios.');
-            }
+        foreach ($existingRequests as $maintenanceRequest) {
+            $maintenanceRequest->clearMediaCollection(MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES);
+            $maintenanceRequest->clearMediaCollection(MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES);
+            $maintenanceRequest->delete();
+        }
+    }
 
-            $organizations = DB::table('organizations')
-                ->whereIn('slug', array_keys($portfolios))
-                ->get(['id', 'slug'])
-                ->keyBy('slug');
-
-            if ($organizations->count() !== count($portfolios)) {
-                throw new RuntimeException('Run OwnerPortfolioSeeder before MaintenanceRequestSeeder.');
-            }
-
-            $ownerIds = DB::table('users')
-                ->whereIn('email', array_column($portfolios, 'owner_email'))
+    private function seedRequestsAndStatusLogs(int $organizationId, array $scenarios): array
+    {
+        return DB::transaction(function () use ($organizationId, $scenarios): array {
+            $ownerId = DB::table('users')->where('email', DemoDataset::OWNER_EMAIL)->value('id');
+            $usersByEmail = DB::table('users')
+                ->where('current_organization_id', $organizationId)
                 ->pluck('id', 'email');
+            $occupanciesByResident = DB::table('occupancies')
+                ->join('units', 'units.id', '=', 'occupancies.unit_id')
+                ->where('occupancies.organization_id', $organizationId)
+                ->get([
+                    'occupancies.resident_id',
+                    'occupancies.unit_id',
+                    'units.property_id',
+                ])
+                ->keyBy('resident_id');
+            $contexts = [];
 
-            if ($ownerIds->count() !== count($portfolios)) {
-                throw new RuntimeException('The seeded portfolio owners are required for maintenance history.');
-            }
+            foreach ($scenarios as $scenarioIndex => $scenario) {
+                $residentId = $usersByEmail->get($scenario['residentEmail']);
+                $technicianId = $scenario['technicianEmail'] === null
+                    ? null
+                    : $usersByEmail->get($scenario['technicianEmail']);
+                $occupancy = $occupanciesByResident->get($residentId);
 
-            $technicianIds = $this->seedTechnicians($organizations, $timestamp);
-            $requestRows = [];
-            $requestContexts = [];
-            $scenarioIndex = 0;
-
-            foreach ($portfolios as $organizationSlug => $portfolio) {
-                $organization = $organizations->get($organizationSlug);
-                $occupancies = DB::table('occupancies')
-                    ->join('units', 'units.id', '=', 'occupancies.unit_id')
-                    ->where('occupancies.organization_id', $organization->id)
-                    ->where('occupancies.status', OccupancyStatus::ACTIVE->value)
-                    ->oldest('occupancies.id')
-                    ->limit(self::REQUESTS_PER_ORGANIZATION)
-                    ->get([
-                        'occupancies.resident_id',
-                        'occupancies.unit_id',
-                        'units.property_id',
-                    ]);
-
-                if ($occupancies->count() !== self::REQUESTS_PER_ORGANIZATION) {
-                    throw new RuntimeException("Organization {$organizationSlug} requires five active occupancies.");
+                if ($residentId === null || $occupancy === null) {
+                    throw new RuntimeException("Missing resident occupancy for {$scenario['residentEmail']}.");
                 }
 
-                foreach ($occupancies as $occupancy) {
-                    $scenario = $scenarios[$scenarioIndex];
-                    $createdAt = $timestamp->copy()
-                        ->subDays(10 - $scenarioIndex)
-                        ->startOfDay()
-                        ->addHours(9 + ($scenarioIndex % 4));
-                    $assignedTechnicianId = $scenario['technician'] === null
-                        ? null
-                        : $technicianIds[$organization->id][$scenario['technician']];
-
-                    $requestRows[] = [
-                        'organization_id' => $organization->id,
-                        'property_id' => $occupancy->property_id,
-                        'unit_id' => $occupancy->unit_id,
-                        'resident_id' => $occupancy->resident_id,
-                        'assigned_technician_id' => $assignedTechnicianId,
-                        'title' => $scenario['title'],
-                        'description' => $scenario['description'],
-                        'category' => $scenario['category']->value,
-                        'priority' => $scenario['priority']->value,
-                        'status' => $scenario['status']->value,
-                        'completion_notes' => $scenario['completion_notes'],
-                        'actual_cost' => $scenario['actual_cost'],
-                        'completed_at' => $scenario['completed_after_hours'] === null
-                            ? null
-                            : $createdAt->copy()->addHours($scenario['completed_after_hours']),
-                        'closed_at' => $scenario['closed_after_hours'] === null
-                            ? null
-                            : $createdAt->copy()->addHours($scenario['closed_after_hours']),
-                        'created_at' => $createdAt,
-                        'updated_at' => $createdAt->copy()->addHours(count($scenario['transitions']) * 4),
-                    ];
-
-                    $requestContexts[] = [
-                        'organization_id' => $organization->id,
-                        'owner_id' => $ownerIds->get($portfolio['owner_email']),
-                        'resident_id' => $occupancy->resident_id,
-                        'technician_id' => $assignedTechnicianId,
-                        'created_at' => $createdAt,
-                        'scenario' => $scenario,
-                    ];
-
-                    $scenarioIndex++;
+                if ($scenario['technicianEmail'] !== null && $technicianId === null) {
+                    throw new RuntimeException("Missing technician {$scenario['technicianEmail']}.");
                 }
-            }
 
-            $organizationIds = $organizations->pluck('id');
-            $titles = array_column($requestRows, 'title');
+                $createdAt = now()
+                    ->subDays($scenario['createdDaysAgo'])
+                    ->startOfDay()
+                    ->addHours(8 + ($scenarioIndex % 5));
+                $completedAt = $this->transitionTimestamp($scenario, MaintenanceRequestStatus::COMPLETED, $createdAt);
+                $closedAt = $this->transitionTimestamp($scenario, MaintenanceRequestStatus::CLOSED, $createdAt);
+                $lastTransition = collect($scenario['transitions'])->last();
+                $updatedAt = $createdAt->copy()->addHours($lastTransition['hours_after']);
 
-            DB::table('maintenance_requests')
-                ->whereIn('organization_id', $organizationIds)
-                ->whereIn('title', $titles)
-                ->delete();
+                $requestId = DB::table('maintenance_requests')->insertGetId([
+                    'organization_id' => $organizationId,
+                    'property_id' => $occupancy->property_id,
+                    'unit_id' => $occupancy->unit_id,
+                    'resident_id' => $residentId,
+                    'assigned_technician_id' => $technicianId,
+                    'title' => $scenario['title'],
+                    'description' => $scenario['description'],
+                    'category' => $scenario['category']->value,
+                    'priority' => $scenario['priority']->value,
+                    'status' => $scenario['status']->value,
+                    'completion_notes' => $scenario['completionNotes'],
+                    'actual_cost' => $scenario['actualCost'],
+                    'completed_at' => $completedAt,
+                    'closed_at' => $closedAt,
+                    'created_at' => $createdAt,
+                    'updated_at' => $updatedAt,
+                ]);
 
-            DB::table('maintenance_requests')->insert($requestRows);
-
-            $requestIds = DB::table('maintenance_requests')
-                ->whereIn('organization_id', $organizationIds)
-                ->whereIn('title', $titles)
-                ->get(['id', 'organization_id', 'title'])
-                ->keyBy(fn (object $request): string => $this->relationshipKey($request->organization_id, $request->title))
-                ->map(fn (object $request): int => $request->id);
-
-            $requestModels = MaintenanceRequest::query()
-                ->whereIn('id', $requestIds->values())
-                ->get()
-                ->keyBy('id');
-
-            $statusLogRows = [];
-
-            foreach ($requestContexts as $requestContext) {
-                $scenario = $requestContext['scenario'];
-                $requestId = $requestIds->get($this->relationshipKey(
-                    $requestContext['organization_id'],
-                    $scenario['title'],
-                ));
                 $fromStatus = null;
 
-                foreach ($scenario['transitions'] as $transitionIndex => $transition) {
-                    $statusLogRows[] = [
-                        'organization_id' => $requestContext['organization_id'],
+                foreach ($scenario['transitions'] as $transition) {
+                    DB::table('maintenance_request_status_logs')->insert([
+                        'organization_id' => $organizationId,
                         'maintenance_request_id' => $requestId,
-                        'changed_by' => $this->statusActorId($transition['actor'], $requestContext),
+                        'changed_by' => match ($transition['actor']) {
+                            'owner' => $ownerId,
+                            'technician' => $technicianId,
+                            default => $residentId,
+                        },
                         'from_status' => $fromStatus?->value,
                         'to_status' => $transition['status']->value,
                         'notes' => $transition['notes'],
-                        'created_at' => $requestContext['created_at']->copy()->addHours($transitionIndex * 4),
-                    ];
+                        'created_at' => $createdAt->copy()->addHours($transition['hours_after']),
+                    ]);
 
                     $fromStatus = $transition['status'];
                 }
 
-                foreach ($scenario['attachments'] as $attachmentIndex => $mediaCollection) {
-                    $isCompletion = $mediaCollection === MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES;
-                    $extension = $isCompletion ? 'png' : 'jpg';
-                    $originalName = sprintf('%s-%02d.%s', $mediaCollection, $requestId, $extension);
-                    $mediaTimestamp = $requestContext['created_at']->copy()->addMinutes(15 + $attachmentIndex);
-
-                    $media = $requestModels->get($requestId)
-                        ->addMedia($placeholderImages[$extension])
-                        ->preservingOriginal()
-                        ->usingFileName($originalName)
-                        ->toMediaCollection($mediaCollection);
-
-                    $media->forceFill([
-                        'created_at' => $mediaTimestamp,
-                        'updated_at' => $mediaTimestamp,
-                    ])->save();
-                }
+                $contexts[] = [
+                    'request_id' => $requestId,
+                    'created_at' => $createdAt,
+                    'completed_at' => $completedAt,
+                    'scenario' => $scenario,
+                ];
             }
 
-            DB::table('maintenance_request_status_logs')->insert($statusLogRows);
+            return $contexts;
         });
     }
 
-    /**
-     * @return array{jpg: string, png: string}
-     */
-    private function generatePlaceholderImages(): array
+    private function attachMedia(array $contexts): void
     {
-        $directory = storage_path('app/tmp-seed-placeholders');
-        File::ensureDirectoryExists($directory);
+        $requests = MaintenanceRequest::query()
+            ->whereIn('id', array_column($contexts, 'request_id'))
+            ->get()
+            ->keyBy('id');
 
-        $jpgPath = $directory.'/issue-placeholder.jpg';
-        $jpgImage = imagecreatetruecolor(640, 480);
-        imagefill($jpgImage, 0, 0, imagecolorallocate($jpgImage, 96, 165, 250));
-        imagejpeg($jpgImage, $jpgPath);
-        imagedestroy($jpgImage);
+        foreach ($contexts as $context) {
+            $scenario = $context['scenario'];
+            $maintenanceRequest = $requests->get($context['request_id']);
+            $issueMedia = $maintenanceRequest
+                ->addMedia($this->mediaAssetPath($scenario['category']->value, 'issue'))
+                ->preservingOriginal()
+                ->usingName($scenario['title'].' issue evidence')
+                ->usingFileName(str($scenario['title'])->slug().'-issue.jpg')
+                ->withCustomProperties([
+                    'alt' => 'Issue evidence for '.$scenario['title'],
+                    'fixture' => DemoDataset::ORGANIZATION_SLUG,
+                ])
+                ->toMediaCollection(MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES);
 
-        $pngPath = $directory.'/completion-placeholder.png';
-        $pngImage = imagecreatetruecolor(640, 480);
-        imagefill($pngImage, 0, 0, imagecolorallocate($pngImage, 74, 222, 128));
-        imagepng($pngImage, $pngPath);
-        imagedestroy($pngImage);
+            $issueMedia->forceFill([
+                'created_at' => $context['created_at']->copy()->addMinutes(15),
+                'updated_at' => $context['created_at']->copy()->addMinutes(15),
+            ])->save();
 
-        return ['jpg' => $jpgPath, 'png' => $pngPath];
+            if ($context['completed_at'] === null) {
+                continue;
+            }
+
+            $completionMedia = $maintenanceRequest
+                ->addMedia($this->mediaAssetPath($scenario['category']->value, 'completed'))
+                ->preservingOriginal()
+                ->usingName($scenario['title'].' completion evidence')
+                ->usingFileName(str($scenario['title'])->slug().'-completed.jpg')
+                ->withCustomProperties([
+                    'alt' => 'Completion evidence for '.$scenario['title'],
+                    'fixture' => DemoDataset::ORGANIZATION_SLUG,
+                ])
+                ->toMediaCollection(MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES);
+
+            $completionMedia->forceFill([
+                'created_at' => $context['completed_at']->copy()->addMinutes(15),
+                'updated_at' => $context['completed_at']->copy()->addMinutes(15),
+            ])->save();
+        }
     }
 
-    private function seedTechnicians(Collection $organizations, DateTimeInterface $timestamp): array
-    {
-        $specialties = [
-            'plumbing' => TechnicianSpecialty::PLUMBING,
-            'electrical' => TechnicianSpecialty::ELECTRICAL,
-            'general' => TechnicianSpecialty::GENERAL_MAINTENANCE,
-        ];
-        $password = Hash::make('password');
-        $technicianRows = [];
+    private function transitionTimestamp(
+        array $scenario,
+        MaintenanceRequestStatus $status,
+        CarbonInterface $createdAt,
+    ): ?CarbonInterface {
+        $transition = collect($scenario['transitions'])
+            ->first(fn (array $transition): bool => $transition['status'] === $status);
 
-        foreach ($organizations as $organization) {
-            foreach ($specialties as $key => $specialty) {
-                $technicianRows[] = [
-                    'current_organization_id' => $organization->id,
-                    'name' => sprintf('%s %s Technician', str($organization->slug)->headline(), str($key)->headline()),
-                    'email' => "technician.{$key}.{$organization->slug}@example.com",
-                    'email_verified_at' => $timestamp,
-                    'password' => $password,
-                    'phone' => '+92 300 '.str_pad((string) ($organization->id * 1000 + count($technicianRows) + 1), 7, '0', STR_PAD_LEFT),
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
-                ];
+        return $transition === null
+            ? null
+            : $createdAt->copy()->addHours($transition['hours_after']);
+    }
+
+    private function ensureMediaAssetsExist(array $scenarios): void
+    {
+        foreach ($scenarios as $scenario) {
+            $paths = [$this->mediaAssetPath($scenario['category']->value, 'issue')];
+
+            if ($scenario['completionNotes'] !== null) {
+                $paths[] = $this->mediaAssetPath($scenario['category']->value, 'completed');
+            }
+
+            foreach ($paths as $path) {
+                if (! File::exists($path)) {
+                    throw new RuntimeException("Missing maintenance seeder asset: {$path}");
+                }
             }
         }
-
-        DB::table('users')->upsert(
-            $technicianRows,
-            ['email'],
-            ['current_organization_id', 'name', 'email_verified_at', 'password', 'phone', 'updated_at'],
-        );
-
-        $technicianUserIds = DB::table('users')
-            ->whereIn('email', array_column($technicianRows, 'email'))
-            ->pluck('id', 'email');
-        $membershipRows = [];
-        $profileRows = [];
-        $roleRows = [];
-        $technicianIds = [];
-        $roleId = DB::table(config('permission.table_names.roles'))
-            ->whereNull(config('permission.column_names.team_foreign_key'))
-            ->where('name', UserRole::TECHNICIAN->value)
-            ->where('guard_name', 'web')
-            ->value('id');
-
-        if ($roleId === null) {
-            throw new RuntimeException('Run RoleSeeder before MaintenanceRequestSeeder.');
-        }
-
-        foreach ($organizations as $organization) {
-            foreach ($specialties as $key => $specialty) {
-                $email = "technician.{$key}.{$organization->slug}@example.com";
-                $technicianId = $technicianUserIds->get($email);
-                $technicianIds[$organization->id][$key] = $technicianId;
-                $membershipRows[] = [
-                    'organization_id' => $organization->id,
-                    'user_id' => $technicianId,
-                    'is_active' => true,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
-                ];
-                $profileRows[] = [
-                    'organization_id' => $organization->id,
-                    'user_id' => $technicianId,
-                    'specialty' => $specialty->value,
-                    'phone' => $technicianRows[count($profileRows)]['phone'],
-                    'is_available' => true,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp,
-                ];
-                $roleRows[] = [
-                    'role_id' => $roleId,
-                    'model_type' => User::class,
-                    'model_id' => $technicianId,
-                    config('permission.column_names.team_foreign_key') => $organization->id,
-                ];
-            }
-        }
-
-        DB::table('organization_user')->upsert(
-            $membershipRows,
-            ['organization_id', 'user_id'],
-            ['is_active', 'updated_at'],
-        );
-        DB::table('technician_profiles')->upsert(
-            $profileRows,
-            ['organization_id', 'user_id'],
-            ['specialty', 'phone', 'is_available', 'updated_at'],
-        );
-        DB::table(config('permission.table_names.model_has_roles'))->insertOrIgnore($roleRows);
-
-        return $technicianIds;
     }
 
-    private function statusActorId(string $actor, array $requestContext): int
+    private function mediaAssetPath(string $category, string $state): string
     {
-        return match ($actor) {
-            'owner' => $requestContext['owner_id'],
-            'technician' => $requestContext['technician_id'],
-            default => $requestContext['resident_id'],
-        };
-    }
-
-    private function relationshipKey(int $organizationId, string $title): string
-    {
-        return $organizationId.'|'.$title;
-    }
-
-    private function portfolios(): array
-    {
-        return [
-            'horizon-property-management' => ['owner_email' => 'alex.owner@example.com'],
-            'summit-property-care' => ['owner_email' => 'sara.owner@example.com'],
-        ];
-    }
-
-    private function scenarios(): array
-    {
-        return [
-            [
-                'title' => 'Burst pipe beneath kitchen sink',
-                'description' => 'Water is leaking continuously from the supply line beneath the kitchen sink and collecting inside the cabinet.',
-                'category' => MaintenanceCategory::PLUMBING,
-                'priority' => MaintenancePriority::URGENT,
-                'status' => MaintenanceRequestStatus::OPEN,
-                'technician' => null,
-                'completion_notes' => null,
-                'actual_cost' => null,
-                'completed_after_hours' => null,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident reported an active water leak.'],
-                ],
-            ],
-            [
-                'title' => 'Bedroom sockets have no power',
-                'description' => 'All electrical sockets in the main bedroom stopped working while the lights and other rooms remain operational.',
-                'category' => MaintenanceCategory::ELECTRICAL,
-                'priority' => MaintenancePriority::HIGH,
-                'status' => MaintenanceRequestStatus::ASSIGNED,
-                'technician' => 'electrical',
-                'completion_notes' => null,
-                'actual_cost' => null,
-                'completed_after_hours' => null,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident reported the failed socket circuit.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to the electrical technician for inspection.'],
-                ],
-            ],
-            [
-                'title' => 'Air conditioner is blowing warm air',
-                'description' => 'The living room air conditioner runs normally but no longer cools the room even at the lowest temperature setting.',
-                'category' => MaintenanceCategory::AIR_CONDITIONING,
-                'priority' => MaintenancePriority::NORMAL,
-                'status' => MaintenanceRequestStatus::IN_PROGRESS,
-                'technician' => 'general',
-                'completion_notes' => null,
-                'actual_cost' => null,
-                'completed_after_hours' => null,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Cooling problem reported by resident.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned for air-conditioning diagnostics.'],
-                    ['status' => MaintenanceRequestStatus::IN_PROGRESS, 'actor' => 'technician', 'notes' => 'Technician started checking refrigerant pressure and filters.'],
-                ],
-            ],
-            [
-                'title' => 'Loose kitchen cabinet door',
-                'description' => 'The upper kitchen cabinet door is hanging from one hinge and cannot be closed safely.',
-                'category' => MaintenanceCategory::CARPENTRY,
-                'priority' => MaintenancePriority::LOW,
-                'status' => MaintenanceRequestStatus::COMPLETED,
-                'technician' => 'general',
-                'completion_notes' => 'Replaced both hinges, aligned the cabinet door, and tested the closure.',
-                'actual_cost' => '1850.00',
-                'completed_after_hours' => 12,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES, MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident reported a loose cabinet door.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to general maintenance.'],
-                    ['status' => MaintenanceRequestStatus::IN_PROGRESS, 'actor' => 'technician', 'notes' => 'Replacement hinges obtained and repair started.'],
-                    ['status' => MaintenanceRequestStatus::COMPLETED, 'actor' => 'technician', 'notes' => 'Cabinet door repaired and completion photo uploaded.'],
-                ],
-            ],
-            [
-                'title' => 'Bathroom exhaust fan rattling loudly',
-                'description' => 'The bathroom exhaust fan makes a loud rattling sound and provides weak ventilation.',
-                'category' => MaintenanceCategory::GENERAL,
-                'priority' => MaintenancePriority::NORMAL,
-                'status' => MaintenanceRequestStatus::CLOSED,
-                'technician' => 'general',
-                'completion_notes' => 'Cleaned the fan housing and replaced the worn motor bearing.',
-                'actual_cost' => '3200.00',
-                'completed_after_hours' => 12,
-                'closed_after_hours' => 16,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Ventilation issue reported.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to general maintenance.'],
-                    ['status' => MaintenanceRequestStatus::IN_PROGRESS, 'actor' => 'technician', 'notes' => 'Fan removed for cleaning and inspection.'],
-                    ['status' => MaintenanceRequestStatus::COMPLETED, 'actor' => 'technician', 'notes' => 'Fan repaired and tested successfully.'],
-                    ['status' => MaintenanceRequestStatus::CLOSED, 'actor' => 'resident', 'notes' => 'Resident confirmed normal operation.'],
-                ],
-            ],
-            [
-                'title' => 'Recurring leak around toilet base',
-                'description' => 'Water has appeared around the toilet base again after the previous repair was marked complete.',
-                'category' => MaintenanceCategory::PLUMBING,
-                'priority' => MaintenancePriority::URGENT,
-                'status' => MaintenanceRequestStatus::REOPENED,
-                'technician' => 'plumbing',
-                'completion_notes' => 'The original seal was replaced, but the leak was reported again.',
-                'actual_cost' => '2400.00',
-                'completed_after_hours' => 12,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES, MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Initial leak reported.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to the plumbing technician.'],
-                    ['status' => MaintenanceRequestStatus::IN_PROGRESS, 'actor' => 'technician', 'notes' => 'Toilet removed and seal inspected.'],
-                    ['status' => MaintenanceRequestStatus::COMPLETED, 'actor' => 'technician', 'notes' => 'Seal replaced and area tested dry.'],
-                    ['status' => MaintenanceRequestStatus::REOPENED, 'actor' => 'resident', 'notes' => 'Resident reported that water returned the following day.'],
-                ],
-            ],
-            [
-                'title' => 'Hallway ceiling light flickers',
-                'description' => 'The hallway ceiling light flickers intermittently but does not affect other electrical fixtures.',
-                'category' => MaintenanceCategory::ELECTRICAL,
-                'priority' => MaintenancePriority::LOW,
-                'status' => MaintenanceRequestStatus::OPEN,
-                'technician' => null,
-                'completion_notes' => null,
-                'actual_cost' => null,
-                'completed_after_hours' => null,
-                'closed_after_hours' => null,
-                'attachments' => [],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Intermittent lighting issue reported.'],
-                ],
-            ],
-            [
-                'title' => 'Split AC indoor unit is dripping',
-                'description' => 'Condensation is dripping from the indoor air-conditioning unit onto the living room wall.',
-                'category' => MaintenanceCategory::AIR_CONDITIONING,
-                'priority' => MaintenancePriority::NORMAL,
-                'status' => MaintenanceRequestStatus::ASSIGNED,
-                'technician' => 'general',
-                'completion_notes' => null,
-                'actual_cost' => null,
-                'completed_after_hours' => null,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Resident uploaded a photo of the water damage.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned for drain-line inspection.'],
-                ],
-            ],
-            [
-                'title' => 'Distribution board breaker keeps tripping',
-                'description' => 'The kitchen circuit breaker trips repeatedly when normal appliances are in use.',
-                'category' => MaintenanceCategory::ELECTRICAL,
-                'priority' => MaintenancePriority::HIGH,
-                'status' => MaintenanceRequestStatus::IN_PROGRESS,
-                'technician' => 'electrical',
-                'completion_notes' => null,
-                'actual_cost' => null,
-                'completed_after_hours' => null,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Repeated breaker trips reported.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Urgent electrical inspection assigned.'],
-                    ['status' => MaintenanceRequestStatus::IN_PROGRESS, 'actor' => 'technician', 'notes' => 'Circuit load and breaker condition are being tested.'],
-                ],
-            ],
-            [
-                'title' => 'Shower drain blockage cleared',
-                'description' => 'The shower drained very slowly and overflowed during normal use.',
-                'category' => MaintenanceCategory::PLUMBING,
-                'priority' => MaintenancePriority::URGENT,
-                'status' => MaintenanceRequestStatus::COMPLETED,
-                'technician' => 'plumbing',
-                'completion_notes' => 'Removed the blockage, flushed the drain line, and confirmed normal flow.',
-                'actual_cost' => '1500.00',
-                'completed_after_hours' => 12,
-                'closed_after_hours' => null,
-                'attachments' => [MaintenanceRequest::MEDIA_COLLECTION_COMPLETION_IMAGES],
-                'transitions' => [
-                    ['status' => MaintenanceRequestStatus::OPEN, 'actor' => 'resident', 'notes' => 'Blocked shower drain reported.'],
-                    ['status' => MaintenanceRequestStatus::ASSIGNED, 'actor' => 'owner', 'notes' => 'Assigned to the plumbing technician.'],
-                    ['status' => MaintenanceRequestStatus::IN_PROGRESS, 'actor' => 'technician', 'notes' => 'Drain clearing work started.'],
-                    ['status' => MaintenanceRequestStatus::COMPLETED, 'actor' => 'technician', 'notes' => 'Drain cleared and tested.'],
-                ],
-            ],
-        ];
+        return database_path("seeders/assets/maintenance/{$category}-{$state}.jpg");
     }
 }
