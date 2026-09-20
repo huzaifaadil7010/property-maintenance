@@ -61,7 +61,18 @@ function PaymentMethodForm({ onSuccess }: { onSuccess: () => void }) {
     return (
         <form onSubmit={submit} className="grid gap-5">
             <div className="rounded-xl border border-border p-4">
-                <PaymentElement onReady={() => setReady(true)} />
+                <PaymentElement
+                    options={{
+                        layout: 'tabs',
+                        paymentMethodOrder: ['card'],
+                        wallets: {
+                            applePay: 'never',
+                            googlePay: 'never',
+                            link: 'never',
+                        },
+                    }}
+                    onReady={() => setReady(true)}
+                />
             </div>
             <InputError message={form.errors.payment_method} />
             <DialogFooter>

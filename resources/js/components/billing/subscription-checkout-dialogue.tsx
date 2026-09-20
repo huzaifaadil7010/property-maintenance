@@ -143,7 +143,15 @@ function CheckoutForm({
             {choice === 'new' && (
                 <div className="rounded-xl border border-border p-4">
                     <PaymentElement
-                        options={{ layout: 'tabs' }}
+                        options={{
+                            layout: 'tabs',
+                            paymentMethodOrder: ['card'],
+                            wallets: {
+                                applePay: 'never',
+                                googlePay: 'never',
+                                link: 'never',
+                            },
+                        }}
                         onReady={() => setElementReady(true)}
                     />
                 </div>
