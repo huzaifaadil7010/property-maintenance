@@ -63,6 +63,11 @@ class Organization extends Model
         return $this->hasMany(PaymentMethod::class);
     }
 
+    public function subscriptionUnitUsages(): HasMany
+    {
+        return $this->hasMany(SubscriptionUnitUsage::class);
+    }
+
     public function hasValidSubscription(): bool
     {
         return $this->subscription('default')?->valid() ?? false;

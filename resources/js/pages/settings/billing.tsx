@@ -6,7 +6,12 @@ import SubscriptionCheckoutDialogue from '@/components/billing/subscription-chec
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import type { Plan, StoredPaymentMethod, Subscription } from '@/types';
+import type {
+    Plan,
+    StoredPaymentMethod,
+    Subscription,
+    UnitCreationAllowance,
+} from '@/types';
 import BillingController from '@/wayfinder/App/Http/Controllers/Settings/BillingController';
 import CancelSubscriptionController from '@/wayfinder/App/Http/Controllers/Settings/CancelSubscriptionController';
 import DeletePaymentMethodController from '@/wayfinder/App/Http/Controllers/Settings/DeletePaymentMethodController';
@@ -17,7 +22,7 @@ import SwitchSubscriptionPlanController from '@/wayfinder/App/Http/Controllers/S
 type Props = {
     stripeKey: string;
     plans: { data: Plan[] };
-    unitCount: number;
+    unitCreationAllowance: UnitCreationAllowance | null;
     paymentMethods: { data: StoredPaymentMethod[] };
     subscription: Subscription | null;
 };
@@ -31,7 +36,7 @@ const money = (amount: number, currency: string) =>
 export default function Billing({
     stripeKey,
     plans: planResource,
-    unitCount,
+    unitCreationAllowance,
     paymentMethods: paymentMethodResource,
     subscription,
 }: Props) {
@@ -109,9 +114,7 @@ export default function Billing({
                                         'Subscription'}
                                 </h2>
                                 <p className="mt-1 text-sm text-muted-foreground capitalize">
-                                    {subscription.status.replaceAll('_', ' ')} ·{' '}
-                                    {subscription.quantity ?? unitCount} billed
-                                    units
+                                    {subscription.status.replaceAll('_', ' ')}
                                 </p>
                                 {subscription.trial_ends_at && (
                                     <p className="mt-1 text-sm text-muted-foreground">
@@ -166,22 +169,35 @@ export default function Billing({
                     </section>
                 )}
 
+                {unitCreationAllowance && (
+                    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                        <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+                            Unit creation allowance
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold">
+                            {unitCreationAllowance.used} /{' '}
+                            {unitCreationAllowance.limit} used
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {unitCreationAllowance.remaining} unit creations
+                            remain until{' '}
+                            {new Date(
+                                unitCreationAllowance.period_ends_at,
+                            ).toLocaleDateString()}
+                            .
+                        </p>
+                    </section>
+                )}
+
                 <section className="grid gap-4">
                     <div>
                         <h2 className="font-semibold">Available plans</h2>
                         <p className="text-sm text-muted-foreground">
-                            Pricing uses your current {unitCount} units.
+                            One fixed monthly price with no per-unit billing.
                         </p>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                         {plans.map((plan) => {
-                            const unitLimit = plan.features.find(
-                                (feature) => feature.key === 'units',
-                            );
-                            const eligible =
-                                unitCount > 0 &&
-                                (typeof unitLimit?.value !== 'number' ||
-                                    unitCount <= unitLimit.value);
                             const isCurrent = subscription?.plan_id === plan.id;
 
                             return (
@@ -205,18 +221,16 @@ export default function Billing({
                                         )}
                                     </div>
                                     <p className="mt-5 text-3xl font-bold">
-                                        {money(plan.unit_amount, plan.currency)}
+                                        {money(plan.amount, plan.currency)}
                                         <span className="text-sm font-normal text-muted-foreground">
                                             {' '}
-                                            / unit / {plan.billing_interval}
+                                            / {plan.billing_interval}
                                         </span>
                                     </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        {money(
-                                            plan.unit_amount * unitCount,
-                                            plan.currency,
-                                        )}{' '}
-                                        estimated monthly
+                                        Includes up to{' '}
+                                        {plan.unit_creation_limit} unit
+                                        creations per billing cycle.
                                     </p>
                                     <ul className="my-5 grid gap-2 text-sm">
                                         {plan.features.map((feature) => (
@@ -234,7 +248,6 @@ export default function Billing({
                                     <Button
                                         className="mt-auto"
                                         disabled={
-                                            !eligible ||
                                             isCurrent ||
                                             switchForm.processing
                                         }
@@ -246,12 +259,6 @@ export default function Billing({
                                               ? 'Switch plan'
                                               : `Start ${plan.trial_days}-day trial`}
                                     </Button>
-                                    {!eligible && (
-                                        <p className="mt-2 text-xs text-destructive">
-                                            This plan does not support the
-                                            current unit count.
-                                        </p>
-                                    )}
                                 </article>
                             );
                         })}

@@ -37,9 +37,6 @@ class SwitchSubscriptionPlanRequest extends FormRequest
                 $validator->errors()->add('plan_id', 'This is already the current plan.');
             }
 
-            if ($plan !== null && ! $plan->supportsUnitCount($organization->units()->count())) {
-                $validator->errors()->add('plan_id', 'This plan does not support the organization’s current unit count.');
-            }
         }];
     }
 }

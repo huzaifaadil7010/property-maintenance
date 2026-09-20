@@ -9,7 +9,8 @@ export type Plan = {
     name: string;
     slug: string;
     description: string | null;
-    unit_amount: number;
+    amount: number;
+    unit_creation_limit: number;
     currency: string;
     billing_interval: string;
     billing_interval_count: number;
@@ -34,12 +35,21 @@ export type Subscription = {
     plan_name: string | null;
     payment_method_id: number | null;
     status: string;
-    quantity: number | null;
+    current_period_starts_at: string | null;
+    current_period_ends_at: string | null;
     trial_ends_at: string | null;
     ends_at: string | null;
     is_valid: boolean;
     is_canceled: boolean;
     on_grace_period: boolean;
+};
+
+export type UnitCreationAllowance = {
+    used: number;
+    limit: number;
+    remaining: number;
+    period_starts_at: string;
+    period_ends_at: string;
 };
 
 export type SubscriptionAccess = {

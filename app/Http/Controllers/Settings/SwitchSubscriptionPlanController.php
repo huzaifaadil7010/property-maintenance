@@ -19,7 +19,9 @@ class SwitchSubscriptionPlanController extends Controller
         $plan = Plan::query()->active()->findOrFail($request->integer('plan_id'));
 
         try {
-            $subscription->swap($plan->stripe_price_id);
+            $subscription->swap([
+                $plan->stripe_price_id => ['quantity' => 1],
+            ]);
             $subscription->update(['plan_id' => $plan->id]);
 
             return Inertia::flash('success', 'Subscription plan updated.')->back();

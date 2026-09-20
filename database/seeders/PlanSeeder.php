@@ -14,14 +14,14 @@ class PlanSeeder extends Seeder
             [
                 'name' => 'Operations Tier',
                 'description' => 'Full feature access for small and mid-sized residential portfolios.',
-                'stripe_price_id' => 'price_1DemoOperationsReplaceMe',
-                'unit_amount' => 175,
+                'stripe_price_id' => 'price_1UHgYjK5fZfbisCOu7kBsQN4',
+                'amount' => 1000,
+                'unit_creation_limit' => 250,
                 'currency' => 'usd',
                 'billing_interval' => 'month',
                 'billing_interval_count' => 1,
                 'trial_days' => 14,
                 'features' => [
-                    'units' => 250,
                     'resident_and_technician_seats' => 'Unlimited',
                     'automated_sla_alerts_and_audit_history' => true,
                     'photo_and_video_intake_storage' => true,

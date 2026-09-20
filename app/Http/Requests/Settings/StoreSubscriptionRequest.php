@@ -50,13 +50,6 @@ class StoreSubscriptionRequest extends FormRequest
                     $validator->errors()->add('subscription', 'This organization already has a current subscription.');
                 }
             },
-            function (Validator $validator) use ($organization): void {
-                $plan = Plan::query()->active()->find($this->integer('plan_id'));
-
-                if ($organization !== null && $plan !== null && ! $plan->supportsUnitCount($organization->units()->count())) {
-                    $validator->errors()->add('plan_id', 'This plan does not support the organization’s current unit count.');
-                }
-            },
         ];
     }
 }

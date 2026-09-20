@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'description', 'stripe_price_id', 'unit_amount', 'currency', 'billing_interval', 'billing_interval_count', 'trial_days', 'features', 'is_active', 'is_featured', 'sort_order'])]
+#[Fillable(['name', 'slug', 'description', 'stripe_price_id', 'amount', 'unit_creation_limit', 'currency', 'billing_interval', 'billing_interval_count', 'trial_days', 'features', 'is_active', 'is_featured', 'sort_order'])]
 class Plan extends Model
 {
     #[Scope]
@@ -22,22 +22,11 @@ class Plan extends Model
         return $this->hasMany(Subscription::class);
     }
 
-    public function unitLimit(): ?int
-    {
-        $limit = $this->features['units'] ?? null;
-
-        return is_int($limit) ? $limit : null;
-    }
-
-    public function supportsUnitCount(int $unitCount): bool
-    {
-        return $unitCount > 0 && ($this->unitLimit() === null || $unitCount <= $this->unitLimit());
-    }
-
     protected function casts(): array
     {
         return [
-            'unit_amount' => 'integer',
+            'amount' => 'integer',
+            'unit_creation_limit' => 'integer',
             'billing_interval_count' => 'integer',
             'trial_days' => 'integer',
             'features' => 'array',

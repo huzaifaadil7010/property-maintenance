@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Actions\Billing\SyncPaymentMethod;
+use App\Actions\Billing\SyncSubscriptionPeriod;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StoreSubscriptionRequest;
 use App\Models\PaymentMethod;
@@ -26,8 +27,7 @@ class SubscriptionController extends Controller
 
         try {
             $builder = $organization
-                ->newSubscription('default', $plan->stripe_price_id)
-                ->quantity($organization->units()->count());
+                ->newSubscription('default', $plan->stripe_price_id);
 
             if (! $organization->subscriptions()->exists()) {
                 $builder->trialDays($plan->trial_days);
@@ -46,6 +46,12 @@ class SubscriptionController extends Controller
                 'plan_id' => $plan->id,
                 'payment_method_id' => $localPaymentMethod->id,
             ]);
+
+            try {
+                SyncSubscriptionPeriod::handle($subscription);
+            } catch (ApiErrorException $exception) {
+                report($exception);
+            }
 
             return Inertia::flash('success', 'Your subscription has started successfully.')->back();
         } catch (IncompletePayment $exception) {

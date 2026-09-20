@@ -684,17 +684,22 @@ export function ProofPricingSection({
                                     <div className="my-6 flex items-baseline gap-2 border-b border-border pb-6">
                                         <span className="text-4xl font-bold tracking-tight">
                                             {(
-                                                plan.unit_amount / 100
+                                                plan.amount / 100
                                             ).toLocaleString('en-US', {
                                                 style: 'currency',
                                                 currency: plan.currency,
                                             })}
                                         </span>
                                         <span className="text-sm text-muted-foreground">
-                                            / unit / {plan.billing_interval}
+                                            / {plan.billing_interval}
                                         </span>
                                     </div>
                                     <ul className="mb-8 grid gap-3 text-sm">
+                                        <li className="flex items-center gap-2.5">
+                                            <Check className="size-4 text-primary" />
+                                            Up to {plan.unit_creation_limit}{' '}
+                                            unit creations per billing cycle
+                                        </li>
                                         {plan.features.map((feature) => (
                                             <li
                                                 key={feature.key}
