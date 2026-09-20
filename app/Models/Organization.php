@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Cashier\Billable;
 
 #[Fillable(['uuid', 'name', 'slug', 'email', 'phone'])]
 class Organization extends Model
 {
+    use Billable;
+
     public function getRouteKeyName(): string
     {
         return 'uuid';
@@ -53,5 +56,25 @@ class Organization extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    public function paymentMethods(): HasMany
+    {
+        return $this->hasMany(PaymentMethod::class);
+    }
+
+    public function subscriptionUnitUsages(): HasMany
+    {
+        return $this->hasMany(SubscriptionUnitUsage::class);
+    }
+
+    public function hasValidSubscription(): bool
+    {
+        return $this->subscription('default')?->valid() ?? false;
+    }
+
+    protected function casts(): array
+    {
+        return ['trial_ends_at' => 'datetime'];
     }
 }

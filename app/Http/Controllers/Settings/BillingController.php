@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Http\Controllers\Settings;
+
+use App\Actions\Billing\GetActivePlans;
+use App\Actions\Billing\GetUnitCreationAllowance;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\PaymentMethodResource;
+use App\Http\Resources\PlanResource;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Throwable;
+
+class BillingController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        $organization = $request->user()->currentOrganization;
+        $subscription = $organization->subscription('default')?->load('plan', 'paymentMethod');
+        $unitCreationAllowance = null;
+
+        if ($subscription?->valid()) {
+            try {
+                $unitCreationAllowance = GetUnitCreationAllowance::handle($organization);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        return Inertia::render('settings/billing', [
+            'stripeKey' => config('cashier.key'),
+            'plans' => PlanResource::collection(GetActivePlans::handle()),
+            'unitCreationAllowance' => $unitCreationAllowance,
+            'paymentMethods' => PaymentMethodResource::collection(
+                $organization->paymentMethods()->orderByDesc('is_default')->latest()->get(),
+            ),
+            'subscription' => $subscription === null ? null : [
+                'id' => $subscription->id,
+                'plan_id' => $subscription->plan_id,
+                'plan_name' => $subscription->plan?->name,
+                'payment_method_id' => $subscription->payment_method_id,
+                'status' => $subscription->stripe_status,
+                'current_period_starts_at' => $subscription->current_period_starts_at,
+                'current_period_ends_at' => $subscription->current_period_ends_at,
+                'trial_ends_at' => $subscription->trial_ends_at,
+                'ends_at' => $subscription->ends_at,
+                'is_valid' => $subscription->valid(),
+                'is_canceled' => $subscription->canceled(),
+                'on_grace_period' => $subscription->onGracePeriod(),
+            ],
+        ]);
+    }
+}

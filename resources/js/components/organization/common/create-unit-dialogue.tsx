@@ -2,6 +2,7 @@ import { useForm, usePage } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { toast } from 'sonner';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,11 @@ export default function CreateUnitDialogue({
             onSuccess: () => {
                 form.resetAndClearErrors();
                 setOpen(false);
+            },
+            onError: (errors) => {
+                if (errors.cannot_submit) {
+                    toast.error(errors.cannot_submit);
+                }
             },
         });
     }

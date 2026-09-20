@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Middleware\EnsureOrganizationIsSubscribed;
+use App\Http\Middleware\EnsureUserIsSubscribed;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ResolveSubscriptionStatus;
 use App\Http\Middleware\SetCurrentOrganization;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'current.organization' => SetCurrentOrganization::class,
             'role' => RoleMiddleware::class,
+            'user.subscribed' => EnsureUserIsSubscribed::class,
+            'organization.subscribed' => EnsureOrganizationIsSubscribed::class,
         ]);
 
         $middleware->prependToPriorityList(
@@ -38,9 +43,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             HandleAppearance::class,
+            ResolveSubscriptionStatus::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: ['stripe/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

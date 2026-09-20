@@ -21,6 +21,7 @@ import {
     Timer,
     Wrench,
 } from 'lucide-react';
+import type { Plan } from '@/types';
 import { LandingAuthActions } from './landing-auth-actions';
 
 const capabilities: Array<{
@@ -579,16 +580,16 @@ type AuthenticatedSectionProps = {
     authenticated: boolean;
 };
 
+type PricingSectionProps = AuthenticatedSectionProps & {
+    canManageBilling: boolean;
+    plans: Plan[];
+};
+
 export function ProofPricingSection({
     authenticated,
-}: AuthenticatedSectionProps) {
-    const pricingFeatures = [
-        'Up to 250 units included',
-        'Unlimited resident and technician seats',
-        'Automated SLA alerts & audit history',
-        'Photo and video intake storage',
-    ];
-
+    canManageBilling,
+    plans,
+}: PricingSectionProps) {
     return (
         <section id="pricing" className="scroll-mt-20 px-4 py-20 md:px-8">
             <div className="mx-auto grid max-w-7xl gap-16">
@@ -657,48 +658,70 @@ export function ProofPricingSection({
                         </div>
                     </article>
 
-                    <article className="flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-6 shadow-sm md:p-10 lg:col-span-5">
-                        <div>
-                            <div className="mb-4 flex items-center justify-between gap-4">
-                                <span className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-                                    Transparent Pricing
-                                </span>
-                                <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold text-accent-foreground">
-                                    Portfolio Growth
-                                </span>
-                            </div>
-                            <h3 className="text-2xl font-semibold">
-                                Operations Tier
-                            </h3>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                                Full feature access for small and mid-sized
-                                residential portfolios.
-                            </p>
-                            <div className="my-6 flex items-baseline gap-2 border-b border-border pb-6">
-                                <span className="text-4xl font-bold tracking-tight">
-                                    $1.75
-                                </span>
-                                <span className="text-sm text-muted-foreground">
-                                    / unit / month
-                                </span>
-                            </div>
-                            <ul className="mb-8 grid gap-3 text-sm">
-                                {pricingFeatures.map((feature) => (
-                                    <li
-                                        key={feature}
-                                        className="flex items-center gap-2.5"
-                                    >
-                                        <Check className="size-4 text-primary" />
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <LandingAuthActions
-                            authenticated={authenticated}
-                            placement="pricing"
-                        />
-                    </article>
+                    <div className="grid gap-6 lg:col-span-5">
+                        {plans.map((plan) => (
+                            <article
+                                key={plan.id}
+                                className="flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-6 shadow-sm md:p-10"
+                            >
+                                <div>
+                                    <div className="mb-4 flex items-center justify-between gap-4">
+                                        <span className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
+                                            Transparent Pricing
+                                        </span>
+                                        <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold text-accent-foreground">
+                                            {plan.is_featured
+                                                ? 'Most Popular'
+                                                : 'Available Plan'}
+                                        </span>
+                                    </div>
+                                    <h3 className="text-2xl font-semibold">
+                                        {plan.name}
+                                    </h3>
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        {plan.description}
+                                    </p>
+                                    <div className="my-6 flex items-baseline gap-2 border-b border-border pb-6">
+                                        <span className="text-4xl font-bold tracking-tight">
+                                            {(
+                                                plan.amount / 100
+                                            ).toLocaleString('en-US', {
+                                                style: 'currency',
+                                                currency: plan.currency,
+                                            })}
+                                        </span>
+                                        <span className="text-sm text-muted-foreground">
+                                            / {plan.billing_interval}
+                                        </span>
+                                    </div>
+                                    <ul className="mb-8 grid gap-3 text-sm">
+                                        <li className="flex items-center gap-2.5">
+                                            <Check className="size-4 text-primary" />
+                                            Up to {plan.unit_creation_limit}{' '}
+                                            unit creations per billing cycle
+                                        </li>
+                                        {plan.features.map((feature) => (
+                                            <li
+                                                key={feature.key}
+                                                className="flex items-center gap-2.5"
+                                            >
+                                                <Check className="size-4 text-primary" />
+                                                {feature.value === true
+                                                    ? feature.label
+                                                    : `${feature.label}: ${feature.value}`}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <LandingAuthActions
+                                    authenticated={authenticated}
+                                    placement="pricing"
+                                    planSlug={plan.slug}
+                                    canManageBilling={canManageBilling}
+                                />
+                            </article>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

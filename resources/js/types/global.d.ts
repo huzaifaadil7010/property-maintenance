@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { SubscriptionAccess } from '@/types/billing';
 
 declare module 'react' {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -18,6 +19,7 @@ declare module '@inertiajs/core' {
             > | null;
             temp_path: string;
             sidebarOpen: boolean;
+            subscriptionAccess: SubscriptionAccess;
             [key: string]: unknown;
         };
     }

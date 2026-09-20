@@ -6,7 +6,7 @@ use App\Http\Controllers\Resident\MaintenanceRequestsController;
 use App\Http\Controllers\Resident\ReopenMaintenanceRequestController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', 'current.organization', 'role:resident'])
+Route::middleware(['auth', 'verified', 'current.organization', 'role:resident', 'organization.subscribed'])
     ->prefix('resident')
     ->as('resident.')
     ->group(function (): void {
