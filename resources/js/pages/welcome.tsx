@@ -11,9 +11,10 @@ import {
     TrustStrip,
     WorkflowSection,
 } from '@/components/landing-page/landing-sections';
+import type { Plan } from '@/types';
 
-export default function Welcome() {
-    const { auth } = usePage().props;
+export default function Welcome({ plans }: { plans: { data: Plan[] } }) {
+    const { auth, subscriptionAccess } = usePage().props;
     const authenticated = Boolean(auth.user);
 
     return (
@@ -37,7 +38,11 @@ export default function Welcome() {
                     <CapabilitiesSection />
                     <WorkflowSection />
                     <RolesSection />
-                    <ProofPricingSection authenticated={authenticated} />
+                    <ProofPricingSection
+                        authenticated={authenticated}
+                        canManageBilling={subscriptionAccess.canManageBilling}
+                        plans={plans.data}
+                    />
                     <FinalCtaSection authenticated={authenticated} />
                 </main>
                 <LandingFooter />

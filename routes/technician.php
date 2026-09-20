@@ -6,7 +6,7 @@ use App\Http\Controllers\Technician\MaintenanceRequestsController;
 use App\Http\Controllers\Technician\StartMaintenanceRequestWorkController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', 'current.organization', 'role:technician'])
+Route::middleware(['auth', 'verified', 'current.organization', 'role:technician', 'organization.subscribed'])
     ->prefix('technician')
     ->as('technician.')
     ->group(function (): void {

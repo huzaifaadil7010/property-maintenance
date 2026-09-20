@@ -16,15 +16,17 @@ import type { Auth } from '@/types';
 import { home } from '@/wayfinder/routes';
 
 export function AppSidebar() {
-    const { auth, currentOrganization } = usePage<{
+    const { auth, currentOrganization, subscriptionAccess } = usePage<{
         auth: Auth;
         currentOrganization: { uuid: string; name: string } | null;
+        subscriptionAccess: { hasPanelAccess: boolean };
     }>().props;
 
-    const { items, label } = getSidebarNavigation(
+    const { items: availableItems, label } = getSidebarNavigation(
         auth.role,
         currentOrganization,
     );
+    const items = subscriptionAccess.hasPanelAccess ? availableItems : [];
 
     return (
         <Sidebar collapsible="icon" variant="inset">

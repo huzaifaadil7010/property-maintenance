@@ -44,6 +44,12 @@ class HandleInertiaRequests extends Middleware
                 'role' => $request->user()?->getRoleNames()->first(),
             ],
             'currentOrganization' => fn () => $request->user()?->currentOrganization?->only(['uuid', 'name']),
+            'subscriptionAccess' => fn () => $request->attributes->get('subscriptionAccess', [
+                'state' => 'none',
+                'hasPanelAccess' => false,
+                'canManageBilling' => false,
+                'message' => null,
+            ]),
             'temp_path' => Storage::disk('public')->url('temp'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

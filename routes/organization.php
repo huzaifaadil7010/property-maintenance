@@ -11,9 +11,7 @@ use App\Http\Controllers\Organization\UnitsController;
 use App\Http\Controllers\Organization\UpdateMaintenanceRequestStatusController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
-
-Route::middleware(['auth', 'verified', 'current.organization', 'role:owner'])
+Route::middleware(['auth', 'verified', 'current.organization', 'role:owner', 'user.subscribed'])
     ->prefix('organization/{organization}')
     ->as('organization.')
     ->scopeBindings()

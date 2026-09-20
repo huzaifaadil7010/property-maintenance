@@ -2,18 +2,23 @@ import { Link } from '@inertiajs/react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import BillingController from '@/wayfinder/App/Http/Controllers/Settings/BillingController';
 import { dashboard, login, register } from '@/wayfinder/routes';
 
 type LandingAuthActionsProps = {
     authenticated: boolean;
     placement?: 'header' | 'hero' | 'pricing' | 'mobile';
     className?: string;
+    planSlug?: string;
+    canManageBilling?: boolean;
 };
 
 export function LandingAuthActions({
     authenticated,
     placement = 'hero',
     className,
+    planSlug,
+    canManageBilling = false,
 }: LandingAuthActionsProps) {
     const isHeader = placement === 'header';
     const isMobile = placement === 'mobile';
@@ -27,6 +32,30 @@ export function LandingAuthActions({
     );
 
     if (authenticated) {
+        if (isPricing && planSlug) {
+            return (
+                <div className={cn('w-full', className)}>
+                    <Button
+                        asChild={canManageBilling}
+                        disabled={!canManageBilling}
+                        className={primaryClassName}
+                    >
+                        {canManageBilling ? (
+                            <Link
+                                href={BillingController.index({
+                                    query: { plan: planSlug },
+                                })}
+                            >
+                                Choose this plan
+                            </Link>
+                        ) : (
+                            <span>Owner access required</span>
+                        )}
+                    </Button>
+                </div>
+            );
+        }
+
         return (
             <div
                 className={cn(isPricing || isMobile ? 'w-full' : '', className)}
@@ -45,7 +74,7 @@ export function LandingAuthActions({
         return (
             <div className={cn('w-full', className)}>
                 <Button asChild className={primaryClassName}>
-                    <Link href={register()}>
+                    <Link href={register({ query: { plan: planSlug } })}>
                         Start 14-Day Full Access Trial
                     </Link>
                 </Button>
