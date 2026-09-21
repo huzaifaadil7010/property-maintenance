@@ -1,11 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "huzaifaadil7010/property-maintenance",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "A multi-tenant property maintenance platform for owners, residents, and technicians.",
     "keywords": [
         "laravel",
-        "framework"
+        "inertia",
+        "property-management",
+        "maintenance",
+        "saas"
     ],
     "license": "MIT",
     "require": {
@@ -51,8 +54,10 @@
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
             "@php artisan key:generate",
-            "@php artisan migrate --force",
+            "@php artisan migrate --seed --force",
+            "@php artisan storage:link",
             "npm install",
             "npm run build"
         ],

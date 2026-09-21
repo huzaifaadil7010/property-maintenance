@@ -14,7 +14,7 @@ class PlanSeeder extends Seeder
             [
                 'name' => 'Operations Tier',
                 'description' => 'Full feature access for small and mid-sized residential portfolios.',
-                'stripe_price_id' => 'price_1UHgYjK5fZfbisCOu7kBsQN4',
+                'stripe_price_id' => config('billing.operations_price_id'),
                 'amount' => 1000,
                 'unit_creation_limit' => 250,
                 'currency' => 'usd',
