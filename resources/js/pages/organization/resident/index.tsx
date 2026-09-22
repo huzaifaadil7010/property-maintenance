@@ -106,7 +106,7 @@ export default function Index(props: GeneratedPageProps) {
                     }
                 />
 
-                <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="surface-card flex min-h-0 flex-col overflow-hidden">
                     <div className="flex w-full justify-end border-b border-border/70 bg-muted/20 p-3 sm:p-4">
                         <Input
                             type="search"

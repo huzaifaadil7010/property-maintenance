@@ -37,7 +37,7 @@ export default function AppLayout({
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs}>
             {subscriptionAccess.message && (
-                <div className="page-container pb-0">
+                <div className="mx-auto w-full max-w-[1600px] px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
                     <Alert className="border-amber-300 bg-amber-50 text-amber-950">
                         <AlertTriangle />
                         <AlertTitle>Subscription attention required</AlertTitle>

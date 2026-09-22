@@ -152,7 +152,7 @@ export default function Index(props: GeneratedPageProps) {
                     description="View and prioritize the maintenance jobs assigned to you."
                 />
 
-                <div className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="surface-card flex min-h-0 flex-col overflow-hidden">
                     <div className="flex w-full flex-col gap-3 border-b border-border/70 bg-muted/20 p-3 sm:flex-row sm:justify-end sm:p-4">
                         <Select
                             value={filters.status || 'all'}
