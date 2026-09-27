@@ -31,6 +31,7 @@ class GetMaintenanceRequests
                 'assignedTechnician:id,name',
             ])
             ->latest('id')
+            ->when($filters->status, fn ($query, $status) => $query->where('status', $status))
             ->when($filters->search, fn ($query, $search) => self::filterBySearch($query, $search))
             ->paginate(
                 perPage: $filters->resolvedPerPage(),

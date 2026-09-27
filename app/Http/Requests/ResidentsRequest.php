@@ -2,18 +2,13 @@
 
 namespace App\Http\Requests;
 
-use App\Concerns\ProfileValidationRules;
-use App\Models\Property;
 use App\Models\Unit;
-use App\Models\User;
+use App\Validation\OrganizationInputRules;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class ResidentsRequest extends FormRequest
 {
-    use ProfileValidationRules;
-
     public function authorize(): bool
     {
         return true;
@@ -21,36 +16,10 @@ class ResidentsRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'name' => $this->nameRules(),
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique(User::class),
-            ],
-            'phone' => ['nullable', 'string', 'max:255'],
-            'property_id' => [
-                'required',
-                'integer',
-                Rule::exists(Property::class, 'id')->where(
-                    'organization_id',
-                    $this->user()?->current_organization_id,
-                ),
-            ],
-            'unit_id' => [
-                'required',
-                'integer',
-                Rule::exists(Unit::class, 'id')->where(
-                    'organization_id',
-                    $this->user()?->current_organization_id,
-                )->where(
-                    'property_id',
-                    $this->integer('property_id'),
-                ),
-            ],
-        ];
+        return OrganizationInputRules::resident(
+            $this->user()?->current_organization_id ?? 0,
+            $this->integer('property_id'),
+        );
     }
 
     public function after(): array
