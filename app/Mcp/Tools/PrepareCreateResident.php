@@ -2,13 +2,14 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\OrganizationChangeOperationEnum;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
 class PrepareCreateResident extends PrepareOrganizationChange
 {
-    protected string $operation = 'create-resident';
+    protected OrganizationChangeOperationEnum $operation = OrganizationChangeOperationEnum::CREATE_RESIDENT;
 
     protected string $description = 'Preview creating a resident and active occupancy. Confirmation emails account credentials to the resident.';
 

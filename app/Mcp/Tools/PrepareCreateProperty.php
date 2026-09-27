@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\OrganizationChangeOperationEnum;
 use App\Enums\PropertyType;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
@@ -9,7 +10,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsReadOnly]
 class PrepareCreateProperty extends PrepareOrganizationChange
 {
-    protected string $operation = 'create-property';
+    protected OrganizationChangeOperationEnum $operation = OrganizationChangeOperationEnum::CREATE_PROPERTY;
 
     protected string $description = 'Preview creating a property. Returns a token for confirm-organization-change; does not create the property.';
 

@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\OrganizationChangeOperationEnum;
 use App\Enums\TechnicianSpecialty;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
@@ -9,7 +10,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsReadOnly]
 class PrepareCreateTechnician extends PrepareOrganizationChange
 {
-    protected string $operation = 'create-technician';
+    protected OrganizationChangeOperationEnum $operation = OrganizationChangeOperationEnum::CREATE_TECHNICIAN;
 
     protected string $description = 'Preview creating a technician. Confirmation emails account credentials to the technician.';
 

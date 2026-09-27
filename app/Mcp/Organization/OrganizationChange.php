@@ -15,11 +15,13 @@ use App\Actions\Organization\Unit\DeleteUnit;
 use App\Actions\Organization\Unit\UpdateUnit;
 use App\Data\AssignMaintenanceRequestTechnicianData;
 use App\Data\MaintenanceRequestStatusData;
+use App\Data\OrganizationChangeInputData;
 use App\Data\PropertyData;
 use App\Data\ResidentData;
 use App\Data\TechnicianData;
 use App\Data\UnitData;
 use App\Enums\MaintenanceRequestStatus;
+use App\Enums\OrganizationChangeOperationEnum;
 use App\Models\MaintenanceRequest;
 use App\Models\Occupancy;
 use App\Models\Organization;
@@ -27,7 +29,6 @@ use App\Models\Property;
 use App\Models\Unit;
 use App\Models\User;
 use App\Validation\OrganizationInputRules;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -38,24 +39,29 @@ class OrganizationChange
 {
     private const int TOKEN_LIFETIME_MINUTES = 5;
 
-    public static function prepare(string $operation, array $input, User $owner, Organization $organization): array
+    public static function prepare(OrganizationChangeOperationEnum $operation, OrganizationChangeInputData $input, User $owner, Organization $organization): array
     {
-        $data = self::validate($operation, $input, $organization);
-        $impact = self::impact($operation, $data, $organization);
+        if (! $operation->accepts($input)) {
+            throw ValidationException::withMessages(['operation' => 'The organization change input does not match the selected operation.']);
+        }
+
+        self::validate($operation, $input, $organization);
+
+        $impact = self::impact($operation, $input, $organization);
         $token = Str::random(64);
         $expiresAt = now()->addMinutes(self::TOKEN_LIFETIME_MINUTES);
 
         Cache::put(self::cacheKey($token), [
             'owner_id' => $owner->id,
             'organization_id' => $organization->id,
-            'operation' => $operation,
-            'data' => $data,
+            'operation' => $operation->value,
+            'data' => $input->toArray(),
             'impact' => $impact,
         ], $expiresAt);
 
         return [
-            'operation' => $operation,
-            'summary' => self::summary($operation, $data),
+            'operation' => $operation->value,
+            'summary' => self::summary($operation, $input),
             'impact' => $impact,
             'confirmation_token' => $token,
             'expires_at' => $expiresAt->toIso8601String(),
@@ -70,27 +76,40 @@ class OrganizationChange
 
             if (! is_array($prepared)
                 || $prepared['owner_id'] !== $owner->id
-                || $prepared['organization_id'] !== $organization->id) {
+                || $prepared['organization_id'] !== $organization->id
+                || ! is_array($prepared['data'] ?? null)) {
                 throw ValidationException::withMessages(['confirmation_token' => 'This confirmation has expired or was already used. Prepare the change again.']);
             }
 
-            $operation = $prepared['operation'];
-            $data = self::validate($operation, $prepared['data'], $organization);
+            $operation = OrganizationChangeOperationEnum::tryFrom($prepared['operation'] ?? '');
 
-            if (self::impact($operation, $data, $organization) !== $prepared['impact']) {
+            if ($operation === null) {
+                throw ValidationException::withMessages(['confirmation_token' => 'This confirmation is invalid. Prepare the change again.']);
+            }
+
+            $inputDataClass = $operation->inputDataClass();
+            $input = $inputDataClass::validateAndCreate($prepared['data']);
+
+            if (! $operation->accepts($input)) {
+                throw ValidationException::withMessages(['confirmation_token' => 'This confirmation is invalid. Prepare the change again.']);
+            }
+
+            self::validate($operation, $input, $organization);
+
+            if (self::impact($operation, $input, $organization) !== $prepared['impact']) {
                 throw ValidationException::withMessages(['confirmation_token' => 'The affected records changed. Prepare the change again.']);
             }
 
-            $result = self::execute($operation, $data, $owner, $organization);
+            $result = self::execute($operation, $input, $owner, $organization);
 
             Log::info('Organization MCP change confirmed', [
-                'operation' => $operation,
+                'operation' => $operation->value,
                 'owner_id' => $owner->id,
                 'organization_id' => $organization->id,
                 'result_id' => $result['id'] ?? null,
             ]);
 
-            return ['operation' => $operation, 'result' => $result];
+            return ['operation' => $operation->value, 'result' => $result];
         });
     }
 
@@ -99,57 +118,56 @@ class OrganizationChange
         return 'organization-mcp:confirmation:'.$token;
     }
 
-    private static function validate(string $operation, array $input, Organization $organization): array
+    private static function validate(OrganizationChangeOperationEnum $operation, OrganizationChangeInputData $input, Organization $organization): void
     {
         $rules = match ($operation) {
-            'create-property', 'update-property' => [
-                ...($operation === 'update-property' ? ['id' => ['required', 'integer']] : []),
+            OrganizationChangeOperationEnum::CREATE_PROPERTY, OrganizationChangeOperationEnum::UPDATE_PROPERTY => [
+                ...($operation === OrganizationChangeOperationEnum::UPDATE_PROPERTY ? ['id' => ['required', 'integer']] : []),
                 ...OrganizationInputRules::property(),
             ],
-            'delete-property' => ['id' => ['required', 'integer']],
-            'create-unit', 'update-unit' => [
-                ...($operation === 'update-unit' ? ['id' => ['required', 'integer']] : []),
+            OrganizationChangeOperationEnum::DELETE_PROPERTY => ['id' => ['required', 'integer']],
+            OrganizationChangeOperationEnum::CREATE_UNIT, OrganizationChangeOperationEnum::UPDATE_UNIT => [
+                ...($operation === OrganizationChangeOperationEnum::UPDATE_UNIT ? ['id' => ['required', 'integer']] : []),
                 ...OrganizationInputRules::unit(
                     $organization->id,
-                    (int) ($input['property_id'] ?? 0),
-                    $operation === 'update-unit' && isset($input['id']) ? self::unit((int) $input['id'], $organization) : null,
+                    $input->property_id,
+                    $operation === OrganizationChangeOperationEnum::UPDATE_UNIT ? self::unit($input->id, $organization) : null,
                 ),
             ],
-            'delete-unit' => ['id' => ['required', 'integer']],
-            'create-resident' => [
-                ...OrganizationInputRules::resident($organization->id, (int) ($input['property_id'] ?? 0)),
+            OrganizationChangeOperationEnum::DELETE_UNIT => ['id' => ['required', 'integer']],
+            OrganizationChangeOperationEnum::CREATE_RESIDENT => [
+                ...OrganizationInputRules::resident($organization->id, $input->property_id),
             ],
-            'create-technician' => OrganizationInputRules::technician(),
-            'assign-technician' => [
+            OrganizationChangeOperationEnum::CREATE_TECHNICIAN => OrganizationInputRules::technician(),
+            OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN => [
                 'id' => ['required', 'integer'],
                 ...OrganizationInputRules::assignment(),
             ],
-            'update-maintenance-status' => [
+            OrganizationChangeOperationEnum::UPDATE_MAINTENANCE_STATUS => [
                 'id' => ['required', 'integer'],
                 ...OrganizationInputRules::maintenanceStatus(),
             ],
-            default => throw ValidationException::withMessages(['operation' => 'Unsupported organization operation.']),
         };
 
-        $data = Validator::make($input, $rules)->validate();
+        Validator::make($input->toArray(), $rules)->validate();
 
-        if (in_array($operation, ['update-property', 'delete-property'], true)) {
-            self::property($data['id'], $organization);
+        if (in_array($operation, [OrganizationChangeOperationEnum::UPDATE_PROPERTY, OrganizationChangeOperationEnum::DELETE_PROPERTY], true)) {
+            self::property($input->id, $organization);
         }
 
-        if (in_array($operation, ['update-unit', 'delete-unit'], true)) {
-            self::unit($data['id'], $organization);
+        if (in_array($operation, [OrganizationChangeOperationEnum::UPDATE_UNIT, OrganizationChangeOperationEnum::DELETE_UNIT], true)) {
+            self::unit($input->id, $organization);
         }
 
-        if (in_array($operation, ['assign-technician', 'update-maintenance-status'], true)) {
-            $maintenanceRequest = self::maintenanceRequest($data['id'], $organization);
+        if (in_array($operation, [OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN, OrganizationChangeOperationEnum::UPDATE_MAINTENANCE_STATUS], true)) {
+            $maintenanceRequest = self::maintenanceRequest($input->id, $organization);
 
-            if ($operation === 'assign-technician') {
-                if ($maintenanceRequest->assigned_technician_id === $data['assigned_technician_id']) {
+            if ($operation === OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN) {
+                if ($maintenanceRequest->assigned_technician_id === $input->assigned_technician_id) {
                     throw ValidationException::withMessages(['cannot_submit' => 'This technician is already assigned to this request.']);
                 }
 
-                $available = User::query()->technician()->whereKey($data['assigned_technician_id'])
+                $available = User::query()->technician()->whereKey($input->assigned_technician_id)
                     ->whereHas('technicianProfiles', fn ($query) => $query->where('organization_id', $organization->id)->where('is_available', true))
                     ->exists();
 
@@ -157,32 +175,30 @@ class OrganizationChange
                     throw ValidationException::withMessages(['assigned_technician_id' => 'Selected user is not an available technician.']);
                 }
             } elseif ($maintenanceRequest->assigned_technician_id === null
-                || $maintenanceRequest->status->value === $data['status']) {
+                || $maintenanceRequest->status === $input->status) {
                 throw ValidationException::withMessages(['cannot_submit' => 'Assign a technician first and choose a different status.']);
             }
         }
 
-        if (in_array($operation, ['create-unit', 'update-unit'], true)) {
-            if ($operation === 'create-unit' && GetUnitCreationAllowance::handle($organization)['remaining'] === 0) {
+        if (in_array($operation, [OrganizationChangeOperationEnum::CREATE_UNIT, OrganizationChangeOperationEnum::UPDATE_UNIT], true)) {
+            if ($operation === OrganizationChangeOperationEnum::CREATE_UNIT && GetUnitCreationAllowance::handle($organization)['remaining'] === 0) {
                 throw ValidationException::withMessages(['cannot_submit' => 'This organization has used all unit creations for the current billing period.']);
             }
         }
 
-        if ($operation === 'create-resident') {
-            $unit = self::unit($data['unit_id'], $organization);
+        if ($operation === OrganizationChangeOperationEnum::CREATE_RESIDENT) {
+            $unit = self::unit($input->unit_id, $organization);
 
-            if ($unit->property_id !== $data['property_id'] || $unit->occupancies()->active()->exists()) {
+            if ($unit->property_id !== $input->property_id || $unit->occupancies()->active()->exists()) {
                 throw ValidationException::withMessages(['unit_id' => 'Selected unit is not available for this property.']);
             }
         }
-
-        return $data;
     }
 
-    private static function impact(string $operation, array $data, Organization $organization): array
+    private static function impact(OrganizationChangeOperationEnum $operation, OrganizationChangeInputData $input, Organization $organization): array
     {
-        if ($operation === 'delete-property') {
-            $property = self::property($data['id'], $organization);
+        if ($operation === OrganizationChangeOperationEnum::DELETE_PROPERTY) {
+            $property = self::property($input->id, $organization);
             $unitIds = Unit::query()->where('organization_id', $organization->id)->where('property_id', $property->id)->select('id');
 
             return [
@@ -193,8 +209,8 @@ class OrganizationChange
             ];
         }
 
-        if ($operation === 'delete-unit') {
-            $unit = self::unit($data['id'], $organization);
+        if ($operation === OrganizationChangeOperationEnum::DELETE_UNIT) {
+            $unit = self::unit($input->id, $organization);
 
             return [
                 'target_updated_at' => (string) $unit->updated_at,
@@ -203,69 +219,87 @@ class OrganizationChange
             ];
         }
 
-        if (in_array($operation, ['update-property', 'update-unit', 'assign-technician', 'update-maintenance-status'], true)) {
+        if (in_array($operation, [OrganizationChangeOperationEnum::UPDATE_PROPERTY, OrganizationChangeOperationEnum::UPDATE_UNIT, OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN, OrganizationChangeOperationEnum::UPDATE_MAINTENANCE_STATUS], true)) {
             $target = match ($operation) {
-                'update-property' => self::property($data['id'], $organization),
-                'update-unit' => self::unit($data['id'], $organization),
-                default => self::maintenanceRequest($data['id'], $organization),
+                OrganizationChangeOperationEnum::UPDATE_PROPERTY => self::property($input->id, $organization),
+                OrganizationChangeOperationEnum::UPDATE_UNIT => self::unit($input->id, $organization),
+                default => self::maintenanceRequest($input->id, $organization),
             };
 
             return [
                 'target_updated_at' => (string) $target->updated_at,
-                ...($operation === 'assign-technician' ? ['sends_assignment_notification' => true] : []),
+                ...($operation === OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN ? ['sends_assignment_notification' => true] : []),
             ];
         }
 
         return match ($operation) {
-            'create-resident' => ['sends_account_email' => true, 'unit_id' => $data['unit_id']],
-            'create-technician' => ['sends_account_email' => true],
-            'create-unit' => ['consumes_unit_creation_allowance' => true],
+            OrganizationChangeOperationEnum::CREATE_RESIDENT => ['sends_account_email' => true, 'unit_id' => $input->unit_id],
+            OrganizationChangeOperationEnum::CREATE_TECHNICIAN => ['sends_account_email' => true],
+            OrganizationChangeOperationEnum::CREATE_UNIT => ['consumes_unit_creation_allowance' => true],
             default => [],
         };
     }
 
-    private static function summary(string $operation, array $data): string
+    private static function summary(OrganizationChangeOperationEnum $operation, OrganizationChangeInputData $input): string
     {
         return match ($operation) {
-            'create-property', 'update-property', 'create-unit', 'update-unit', 'create-resident', 'create-technician' => Str::headline($operation).' "'.$data['name'].'"',
-            'delete-property', 'delete-unit' => Str::headline($operation).' #'.$data['id'].' and the related records listed in impact',
-            'assign-technician' => 'Assign technician #'.$data['assigned_technician_id'].' to maintenance request #'.$data['id'],
-            'update-maintenance-status' => 'Set maintenance request #'.$data['id'].' status to '.$data['status'],
-            default => $operation,
+            OrganizationChangeOperationEnum::CREATE_PROPERTY,
+            OrganizationChangeOperationEnum::UPDATE_PROPERTY,
+            OrganizationChangeOperationEnum::CREATE_UNIT,
+            OrganizationChangeOperationEnum::UPDATE_UNIT,
+            OrganizationChangeOperationEnum::CREATE_RESIDENT,
+            OrganizationChangeOperationEnum::CREATE_TECHNICIAN => Str::headline($operation->value).' "'.$input->name.'"',
+            OrganizationChangeOperationEnum::DELETE_PROPERTY,
+            OrganizationChangeOperationEnum::DELETE_UNIT => Str::headline($operation->value).' #'.$input->id.' and the related records listed in impact',
+            OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN => 'Assign technician #'.$input->assigned_technician_id.' to maintenance request #'.$input->id,
+            OrganizationChangeOperationEnum::UPDATE_MAINTENANCE_STATUS => 'Set maintenance request #'.$input->id.' status to '.$input->status->value,
         };
     }
 
-    private static function execute(string $operation, array $data, User $owner, Organization $organization): array
+    private static function execute(OrganizationChangeOperationEnum $operation, OrganizationChangeInputData $input, User $owner, Organization $organization): array
     {
         $result = match ($operation) {
-            'create-property' => CreateProperty::handle(PropertyData::from($data), $owner, $organization),
-            'update-property' => UpdateProperty::handle(self::property($data['id'], $organization), PropertyData::from(Arr::except($data, 'id')), $owner, $organization),
-            'delete-property' => DeleteProperty::handle(self::property($data['id'], $organization), $owner, $organization),
-            'create-unit' => CreateUnit::handle(UnitData::from(['floor' => null, ...$data]), $owner, $organization),
-            'update-unit' => UpdateUnit::handle(self::unit($data['id'], $organization), UnitData::from(['floor' => null, ...Arr::except($data, 'id')]), $owner, $organization),
-            'delete-unit' => DeleteUnit::handle(self::unit($data['id'], $organization), $owner, $organization),
-            'create-resident' => CreateResident::handle(ResidentData::from($data), $organization, $owner),
-            'create-technician' => CreateTechnician::handle(TechnicianData::from($data), $organization, $owner),
-            'assign-technician' => AssignMaintenanceRequestTechnician::handle(
-                self::maintenanceRequest($data['id'], $organization),
-                AssignMaintenanceRequestTechnicianData::from([
-                    ...$data,
-                    'status' => self::maintenanceRequest($data['id'], $organization)->assigned_technician_id === null
+            OrganizationChangeOperationEnum::CREATE_PROPERTY => CreateProperty::handle(new PropertyData($input->name, $input->type, $input->address, $input->city), $owner, $organization),
+            OrganizationChangeOperationEnum::UPDATE_PROPERTY => UpdateProperty::handle(self::property($input->id, $organization), new PropertyData($input->name, $input->type, $input->address, $input->city), $owner, $organization),
+            OrganizationChangeOperationEnum::DELETE_PROPERTY => DeleteProperty::handle(self::property($input->id, $organization), $owner, $organization),
+            OrganizationChangeOperationEnum::CREATE_UNIT => CreateUnit::handle(new UnitData($input->property_id, $input->name, $input->floor, $input->status), $owner, $organization),
+            OrganizationChangeOperationEnum::UPDATE_UNIT => UpdateUnit::handle(self::unit($input->id, $organization), new UnitData($input->property_id, $input->name, $input->floor, $input->status), $owner, $organization),
+            OrganizationChangeOperationEnum::DELETE_UNIT => DeleteUnit::handle(self::unit($input->id, $organization), $owner, $organization),
+            OrganizationChangeOperationEnum::CREATE_RESIDENT => CreateResident::handle(new ResidentData($input->name, $input->email, $input->property_id, $input->unit_id, $input->phone), $organization, $owner),
+            OrganizationChangeOperationEnum::CREATE_TECHNICIAN => CreateTechnician::handle(new TechnicianData($input->name, $input->email, $input->specialty, $input->is_available, $input->phone), $organization, $owner),
+            OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN => AssignMaintenanceRequestTechnician::handle(
+                self::maintenanceRequest($input->id, $organization),
+                new AssignMaintenanceRequestTechnicianData(
+                    $input->assigned_technician_id,
+                    self::maintenanceRequest($input->id, $organization)->assigned_technician_id === null
                         ? MaintenanceRequestStatus::ASSIGNED
-                        : self::maintenanceRequest($data['id'], $organization)->status,
-                ]),
+                        : self::maintenanceRequest($input->id, $organization)->status,
+                    $input->notes,
+                ),
                 $owner,
                 $organization,
             ),
-            'update-maintenance-status' => UpdateMaintenanceRequestStatus::handle(
-                self::maintenanceRequest($data['id'], $organization),
-                MaintenanceRequestStatusData::from($data),
+            OrganizationChangeOperationEnum::UPDATE_MAINTENANCE_STATUS => UpdateMaintenanceRequestStatus::handle(
+                self::maintenanceRequest($input->id, $organization),
+                new MaintenanceRequestStatusData($input->status, $input->notes),
                 $owner,
                 $organization,
             ),
         };
 
-        return ['success' => (bool) $result, 'id' => $result instanceof User || $result instanceof Property || $result instanceof Unit || $result instanceof MaintenanceRequest ? $result->id : ($data['id'] ?? null)];
+        $resultId = $result instanceof User || $result instanceof Property || $result instanceof Unit || $result instanceof MaintenanceRequest
+            ? $result->id
+            : match ($operation) {
+                OrganizationChangeOperationEnum::UPDATE_PROPERTY,
+                OrganizationChangeOperationEnum::DELETE_PROPERTY,
+                OrganizationChangeOperationEnum::UPDATE_UNIT,
+                OrganizationChangeOperationEnum::DELETE_UNIT,
+                OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN,
+                OrganizationChangeOperationEnum::UPDATE_MAINTENANCE_STATUS => $input->id,
+                default => null,
+            };
+
+        return ['success' => (bool) $result, 'id' => $resultId];
     }
 
     private static function property(int $id, Organization $organization): Property

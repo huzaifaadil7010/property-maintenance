@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\OrganizationChangeOperationEnum;
 use App\Enums\UnitStatus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
@@ -9,7 +10,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsReadOnly]
 class PrepareUpdateUnit extends PrepareOrganizationChange
 {
-    protected string $operation = 'update-unit';
+    protected OrganizationChangeOperationEnum $operation = OrganizationChangeOperationEnum::UPDATE_UNIT;
 
     protected string $description = 'Preview updating a unit by ID. All unit fields except floor are required.';
 

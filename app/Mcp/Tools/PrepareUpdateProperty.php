@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\OrganizationChangeOperationEnum;
 use App\Enums\PropertyType;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
@@ -9,7 +10,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsReadOnly]
 class PrepareUpdateProperty extends PrepareOrganizationChange
 {
-    protected string $operation = 'update-property';
+    protected OrganizationChangeOperationEnum $operation = OrganizationChangeOperationEnum::UPDATE_PROPERTY;
 
     protected string $description = 'Preview updating a property by ID. All property fields are required; confirm-organization-change applies it.';
 
