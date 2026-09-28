@@ -65,6 +65,7 @@ class OrganizationChange
             'impact' => $impact,
             'confirmation_token' => $token,
             'expires_at' => $expiresAt->toIso8601String(),
+            'expires_in_seconds' => self::TOKEN_LIFETIME_MINUTES * 60,
             'requires_client_approval' => true,
         ];
     }

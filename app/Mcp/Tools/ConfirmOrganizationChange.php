@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 #[IsDestructive]
 class ConfirmOrganizationChange extends Tool
 {
-    protected string $description = 'Execute one previewed organization change after the user reviews and approves its summary. Tokens expire after five minutes and can only be used once.';
+    protected string $description = 'Execute one previewed organization change after the user reviews and approves its summary. Tokens expire five minutes after the preview is created and can only be used once. The preview includes expires_in_seconds for this lifetime.';
 
     public function schema(JsonSchema $schema): array
     {
