@@ -18,6 +18,8 @@ class MaintenanceRequestFilterData extends Data
         public ?MaintenanceRequestStatus $status = null,
         public ?int $page = null,
         public ?int $perPage = null,
+        public ?string $from = null,
+        public ?string $to = null,
     ) {}
 
     public function resolvedPage(): int

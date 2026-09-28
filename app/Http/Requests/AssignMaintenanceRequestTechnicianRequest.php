@@ -4,9 +4,9 @@ namespace App\Http\Requests;
 
 use App\Models\MaintenanceRequest;
 use App\Models\User;
+use App\Validation\OrganizationInputRules;
 use Illuminate\Container\Attributes\RouteParameter;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class AssignMaintenanceRequestTechnicianRequest extends FormRequest
@@ -18,10 +18,7 @@ class AssignMaintenanceRequestTechnicianRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'assigned_technician_id' => ['required', 'integer', Rule::exists('users', 'id')],
-            'notes' => ['nullable', 'string'],
-        ];
+        return OrganizationInputRules::assignment();
     }
 
     public function after(#[RouteParameter('maintenanceRequest')] MaintenanceRequest $maintenanceRequest): array

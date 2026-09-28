@@ -2,11 +2,10 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\MaintenanceRequestStatus;
 use App\Models\MaintenanceRequest;
+use App\Validation\OrganizationInputRules;
 use Illuminate\Container\Attributes\RouteParameter;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateMaintenanceRequestStatusRequest extends FormRequest
@@ -18,10 +17,7 @@ class UpdateMaintenanceRequestStatusRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'status' => ['required', Rule::enum(MaintenanceRequestStatus::class)],
-            'notes' => ['nullable', 'string'],
-        ];
+        return OrganizationInputRules::maintenanceStatus();
     }
 
     public function after(#[RouteParameter('maintenanceRequest')] MaintenanceRequest $maintenanceRequest): array

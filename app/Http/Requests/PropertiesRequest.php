@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\PropertyType;
+use App\Validation\OrganizationInputRules;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class PropertiesRequest extends FormRequest
 {
@@ -15,11 +14,6 @@ class PropertiesRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', Rule::enum(PropertyType::class)],
-            'address' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
-        ];
+        return OrganizationInputRules::property();
     }
 }
