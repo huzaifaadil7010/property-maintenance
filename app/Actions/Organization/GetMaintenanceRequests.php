@@ -6,6 +6,7 @@ use App\Data\MaintenanceRequestFilterData;
 use App\Models\MaintenanceRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 
 class GetMaintenanceRequests
 {
@@ -32,6 +33,8 @@ class GetMaintenanceRequests
             ])
             ->latest('id')
             ->when($filters->status, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters->from, fn ($query, $from) => $query->where('created_at', '>=', Carbon::parse($from)->startOfDay()))
+            ->when($filters->to, fn ($query, $to) => $query->where('created_at', '<', Carbon::parse($to)->addDay()->startOfDay()))
             ->when($filters->search, fn ($query, $search) => self::filterBySearch($query, $search))
             ->paginate(
                 perPage: $filters->resolvedPerPage(),

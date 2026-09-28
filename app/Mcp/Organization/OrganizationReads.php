@@ -22,8 +22,8 @@ use App\Enums\PropertyType;
 use App\Enums\TechnicianSpecialty;
 use App\Enums\UnitStatus;
 use App\Http\Resources\ActivityLogResource;
-use App\Http\Resources\MaintenanceRequestResource;
 use App\Http\Resources\OrganizationMaintenanceRequestDetailResource;
+use App\Http\Resources\OrganizationMaintenanceRequestListResource;
 use App\Http\Resources\PropertyResource;
 use App\Http\Resources\ResidentResource;
 use App\Http\Resources\TechnicianResource;
@@ -48,6 +48,8 @@ class OrganizationReads
             'status' => ['nullable', Rule::enum(MaintenanceRequestStatus::class)],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', Rule::in([10, 20, 25, 30, 40, 50])],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
         ])->validate();
 
         if (($data['status'] ?? null) !== null && $data['resource'] !== 'maintenance-requests') {
@@ -56,6 +58,14 @@ class OrganizationReads
 
         if (($data['search'] ?? null) !== null && $data['resource'] === 'activity-logs') {
             throw ValidationException::withMessages(['search' => 'Activity logs do not support search.']);
+        }
+
+        if (($data['from'] ?? null) !== null && $data['resource'] !== 'maintenance-requests') {
+            throw ValidationException::withMessages(['from' => 'Date filtering is only available for maintenance requests.']);
+        }
+
+        if (($data['to'] ?? null) !== null && $data['resource'] !== 'maintenance-requests') {
+            throw ValidationException::withMessages(['to' => 'Date filtering is only available for maintenance requests.']);
         }
 
         $filters = [
@@ -69,7 +79,12 @@ class OrganizationReads
             'units' => [GetUnits::handle(UnitFilterData::from($filters)), UnitResource::class],
             'residents' => [GetResidents::handle(ResidentFilterData::from($filters)), ResidentResource::class],
             'technicians' => [GetTechnicians::handle(TechnicianFilterData::from($filters)), TechnicianResource::class],
-            'maintenance-requests' => [GetMaintenanceRequests::handle(MaintenanceRequestFilterData::from([...$filters, 'status' => $data['status'] ?? null])), MaintenanceRequestResource::class],
+            'maintenance-requests' => [GetMaintenanceRequests::handle(MaintenanceRequestFilterData::from([
+                ...$filters,
+                'status' => $data['status'] ?? null,
+                'from' => $data['from'] ?? null,
+                'to' => $data['to'] ?? null,
+            ])), OrganizationMaintenanceRequestListResource::class],
             'activity-logs' => [GetActivityLogs::handle(ActivityLogPaginationData::from($filters)), ActivityLogResource::class],
         };
 
