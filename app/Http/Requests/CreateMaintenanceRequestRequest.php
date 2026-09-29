@@ -2,11 +2,9 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\MaintenanceCategory;
-use App\Enums\MaintenancePriority;
 use App\Models\Occupancy;
+use App\Validation\ResidentInputRules;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class CreateMaintenanceRequestRequest extends FormRequest
@@ -18,14 +16,7 @@ class CreateMaintenanceRequestRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'title' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::enum(MaintenanceCategory::class)],
-            'priority' => ['required', Rule::enum(MaintenancePriority::class)],
-            'description' => ['required', 'string'],
-            'images' => ['required', 'array', 'min:1'],
-            'images.*' => ['string'],
-        ];
+        return ResidentInputRules::createMaintenanceRequest();
     }
 
     public function after(): array

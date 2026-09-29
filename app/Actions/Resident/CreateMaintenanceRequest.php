@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Notifications\MaintenanceRequestCreatedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class CreateMaintenanceRequest
 {
@@ -23,6 +25,14 @@ class CreateMaintenanceRequest
         User $resident,
     ): MaintenanceRequest {
         $organization = $resident->currentOrganization;
+
+        $temporaryMedia = $resident->getMedia('temp');
+
+        foreach ($data->images as $fileName) {
+            if ($temporaryMedia->firstWhere('uuid', $fileName) === null) {
+                throw ValidationException::withMessages(['images' => 'One or more issue images are no longer available.']);
+            }
+        }
 
         $maintenanceRequest = DB::transaction(function () use ($data, $resident, $organization): MaintenanceRequest {
             $occupancy = $resident->occupancies()
@@ -42,13 +52,19 @@ class CreateMaintenanceRequest
             ]);
         });
 
-        foreach ($data->images as $fileName) {
-            self::moveMediaFromTempToPermanent(
-                $fileName,
-                $resident,
-                $maintenanceRequest,
-                MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES,
-            );
+        try {
+            foreach ($data->images as $fileName) {
+                self::moveMediaFromTempToPermanent(
+                    $fileName,
+                    $resident,
+                    $maintenanceRequest,
+                    MaintenanceRequest::MEDIA_COLLECTION_ISSUE_IMAGES,
+                );
+            }
+        } catch (Throwable $exception) {
+            $maintenanceRequest->delete();
+
+            throw $exception;
         }
 
         $organizationOwner = User::query()

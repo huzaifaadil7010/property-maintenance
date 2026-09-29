@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\MaintenanceRequestStatus;
 use App\Models\MaintenanceRequest;
+use App\Validation\ResidentInputRules;
 use Illuminate\Container\Attributes\RouteParameter;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,10 @@ class ReopenMaintenanceRequestRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['status' => ['required', Rule::enum(MaintenanceRequestStatus::class), Rule::in([MaintenanceRequestStatus::REOPENED->value])], 'notes' => ['required', 'string', 'max:1000']];
+        return [
+            'status' => ['required', Rule::enum(MaintenanceRequestStatus::class), Rule::in([MaintenanceRequestStatus::REOPENED->value])],
+            ...ResidentInputRules::reopenNotes(),
+        ];
     }
 
     public function after(#[RouteParameter('maintenanceRequest')] MaintenanceRequest $maintenanceRequest): array
