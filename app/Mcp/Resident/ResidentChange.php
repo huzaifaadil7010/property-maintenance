@@ -21,7 +21,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class ResidentChange
 {
@@ -112,7 +111,7 @@ class ResidentChange
         $rules = match ($operation) {
             ResidentChangeOperationEnum::CREATE_MAINTENANCE_REQUEST => [
                 ...ResidentInputRules::createMaintenanceRequest(),
-                'images.*' => ['required', 'string', 'distinct'],
+                'images.*' => ['required', 'uuid', 'distinct'],
             ],
             ResidentChangeOperationEnum::CONFIRM_RESOLUTION => [
                 'id' => ['required', 'integer', 'min:1'],
@@ -131,7 +130,7 @@ class ResidentChange
                 throw ValidationException::withMessages(['cannot_submit' => 'An active residence is required before reporting an issue.']);
             }
 
-            ResidentImageInbox::inspect($input->images);
+            ResidentIssueImageUpload::inspect($input->images, $resident);
 
             return;
         }
@@ -151,7 +150,7 @@ class ResidentChange
             return [
                 'occupancy_id' => $residence->id,
                 'unit_id' => $residence->unit_id,
-                'images' => ResidentImageInbox::inspect($input->images),
+                'images' => ResidentIssueImageUpload::inspect($input->images, $resident),
                 'notifies_organization_owner' => true,
             ];
         }
@@ -198,31 +197,13 @@ class ResidentChange
 
     private static function create(CreateResidentMaintenanceRequestChangeData $input, User $resident): MaintenanceRequest
     {
-        $staged = [];
-
-        try {
-            foreach ($input->images as $name) {
-                $media = $resident->addMedia(ResidentImageInbox::directory().DIRECTORY_SEPARATOR.$name)
-                    ->preservingOriginal()
-                    ->withResponsiveImages()
-                    ->toMediaCollection('temp');
-                $staged[] = $media->uuid;
-            }
-
-            return CreateMaintenanceRequest::handle(new MaintenanceRequestData(
-                $input->title,
-                $input->category,
-                $input->priority,
-                $input->description,
-                $staged,
-            ), $resident);
-        } catch (Throwable $exception) {
-            foreach ($staged as $uuid) {
-                $resident->media()->where('collection_name', 'temp')->where('uuid', $uuid)->first()?->delete();
-            }
-
-            throw $exception;
-        }
+        return CreateMaintenanceRequest::handle(new MaintenanceRequestData(
+            $input->title,
+            $input->category,
+            $input->priority,
+            $input->description,
+            $input->images,
+        ), $resident);
     }
 
     private static function ownedRequest(int $id, User $resident): MaintenanceRequest
