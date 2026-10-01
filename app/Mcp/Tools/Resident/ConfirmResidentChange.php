@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 #[IsDestructive]
 class ConfirmResidentChange extends Tool
 {
-    protected string $description = 'Execute one previewed resident change only after the user reviews and approves it. Tokens expire five minutes after preview creation and can be used once. Creating a request copies images from the resident inbox; inbox originals remain untouched.';
+    protected string $description = 'Execute one previewed resident change only after the user reviews and approves it. Tokens expire five minutes after preview creation and can be used once. Creating a request moves uploaded issue images to permanent request media.';
 
     public function schema(JsonSchema $schema): array
     {

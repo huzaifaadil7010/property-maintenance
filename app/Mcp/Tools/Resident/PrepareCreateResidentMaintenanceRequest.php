@@ -13,7 +13,7 @@ class PrepareCreateResidentMaintenanceRequest extends PrepareResidentChange
 {
     protected ResidentChangeOperationEnum $operation = ResidentChangeOperationEnum::CREATE_MAINTENANCE_REQUEST;
 
-    protected string $description = 'Preview reporting an issue from this resident\'s active residence. Requires 1–10 image filenames already placed in storage/app/private/mcp/resident-inbox; does not create the request or upload images. Confirm with confirm-resident-change after user approval.';
+    protected string $description = 'Preview reporting an issue from this resident\'s active residence with 1–10 image IDs uploaded through the resident issue-image picker. Does not create the request. Confirm only after user approval.';
 
     public function schema(JsonSchema $schema): array
     {
@@ -22,7 +22,7 @@ class PrepareCreateResidentMaintenanceRequest extends PrepareResidentChange
             'category' => $schema->string()->enum(array_column(MaintenanceCategory::cases(), 'value'))->required(),
             'priority' => $schema->string()->enum(array_column(MaintenancePriority::cases(), 'value'))->required(),
             'description' => $schema->string()->required(),
-            'images' => $schema->array()->items($schema->string())->description('Filenames only, not paths; 1–10 JPEG, PNG, or WebP images in the resident inbox.')->required(),
+            'images' => $schema->array()->items($schema->string())->description('1–10 opaque image IDs returned by the resident issue-image upload tool; never filenames or paths.')->required(),
         ];
     }
 }
