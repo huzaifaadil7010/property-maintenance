@@ -25,13 +25,13 @@ class DiscardResidentIssueImages extends Tool
 
     public function handle(Request $request): ResponseFactory
     {
-        $input = $request->validate([
+        $validatedDiscardInput = $request->validate([
             'images' => ['required', 'array', 'max:10'],
             'images.*' => ['required', 'uuid', 'distinct'],
         ]);
 
-        return ResidentContext::run(function ($resident) use ($input): ResponseFactory {
-            ResidentIssueImageUpload::discard($input['images'], $resident);
+        return ResidentContext::run(function ($resident) use ($validatedDiscardInput): ResponseFactory {
+            ResidentIssueImageUpload::discard($validatedDiscardInput['images'], $resident);
 
             return Response::structured(['discarded' => true]);
         });

@@ -33,7 +33,7 @@ class UploadResidentIssueImageChunk extends Tool
 
     public function handle(Request $request): ResponseFactory
     {
-        $input = $request->validate([
+        $validatedChunkInput = $request->validate([
             'upload_id' => ['sometimes', 'uuid'],
             'name' => ['required', 'string', 'max:255', 'not_regex:/[\\\\\/\x00-\x1F]/'],
             'size' => ['required', 'integer', 'between:1,10485760'],
@@ -44,7 +44,7 @@ class UploadResidentIssueImageChunk extends Tool
         ]);
 
         return ResidentContext::run(fn ($resident): ResponseFactory => Response::structured(
-            ResidentIssueImageUpload::upload($input, $resident),
+            ResidentIssueImageUpload::upload($validatedChunkInput, $resident),
         ));
     }
 }

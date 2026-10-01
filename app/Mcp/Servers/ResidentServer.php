@@ -31,21 +31,23 @@ class ResidentServer extends Server
     {
         parent::start();
 
-        if (! $this->transport instanceof StdioTransport) {
+        $usesStdioTransport = $this->transport instanceof StdioTransport;
+
+        if (! $usesStdioTransport) {
             return;
         }
 
-        $buffer = '';
+        $pendingJsonMessage = '';
 
         // Laravel MCP's nonblocking stdio reader may deliver one JSON line in several chunks.
-        $this->transport->onReceive(function (string $chunk) use (&$buffer): void {
-            $buffer .= $chunk;
+        $this->transport->onReceive(function (string $stdioChunk) use (&$pendingJsonMessage): void {
+            $pendingJsonMessage .= $stdioChunk;
 
-            while (($newline = strpos($buffer, "\n")) !== false) {
-                $message = substr($buffer, 0, $newline + 1);
-                $buffer = substr($buffer, $newline + 1);
+            while (($newlinePosition = strpos($pendingJsonMessage, "\n")) !== false) {
+                $completeJsonMessage = substr($pendingJsonMessage, 0, $newlinePosition + 1);
+                $pendingJsonMessage = substr($pendingJsonMessage, $newlinePosition + 1);
 
-                $this->handle($message);
+                $this->handle($completeJsonMessage);
             }
         });
     }

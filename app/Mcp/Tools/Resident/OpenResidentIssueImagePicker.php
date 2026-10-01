@@ -34,11 +34,13 @@ class OpenResidentIssueImagePicker extends Tool
     public function handle(Request $request): ResponseFactory
     {
         return ResidentContext::run(function ($resident) use ($request): ResponseFactory {
-            if (GetCurrentResidence::handle($resident) === null) {
+            $hasActiveResidence = GetCurrentResidence::handle($resident) !== null;
+
+            if (! $hasActiveResidence) {
                 throw ValidationException::withMessages(['cannot_submit' => 'An active residence is required before reporting an issue.']);
             }
 
-            $fields = $request->validate([
+            $suggestedRequestFields = $request->validate([
                 'title' => ['nullable', 'string', 'max:255'],
                 'category' => ['nullable', 'string'],
                 'priority' => ['nullable', 'string'],
@@ -46,7 +48,7 @@ class OpenResidentIssueImagePicker extends Tool
             ]);
 
             return Response::structured([
-                'fields' => $fields,
+                'fields' => $suggestedRequestFields,
                 'options' => ResidentReads::options(),
                 'message' => 'Choose 1–10 images in the picker, review the preview, then approve creation.',
             ]);

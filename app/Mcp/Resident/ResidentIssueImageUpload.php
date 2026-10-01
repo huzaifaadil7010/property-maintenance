@@ -23,152 +23,203 @@ class ResidentIssueImageUpload
         'image/webp' => 'webp',
     ];
 
-    public static function upload(array $input, User $resident): array
+    public static function upload(array $uploadInput, User $resident): array
     {
-        $bytes = base64_decode($input['data'], true);
+        $decodedChunkBytes = base64_decode($uploadInput['data'], true);
+        $hasInvalidChunkBytes = $decodedChunkBytes === false
+            || strlen($decodedChunkBytes) === 0
+            || strlen($decodedChunkBytes) > self::CHUNK_BYTES;
 
-        if ($bytes === false || strlen($bytes) === 0 || strlen($bytes) > self::CHUNK_BYTES) {
+        if ($hasInvalidChunkBytes) {
             throw ValidationException::withMessages(['data' => 'This image chunk is invalid or too large.']);
         }
 
-        $uploadId = $input['upload_id'] ?? (string) Str::uuid();
+        $uploadId = $uploadInput['upload_id'] ?? (string) Str::uuid();
 
-        return Cache::lock('resident-mcp:upload-lock:'.$uploadId, 10)->block(3, function () use ($input, $resident, $bytes, $uploadId): array {
-            $key = self::cacheKey($uploadId);
-            $state = Cache::get($key);
+        return Cache::lock('resident-mcp:upload-lock:'.$uploadId, 10)->block(3, function () use ($uploadInput, $resident, $decodedChunkBytes, $uploadId): array {
+            $uploadCacheKey = self::cacheKey($uploadId);
+            $uploadState = Cache::get($uploadCacheKey);
+            $isFirstChunkOfNewUpload = $uploadInput['chunk_index'] === 0
+                && $uploadState === null
+                && ! isset($uploadInput['upload_id']);
 
-            if ($input['chunk_index'] === 0 && $state === null && ! isset($input['upload_id'])) {
+            if ($isFirstChunkOfNewUpload) {
                 self::prune();
 
-                if ($resident->media()->where('collection_name', 'temp')->get()->filter(
-                    fn (Media $media): bool => $media->getCustomProperty('resident_mcp_issue') === true
-                )->count() >= 10) {
+                $stagedIssueImageCount = $resident->media()->where('collection_name', 'temp')->get()->filter(
+                    fn (Media $stagedImageMedia): bool => $stagedImageMedia->getCustomProperty('resident_mcp_issue') === true
+                )->count();
+                $hasReachedStagedImageLimit = $stagedIssueImageCount >= 10;
+
+                if ($hasReachedStagedImageLimit) {
                     throw ValidationException::withMessages(['images' => 'Finish or discard existing MCP issue images before uploading more.']);
                 }
 
-                $state = [
+                $uploadState = [
                     'resident_id' => $resident->id,
                     'organization_id' => $resident->current_organization_id,
-                    'name' => $input['name'],
-                    'size' => $input['size'],
-                    'sha256' => strtolower($input['sha256']),
-                    'total_chunks' => $input['total_chunks'],
+                    'name' => $uploadInput['name'],
+                    'size' => $uploadInput['size'],
+                    'sha256' => strtolower($uploadInput['sha256']),
+                    'total_chunks' => $uploadInput['total_chunks'],
                     'next_index' => 0,
                 ];
             }
 
-            if (! is_array($state)
-                || $state['resident_id'] !== $resident->id
-                || $state['organization_id'] !== $resident->current_organization_id
-                || $state['name'] !== $input['name']
-                || $state['size'] !== $input['size']
-                || $state['sha256'] !== strtolower($input['sha256'])
-                || $state['total_chunks'] !== $input['total_chunks']
-                || $state['next_index'] !== $input['chunk_index']) {
+            $hasMatchingUploadState = is_array($uploadState)
+                && $uploadState['resident_id'] === $resident->id
+                && $uploadState['organization_id'] === $resident->current_organization_id
+                && $uploadState['name'] === $uploadInput['name']
+                && $uploadState['size'] === $uploadInput['size']
+                && $uploadState['sha256'] === strtolower($uploadInput['sha256'])
+                && $uploadState['total_chunks'] === $uploadInput['total_chunks']
+                && $uploadState['next_index'] === $uploadInput['chunk_index'];
+
+            if (! $hasMatchingUploadState) {
                 throw ValidationException::withMessages(['upload_id' => 'This image upload is invalid or expired. Start the upload again.']);
             }
 
-            if ($input['size'] < 1 || $input['size'] > self::MAX_FILE_BYTES
-                || $input['total_chunks'] !== (int) ceil($input['size'] / self::CHUNK_BYTES)
-                || strlen($bytes) !== min(self::CHUNK_BYTES, $input['size'] - ($input['chunk_index'] * self::CHUNK_BYTES))) {
+            $hasInvalidFileSize = $uploadInput['size'] < 1 || $uploadInput['size'] > self::MAX_FILE_BYTES;
+            $hasUnexpectedChunkCount = $uploadInput['total_chunks'] !== (int) ceil($uploadInput['size'] / self::CHUNK_BYTES);
+            $hasUnexpectedChunkLength = strlen($decodedChunkBytes) !== min(
+                self::CHUNK_BYTES,
+                $uploadInput['size'] - ($uploadInput['chunk_index'] * self::CHUNK_BYTES),
+            );
+            $hasInvalidChunkLayout = $hasInvalidFileSize || $hasUnexpectedChunkCount || $hasUnexpectedChunkLength;
+
+            if ($hasInvalidChunkLayout) {
                 throw ValidationException::withMessages(['data' => 'The image upload size does not match its chunks.']);
             }
 
-            $directory = self::directory($uploadId);
-            Storage::disk('local')->put($directory.'/'.$input['chunk_index'], $bytes);
-            $state['next_index']++;
-            Cache::put($key, $state, now()->addMinutes(self::LIFETIME_MINUTES));
+            $uploadDirectory = self::directory($uploadId);
+            Storage::disk('local')->put($uploadDirectory.'/'.$uploadInput['chunk_index'], $decodedChunkBytes);
+            $uploadState['next_index']++;
+            Cache::put($uploadCacheKey, $uploadState, now()->addMinutes(self::LIFETIME_MINUTES));
+            $hasMoreChunksToUpload = $uploadState['next_index'] < $uploadState['total_chunks'];
 
-            if ($state['next_index'] < $state['total_chunks']) {
-                return ['upload_id' => $uploadId, 'next_index' => $state['next_index']];
+            if ($hasMoreChunksToUpload) {
+                return ['upload_id' => $uploadId, 'next_index' => $uploadState['next_index']];
             }
 
             try {
-                $path = Storage::disk('local')->path($directory.'/complete');
-                $output = fopen($path, 'wb');
+                $assembledImagePath = Storage::disk('local')->path($uploadDirectory.'/complete');
+                $assembledImageStream = fopen($assembledImagePath, 'wb');
+                $cannotOpenAssembledImageStream = $assembledImageStream === false;
 
-                if ($output === false) {
+                if ($cannotOpenAssembledImageStream) {
                     throw ValidationException::withMessages(['images' => 'The image could not be assembled.']);
                 }
 
                 try {
-                    for ($index = 0; $index < $state['total_chunks']; $index++) {
-                        $part = Storage::disk('local')->get($directory.'/'.$index);
-                        fwrite($output, $part);
+                    for ($chunkIndex = 0; $chunkIndex < $uploadState['total_chunks']; $chunkIndex++) {
+                        $storedChunkBytes = Storage::disk('local')->get($uploadDirectory.'/'.$chunkIndex);
+                        fwrite($assembledImageStream, $storedChunkBytes);
                     }
                 } finally {
-                    fclose($output);
+                    fclose($assembledImageStream);
                 }
 
-                $info = @getimagesize($path);
-                $mime = $info['mime'] ?? null;
+                $detectedImageInfo = @getimagesize($assembledImagePath);
+                $detectedMimeType = $detectedImageInfo['mime'] ?? null;
+                $hasUnexpectedAssembledSize = filesize($assembledImagePath) !== $uploadState['size'];
 
-                if (filesize($path) !== $state['size']
-                    || hash_file('sha256', $path) !== $state['sha256']
-                    || ! isset(self::MIME_EXTENSIONS[$mime])
-                    || $info[0] * $info[1] > 40_000_000) {
+                if ($hasUnexpectedAssembledSize) {
                     throw ValidationException::withMessages(['images' => 'The uploaded file must be a valid JPEG, PNG, or WebP image no larger than 10 MB.']);
                 }
 
-                $media = $resident->addMedia($path)
-                    ->usingName($state['name'])
-                    ->usingFileName(Str::uuid().'.'.self::MIME_EXTENSIONS[$mime])
+                $hasUnexpectedImageHash = hash_file('sha256', $assembledImagePath) !== $uploadState['sha256'];
+
+                if ($hasUnexpectedImageHash) {
+                    throw ValidationException::withMessages(['images' => 'The uploaded file must be a valid JPEG, PNG, or WebP image no larger than 10 MB.']);
+                }
+
+                $hasUnsupportedImageType = ! isset(self::MIME_EXTENSIONS[$detectedMimeType]);
+
+                if ($hasUnsupportedImageType) {
+                    throw ValidationException::withMessages(['images' => 'The uploaded file must be a valid JPEG, PNG, or WebP image no larger than 10 MB.']);
+                }
+
+                $hasExcessivePixelCount = $detectedImageInfo[0] * $detectedImageInfo[1] > 40_000_000;
+
+                if ($hasExcessivePixelCount) {
+                    throw ValidationException::withMessages(['images' => 'The uploaded file must be a valid JPEG, PNG, or WebP image no larger than 10 MB.']);
+                }
+
+                $stagedImageMedia = $resident->addMedia($assembledImagePath)
+                    ->usingName($uploadState['name'])
+                    ->usingFileName(Str::uuid().'.'.self::MIME_EXTENSIONS[$detectedMimeType])
                     ->withCustomProperties([
                         'resident_mcp_issue' => true,
-                        'organization_id' => $state['organization_id'],
+                        'organization_id' => $uploadState['organization_id'],
                         'expires_at' => now()->addMinutes(self::LIFETIME_MINUTES)->timestamp,
-                        'sha256' => $state['sha256'],
+                        'sha256' => $uploadState['sha256'],
                     ])
                     ->toMediaCollection('temp');
 
                 return [
-                    'image_id' => $media->uuid,
-                    'name' => $state['name'],
-                    'size' => $media->size,
-                    'mime_type' => $mime,
+                    'image_id' => $stagedImageMedia->uuid,
+                    'name' => $uploadState['name'],
+                    'size' => $stagedImageMedia->size,
+                    'mime_type' => $detectedMimeType,
                 ];
             } finally {
-                Storage::disk('local')->deleteDirectory($directory);
-                Cache::forget($key);
+                Storage::disk('local')->deleteDirectory($uploadDirectory);
+                Cache::forget($uploadCacheKey);
             }
         });
     }
 
-    public static function inspect(array $ids, User $resident): array
+    public static function inspect(array $imageIds, User $resident): array
     {
-        $images = [];
+        $stagedIssueImageDetails = [];
 
-        foreach ($ids as $id) {
-            $media = $resident->media()->where('collection_name', 'temp')->where('uuid', $id)->first();
+        foreach ($imageIds as $imageId) {
+            $stagedImageMedia = $resident->media()->where('collection_name', 'temp')->where('uuid', $imageId)->first();
+            $isMissingStagedImageMedia = $stagedImageMedia === null;
 
-            if ($media === null
-                || $media->getCustomProperty('resident_mcp_issue') !== true
-                || $media->getCustomProperty('organization_id') !== $resident->current_organization_id
-                || $media->getCustomProperty('expires_at', 0) <= now()->timestamp
-                || ! is_file($media->getPath())
-                || hash_file('sha256', $media->getPath()) !== $media->getCustomProperty('sha256')) {
+            if ($isMissingStagedImageMedia) {
                 throw ValidationException::withMessages(['images' => 'One or more uploaded images expired or changed. Upload them again.']);
             }
 
-            $images[] = [
-                'image_id' => $id,
-                'name' => $media->name,
-                'size' => $media->size,
-                'mime_type' => $media->mime_type,
-                'sha256' => $media->getCustomProperty('sha256'),
+            $isResidentMcpIssueImage = $stagedImageMedia->getCustomProperty('resident_mcp_issue') === true;
+            $belongsToCurrentOrganization = $stagedImageMedia->getCustomProperty('organization_id') === $resident->current_organization_id;
+            $isStagedImageWithinLifetime = $stagedImageMedia->getCustomProperty('expires_at', 0) > now()->timestamp;
+            $hasInvalidStagedImageMetadata = ! $isResidentMcpIssueImage || ! $belongsToCurrentOrganization || ! $isStagedImageWithinLifetime;
+
+            if ($hasInvalidStagedImageMetadata) {
+                throw ValidationException::withMessages(['images' => 'One or more uploaded images expired or changed. Upload them again.']);
+            }
+
+            $stagedImagePath = $stagedImageMedia->getPath();
+            $hasStagedImageFile = is_file($stagedImagePath);
+            $matchesOriginalImageHash = $hasStagedImageFile
+                && hash_file('sha256', $stagedImagePath) === $stagedImageMedia->getCustomProperty('sha256');
+            $hasInvalidStagedImageFile = ! $hasStagedImageFile || ! $matchesOriginalImageHash;
+
+            if ($hasInvalidStagedImageFile) {
+                throw ValidationException::withMessages(['images' => 'One or more uploaded images expired or changed. Upload them again.']);
+            }
+
+            $stagedIssueImageDetails[] = [
+                'image_id' => $imageId,
+                'name' => $stagedImageMedia->name,
+                'size' => $stagedImageMedia->size,
+                'mime_type' => $stagedImageMedia->mime_type,
+                'sha256' => $stagedImageMedia->getCustomProperty('sha256'),
             ];
         }
 
-        return $images;
+        return $stagedIssueImageDetails;
     }
 
-    public static function discard(array $ids, User $resident): void
+    public static function discard(array $imageIds, User $resident): void
     {
-        foreach ($ids as $id) {
-            $media = $resident->media()->where('collection_name', 'temp')->where('uuid', $id)->first();
+        foreach ($imageIds as $imageId) {
+            $stagedImageMedia = $resident->media()->where('collection_name', 'temp')->where('uuid', $imageId)->first();
+            $isResidentMcpIssueImage = $stagedImageMedia?->getCustomProperty('resident_mcp_issue') === true;
 
-            if ($media?->getCustomProperty('resident_mcp_issue') === true) {
-                $media->delete();
+            if ($isResidentMcpIssueImage) {
+                $stagedImageMedia->delete();
             }
         }
     }
@@ -179,30 +230,34 @@ class ResidentIssueImageUpload
             ->where('model_type', (new User)->getMorphClass())
             ->where('collection_name', 'temp')
             ->where('created_at', '<', now()->subMinutes(self::LIFETIME_MINUTES))
-            ->chunkById(100, function ($media): void {
-                foreach ($media as $item) {
-                    if ($item->getCustomProperty('resident_mcp_issue') === true) {
-                        $item->delete();
+            ->chunkById(100, function ($expiredMediaBatch): void {
+                foreach ($expiredMediaBatch as $stagedImageMedia) {
+                    $isResidentMcpIssueImage = $stagedImageMedia->getCustomProperty('resident_mcp_issue') === true;
+
+                    if ($isResidentMcpIssueImage) {
+                        $stagedImageMedia->delete();
                     }
                 }
             });
 
-        foreach (Storage::disk('local')->directories('mcp/resident-uploads') as $directory) {
-            $path = Storage::disk('local')->path($directory);
+        foreach (Storage::disk('local')->directories('mcp/resident-uploads') as $uploadDirectory) {
+            $absoluteUploadDirectory = Storage::disk('local')->path($uploadDirectory);
+            $isExpiredUploadDirectory = is_dir($absoluteUploadDirectory)
+                && filemtime($absoluteUploadDirectory) < now()->subHour()->timestamp;
 
-            if (is_dir($path) && filemtime($path) < now()->subHour()->timestamp) {
-                Storage::disk('local')->deleteDirectory($directory);
+            if ($isExpiredUploadDirectory) {
+                Storage::disk('local')->deleteDirectory($uploadDirectory);
             }
         }
     }
 
-    private static function cacheKey(string $id): string
+    private static function cacheKey(string $uploadId): string
     {
-        return 'resident-mcp:image-upload:'.$id;
+        return 'resident-mcp:image-upload:'.$uploadId;
     }
 
-    private static function directory(string $id): string
+    private static function directory(string $uploadId): string
     {
-        return 'mcp/resident-uploads/'.$id;
+        return 'mcp/resident-uploads/'.$uploadId;
     }
 }
