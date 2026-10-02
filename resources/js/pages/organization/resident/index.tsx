@@ -2,13 +2,20 @@ import { Deferred, Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
+import { Pencil } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import CreateResidentDialogue from '@/components/organization/resident/create-resident-dialogue';
+import ResidentDialogue from '@/components/organization/resident/resident-dialogue';
+import type { EditableResident } from '@/components/organization/resident/resident-dialogue';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.Resident.Index;
@@ -16,7 +23,7 @@ type GeneratedPageProps = Inertia.Pages.Organization.Resident.Index;
 export default function Index(props: GeneratedPageProps) {
     const { url } = usePage();
     const residents = props.residents as unknown as {
-        data: GeneratedPageProps['residents'];
+        data: EditableResident[];
         meta: Record<
             'current_page' | 'last_page' | 'per_page' | 'total',
             number
@@ -25,6 +32,8 @@ export default function Index(props: GeneratedPageProps) {
     const queryParameters = new URLSearchParams(url.split('?')[1] ?? '');
     const requestedPerPage = Number(queryParameters.get('perPage'));
     const [search, setSearch] = useState(queryParameters.get('search') ?? '');
+    const [residentBeingEdited, setResidentBeingEdited] =
+        useState<EditableResident | null>(null);
     const isInitialRender = useRef(true);
 
     useEffect(() => {
@@ -46,7 +55,7 @@ export default function Index(props: GeneratedPageProps) {
         return () => reloadResidents.cancel();
     }, [search]);
 
-    const columns: ColumnDef<GeneratedPageProps['residents'][number]>[] = [
+    const columns: ColumnDef<EditableResident>[] = [
         {
             accessorKey: 'name',
             header: 'Name',
@@ -78,6 +87,31 @@ export default function Index(props: GeneratedPageProps) {
                     ? format(String(row.original.move_in_date), 'yyyy-MM-dd')
                     : '—',
         },
+        {
+            id: 'actions',
+            header: () => <span className="sr-only">Actions</span>,
+            cell: ({ row }) => (
+                <div className="flex justify-end">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                aria-label={`Edit ${row.original.name}`}
+                                onClick={() =>
+                                    setResidentBeingEdited(row.original)
+                                }
+                            >
+                                <Pencil />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit resident</TooltipContent>
+                    </Tooltip>
+                </div>
+            ),
+        },
     ];
 
     return (
@@ -99,7 +133,7 @@ export default function Index(props: GeneratedPageProps) {
                                 </Button>
                             }
                         >
-                            <CreateResidentDialogue
+                            <ResidentDialogue
                                 only={['residents', 'residentCreateOptions']}
                             />
                         </Deferred>
@@ -151,6 +185,20 @@ export default function Index(props: GeneratedPageProps) {
                                         </p>
                                     </div>
                                 </div>
+                                <div className="flex justify-end border-t border-border/70 pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8"
+                                        aria-label={`Edit ${resident.name}`}
+                                        onClick={() =>
+                                            setResidentBeingEdited(resident)
+                                        }
+                                    >
+                                        <Pencil />
+                                    </Button>
+                                </div>
                             </div>
                         )}
                         pagination={{
@@ -169,6 +217,22 @@ export default function Index(props: GeneratedPageProps) {
                     />
                 </div>
             </div>
+
+            {residentBeingEdited && (
+                <Deferred data="residentCreateOptions" fallback={null}>
+                    <ResidentDialogue
+                        key={residentBeingEdited.id}
+                        resident={residentBeingEdited}
+                        only={['residents', 'residentCreateOptions']}
+                        open
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                setResidentBeingEdited(null);
+                            }
+                        }}
+                    />
+                </Deferred>
+            )}
         </>
     );
 }

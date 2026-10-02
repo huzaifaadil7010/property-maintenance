@@ -12,6 +12,7 @@ use App\Data\DeleteUnitChangeData;
 use App\Data\OrganizationChangeInputData;
 use App\Data\UpdateMaintenanceStatusChangeData;
 use App\Data\UpdatePropertyChangeData;
+use App\Data\UpdateResidentChangeData;
 use App\Data\UpdateUnitChangeData;
 
 enum OrganizationChangeOperationEnum: string
@@ -23,6 +24,7 @@ enum OrganizationChangeOperationEnum: string
     case UPDATE_UNIT = 'update-unit';
     case DELETE_UNIT = 'delete-unit';
     case CREATE_RESIDENT = 'create-resident';
+    case UPDATE_RESIDENT = 'update-resident';
     case CREATE_TECHNICIAN = 'create-technician';
     case ASSIGN_TECHNICIAN = 'assign-technician';
     case UPDATE_MAINTENANCE_STATUS = 'update-maintenance-status';
@@ -37,6 +39,7 @@ enum OrganizationChangeOperationEnum: string
             self::UPDATE_UNIT => UpdateUnitChangeData::class,
             self::DELETE_UNIT => DeleteUnitChangeData::class,
             self::CREATE_RESIDENT => CreateResidentChangeData::class,
+            self::UPDATE_RESIDENT => UpdateResidentChangeData::class,
             self::CREATE_TECHNICIAN => CreateTechnicianChangeData::class,
             self::ASSIGN_TECHNICIAN => AssignTechnicianChangeData::class,
             self::UPDATE_MAINTENANCE_STATUS => UpdateMaintenanceStatusChangeData::class,

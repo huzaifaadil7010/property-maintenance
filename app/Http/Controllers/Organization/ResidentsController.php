@@ -6,14 +6,17 @@ use App\Actions\Organization\Common\GetAvailableUnitsForResidentDropdown;
 use App\Actions\Organization\Common\GetPropertiesForResidentDropdown;
 use App\Actions\Organization\GetResidents;
 use App\Actions\Organization\Resident\CreateResident;
+use App\Actions\Organization\Resident\UpdateResident;
 use App\Data\ResidentData;
 use App\Data\ResidentFilterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ResidentsRequest;
+use App\Http\Requests\UpdateResidentRequest;
 use App\Http\Resources\PropertyResource;
 use App\Http\Resources\ResidentResource;
 use App\Http\Resources\UnitResource;
 use App\Models\Organization;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -48,5 +51,12 @@ class ResidentsController extends Controller
         CreateResident::handle($data, $organization, $request->user());
 
         return Inertia::flash('success', 'Resident created successfully.')->back();
+    }
+
+    public function update(UpdateResidentRequest $request, Organization $organization, User $resident): RedirectResponse
+    {
+        UpdateResident::handle(ResidentData::from($request->validated()), $resident, $request->user(), $organization);
+
+        return Inertia::flash('success', 'Resident updated successfully.')->back();
     }
 }

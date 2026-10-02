@@ -25,7 +25,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { store } from '@/wayfinder/App/Http/Controllers/Organization/ResidentsController';
+import {
+    store,
+    update,
+} from '@/wayfinder/App/Http/Controllers/Organization/ResidentsController';
 
 type ResidentCreatePropertyOption = {
     id: number;
@@ -54,7 +57,7 @@ type ResidentCreateOptions = {
     };
 };
 
-type CreateResidentFormData = {
+type ResidentFormData = {
     name: string;
     email: string;
     phone: string;
@@ -62,26 +65,68 @@ type CreateResidentFormData = {
     unit_id: number | '';
 };
 
-type CreateResidentDialogueProps = {
-    only: Array<'residents' | 'residentCreateOptions'>;
+export type EditableResident = {
+    id: number;
+    name: string;
+    email: string;
+    phone: string | null;
+    property_id: number | null;
+    unit_id: number | null;
+    property_name: string | null;
+    unit_name: string | null;
+    move_in_date: string | null;
 };
 
-export default function CreateResidentDialogue({
+type ResidentDialogueProps = {
+    only: Array<'residents' | 'residentCreateOptions'>;
+    resident?: EditableResident;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+};
+
+export default function ResidentDialogue({
     only,
-}: CreateResidentDialogueProps) {
-    const [open, setOpen] = useState(false);
+    resident,
+    open: controlledOpen,
+    onOpenChange,
+}: ResidentDialogueProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const open = controlledOpen ?? internalOpen;
     const { currentOrganization, residentCreateOptions } = usePage<{
         currentOrganization: { uuid: string; name: string } | null;
         residentCreateOptions: ResidentCreateOptions;
     }>().props;
     const residentProperties = residentCreateOptions.properties.data;
-    const residentUnits = residentCreateOptions.availableUnits.data;
-    const form = useForm<CreateResidentFormData>({
-        name: '',
-        email: '',
-        phone: '',
-        property_id: '',
-        unit_id: '',
+    const residentUnits = useMemo(() => {
+        const units = residentCreateOptions.availableUnits.data;
+
+        if (
+            !resident?.unit_id ||
+            units.some((unit) => unit.id === resident.unit_id)
+        ) {
+            return units;
+        }
+
+        return [
+            ...units,
+            {
+                id: resident.unit_id,
+                name: resident.unit_name ?? String(resident.unit_id),
+                floor: null,
+                property_id: resident.property_id ?? 0,
+                property: {
+                    id: resident.property_id ?? 0,
+                    name: resident.property_name ?? '',
+                },
+            },
+        ];
+    }, [resident, residentCreateOptions.availableUnits.data]);
+    const form = useForm<ResidentFormData>({
+        name: resident?.name ?? '',
+        email: resident?.email ?? '',
+        phone: resident?.phone ?? '',
+        property_id: resident?.property_id ?? '',
+        unit_id: resident?.unit_id ?? '',
     });
 
     const selectedProperty = useMemo(() => {
@@ -103,7 +148,7 @@ export default function CreateResidentDialogue({
     }, [residentUnits, selectedProperty]);
 
     const propertyMessage = selectedProperty
-        ? selectedProperty.available_units_count === 0
+        ? selectedProperty.available_units_count === 0 && !availableUnits.length
             ? 'No available units are left for this property.'
             : `${selectedProperty.available_units_count ?? 0} of ${
                   selectedProperty.units_count ?? 0
@@ -117,18 +162,30 @@ export default function CreateResidentDialogue({
             return;
         }
 
-        form.submit(store(currentOrganization.uuid), {
-            only,
-            preserveScroll: true,
-            onSuccess: () => {
-                form.resetAndClearErrors();
-                setOpen(false);
+        form.submit(
+            resident
+                ? update({
+                      organization: currentOrganization.uuid,
+                      resident: resident.id,
+                  })
+                : store(currentOrganization.uuid),
+            {
+                only,
+                preserveScroll: true,
+                onSuccess: () => {
+                    form.resetAndClearErrors();
+                    handleOpenChange(false);
+                },
             },
-        });
+        );
     }
 
     function handleOpenChange(nextOpen: boolean) {
-        setOpen(nextOpen);
+        if (onOpenChange) {
+            onOpenChange(nextOpen);
+        } else {
+            setInternalOpen(nextOpen);
+        }
 
         if (!nextOpen) {
             form.resetAndClearErrors();
@@ -137,25 +194,30 @@ export default function CreateResidentDialogue({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-                <Button
-                    className="w-full sm:w-auto"
-                    disabled={
-                        currentOrganization === null ||
-                        residentProperties.length === 0
-                    }
-                >
-                    <Plus />
-                    Create resident
-                </Button>
-            </DialogTrigger>
+            {!resident && (
+                <DialogTrigger asChild>
+                    <Button
+                        className="w-full sm:w-auto"
+                        disabled={
+                            currentOrganization === null ||
+                            residentProperties.length === 0
+                        }
+                    >
+                        <Plus />
+                        Create resident
+                    </Button>
+                </DialogTrigger>
+            )}
 
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create resident</DialogTitle>
+                    <DialogTitle>
+                        {resident ? 'Edit resident' : 'Create resident'}
+                    </DialogTitle>
                     <DialogDescription>
-                        Add a resident user and assign them to an available
-                        unit.
+                        {resident
+                            ? 'Update this resident and their current residence.'
+                            : 'Add a resident user and assign them to an available unit.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -259,24 +321,20 @@ export default function CreateResidentDialogue({
                                 <SelectValue placeholder="Select a property" />
                             </SelectTrigger>
                             <SelectContent>
-                                {residentProperties.map(
-                                    (property) => (
-                                        <SelectItem
-                                            key={property.id}
-                                            value={String(property.id)}
-                                        >
-                                            {property.name}{' '}
-                                            <span className="text-muted-foreground">
-                                                (
-                                                {property.available_units_count ??
-                                                    0}
-                                                /
-                                                {property.units_count ?? 0}
-                                                )
-                                            </span>
-                                        </SelectItem>
-                                    ),
-                                )}
+                                {residentProperties.map((property) => (
+                                    <SelectItem
+                                        key={property.id}
+                                        value={String(property.id)}
+                                    >
+                                        {property.name}{' '}
+                                        <span className="text-muted-foreground">
+                                            (
+                                            {property.available_units_count ??
+                                                0}
+                                            /{property.units_count ?? 0})
+                                        </span>
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <InputError
@@ -285,7 +343,8 @@ export default function CreateResidentDialogue({
                         />
                         <p
                             className={
-                                selectedProperty?.available_units_count === 0
+                                selectedProperty?.available_units_count === 0 &&
+                                !availableUnits.length
                                     ? 'text-sm text-destructive'
                                     : 'text-sm text-muted-foreground'
                             }
@@ -372,8 +431,12 @@ export default function CreateResidentDialogue({
                         >
                             {form.processing && <Spinner />}
                             {form.processing
-                                ? 'Creating resident'
-                                : 'Create resident'}
+                                ? resident
+                                    ? 'Saving resident'
+                                    : 'Creating resident'
+                                : resident
+                                  ? 'Save resident'
+                                  : 'Create resident'}
                         </Button>
                     </DialogFooter>
                 </form>
