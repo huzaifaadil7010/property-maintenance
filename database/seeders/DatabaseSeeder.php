@@ -17,9 +17,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PlanSeeder::class,
             RoleSeeder::class,
-            OwnerPortfolioSeeder::class,
-            MaintenanceRequestSeeder::class,
-            ActivityLogSeeder::class,
+            McpRecordingSeeder::class,
+            // OwnerPortfolioSeeder::class,
+            // MaintenanceRequestSeeder::class,
+            // ActivityLogSeeder::class,
         ]);
     }
 }
