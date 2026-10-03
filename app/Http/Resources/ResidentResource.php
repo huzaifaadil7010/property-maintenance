@@ -21,6 +21,8 @@ class ResidentResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
+            'property_id' => $activeOccupancy?->unit?->property_id,
+            'unit_id' => $activeOccupancy?->unit_id,
             'property_name' => $activeOccupancy?->unit?->property?->name,
             'unit_name' => $activeOccupancy?->unit?->name,
             'move_in_date' => $activeOccupancy?->starts_at,

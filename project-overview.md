@@ -104,7 +104,7 @@ Supported unit statuses are **Vacant**, **Occupied**, and **Under maintenance**.
 
 ### Resident management
 
-Owners can view, search, paginate, and create residents. The resident directory shows:
+Owners can view, search, paginate, create, and edit residents. The resident directory shows:
 
 - Name.
 - Email address.
@@ -118,6 +118,8 @@ When creating a resident, the owner selects a property and an available unit. Th
 The new resident receives a queued account email containing their login email, a temporary password, and a sign-in link. The resident can then update their credentials through account settings.
 
 The occupancy relationship is historical by design: residence is represented separately instead of permanently attaching a resident directly to a unit.
+
+The owner can edit a resident's name, email, phone, property, and unit. Assigning an existing resident with no active residence or moving one to another available unit creates a new active occupancy dated today; a move ends the previous occupancy without changing the locations recorded on past maintenance requests. The same change is available to the local organization MCP server through its preview and confirmation flow.
 
 ### Technician management
 
