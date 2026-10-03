@@ -25,6 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { SelectOptionsLoading } from '@/components/ui/select-options-loading';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/wayfinder/App/Http/Controllers/Organization/UnitsController';
 
@@ -46,7 +47,7 @@ type CreateUnitFormData = {
 };
 
 type CreateUnitDialogueProps = {
-    properties: PropertyOption[];
+    properties?: PropertyOption[];
     unitStatuses: UnitStatusOption[];
     only: Array<
         | 'units'
@@ -64,6 +65,8 @@ export default function CreateUnitDialogue({
 }: CreateUnitDialogueProps) {
     const [open, setOpen] = useState(false);
     const { currentOrganization } = usePage().props;
+    const propertyOptions = properties ?? [];
+    const arePropertiesLoading = !properties;
     const form = useForm<CreateUnitFormData>({
         property_id: '',
         name: '',
@@ -104,10 +107,7 @@ export default function CreateUnitDialogue({
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button
-                    className="w-full sm:w-auto"
-                    disabled={properties.length === 0}
-                >
+                <Button className="w-full sm:w-auto">
                     <Plus />
                     Create unit
                 </Button>
@@ -124,6 +124,9 @@ export default function CreateUnitDialogue({
                 <form onSubmit={submit} className="grid gap-6">
                     <div className="grid gap-2">
                         <Label htmlFor="unit-property">Property</Label>
+                        {arePropertiesLoading && (
+                            <SelectOptionsLoading label="Loading properties" />
+                        )}
                         <Select
                             value={
                                 form.data.property_id === ''
@@ -132,6 +135,10 @@ export default function CreateUnitDialogue({
                             }
                             onValueChange={(value) =>
                                 form.setData('property_id', Number(value))
+                            }
+                            disabled={
+                                arePropertiesLoading ||
+                                propertyOptions.length === 0
                             }
                             required
                         >
@@ -148,7 +155,7 @@ export default function CreateUnitDialogue({
                                 <SelectValue placeholder="Select a property" />
                             </SelectTrigger>
                             <SelectContent>
-                                {properties.map((property) => (
+                                {propertyOptions.map((property) => (
                                     <SelectItem
                                         key={property.id}
                                         value={String(property.id)}
@@ -162,6 +169,13 @@ export default function CreateUnitDialogue({
                             id="unit-property-error"
                             message={form.errors.property_id}
                         />
+                        {!arePropertiesLoading &&
+                            propertyOptions.length === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    No properties available. Create a property
+                                    first.
+                                </p>
+                            )}
                     </div>
 
                     <div className="grid gap-2">
@@ -262,6 +276,7 @@ export default function CreateUnitDialogue({
                             disabled={
                                 form.processing ||
                                 currentOrganization === null ||
+                                arePropertiesLoading ||
                                 form.data.property_id === '' ||
                                 form.data.status === ''
                             }
