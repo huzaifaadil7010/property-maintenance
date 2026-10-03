@@ -219,7 +219,18 @@ export default function Index(props: GeneratedPageProps) {
             </div>
 
             {residentBeingEdited && (
-                <Deferred data="residentCreateOptions" fallback={null}>
+                <Deferred
+                    data="residentCreateOptions"
+                    fallback={
+                        <div
+                            className="flex justify-center p-4"
+                            role="status"
+                            aria-label="Loading resident editor"
+                        >
+                            <Spinner />
+                        </div>
+                    }
+                >
                     <ResidentDialogue
                         key={residentBeingEdited.id}
                         resident={residentBeingEdited}
