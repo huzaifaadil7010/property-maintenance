@@ -42,9 +42,7 @@ class CreateResident
 
                 self::configureResident($resident, $organization);
                 self::createResidentOccupancy($resident, $unit, $organization);
-                $assignedUnitCanBecomeOccupied = ! $unit->isUnderMaintenance();
-
-                if ($assignedUnitCanBecomeOccupied) {
+                if (! $unit->isUnderMaintenance()) {
                     $unit->update(['status' => UnitStatus::OCCUPIED]);
                 }
                 self::registerAccountNotification($resident, $temporaryPassword);

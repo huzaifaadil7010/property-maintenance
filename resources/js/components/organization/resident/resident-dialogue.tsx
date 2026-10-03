@@ -92,7 +92,7 @@ export default function ResidentDialogue({
 }: ResidentDialogueProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const isDialogOpen = controlledOpen ?? internalOpen;
-    const isEditingResident = residentToEdit !== undefined;
+    const isEditingResident = !!residentToEdit;
     const { currentOrganization, residentCreateOptions } = usePage<{
         currentOrganization: { uuid: string; name: string } | null;
         residentCreateOptions: ResidentCreateOptions;
@@ -100,13 +100,11 @@ export default function ResidentDialogue({
     const residentProperties = residentCreateOptions.properties.data;
     const selectableResidentUnits = useMemo(() => {
         const availableUnitOptions = residentCreateOptions.availableUnits.data;
-        const hasCurrentUnit =
-            residentToEdit !== undefined && Boolean(residentToEdit.unit_id);
         const currentUnitAlreadySelectable = availableUnitOptions.some(
             (unitOption) => unitOption.id === residentToEdit?.unit_id,
         );
 
-        if (!hasCurrentUnit || currentUnitAlreadySelectable) {
+        if (!residentToEdit?.unit_id || currentUnitAlreadySelectable) {
             return availableUnitOptions;
         }
 
@@ -143,9 +141,7 @@ export default function ResidentDialogue({
     }, [residentForm.data.property_id, residentProperties]);
 
     const selectableUnitsForProperty = useMemo(() => {
-        const hasSelectedProperty = selectedResidentProperty !== null;
-
-        if (!hasSelectedProperty) {
+        if (!selectedResidentProperty) {
             return [];
         }
 
@@ -155,7 +151,7 @@ export default function ResidentDialogue({
         );
     }, [selectableResidentUnits, selectedResidentProperty]);
 
-    const hasSelectedProperty = selectedResidentProperty !== null;
+    const hasSelectedProperty = !!selectedResidentProperty;
     const hasNoSelectableUnits = selectableUnitsForProperty.length === 0;
     const selectedPropertyHasNoAvailableUnits =
         hasSelectedProperty &&
@@ -169,19 +165,12 @@ export default function ResidentDialogue({
               } units available in this property.`
         : 'Choose a property to view the available units.';
 
-    const hasCurrentOrganization = currentOrganization !== null;
-    const hasPropertyOptions = residentProperties.length > 0;
     const hasSelectedPropertyId = residentForm.data.property_id !== '';
     const hasSelectedUnitId = residentForm.data.unit_id !== '';
-    const hasNameError = Boolean(residentForm.errors.name);
-    const hasEmailError = Boolean(residentForm.errors.email);
-    const hasPhoneError = Boolean(residentForm.errors.phone);
-    const hasPropertyError = Boolean(residentForm.errors.property_id);
-    const hasUnitError = Boolean(residentForm.errors.unit_id);
     const isSavingResident = residentForm.processing;
     const canSubmitResident =
         !isSavingResident &&
-        hasCurrentOrganization &&
+        Boolean(currentOrganization) &&
         hasSelectedPropertyId &&
         hasSelectedUnitId;
     const dialogTitle = isEditingResident ? 'Edit resident' : 'Create resident';
@@ -204,7 +193,7 @@ export default function ResidentDialogue({
     function submitResident(residentSubmitEvent: FormEvent<HTMLFormElement>) {
         residentSubmitEvent.preventDefault();
 
-        if (!hasCurrentOrganization) {
+        if (!currentOrganization) {
             return;
         }
 
@@ -227,17 +216,13 @@ export default function ResidentDialogue({
     }
 
     function handleOpenChange(shouldOpenDialog: boolean) {
-        const isExternallyControlled = onOpenChange !== undefined;
-
-        if (isExternallyControlled) {
+        if (onOpenChange) {
             onOpenChange(shouldOpenDialog);
         } else {
             setInternalOpen(shouldOpenDialog);
         }
 
-        const isClosingDialog = !shouldOpenDialog;
-
-        if (isClosingDialog) {
+        if (!shouldOpenDialog) {
             residentForm.resetAndClearErrors();
         }
     }
@@ -249,7 +234,8 @@ export default function ResidentDialogue({
                     <Button
                         className="w-full sm:w-auto"
                         disabled={
-                            !hasCurrentOrganization || !hasPropertyOptions
+                            !currentOrganization ||
+                            residentProperties.length === 0
                         }
                     >
                         <Plus />
@@ -277,9 +263,11 @@ export default function ResidentDialogue({
                                 )
                             }
                             autoComplete="name"
-                            aria-invalid={hasNameError}
+                            aria-invalid={Boolean(residentForm.errors.name)}
                             aria-describedby={
-                                hasNameError ? 'resident-name-error' : undefined
+                                residentForm.errors.name
+                                    ? 'resident-name-error'
+                                    : undefined
                             }
                             required
                         />
@@ -303,9 +291,11 @@ export default function ResidentDialogue({
                                     )
                                 }
                                 autoComplete="email"
-                                aria-invalid={hasEmailError}
+                                aria-invalid={Boolean(
+                                    residentForm.errors.email,
+                                )}
                                 aria-describedby={
-                                    hasEmailError
+                                    residentForm.errors.email
                                         ? 'resident-email-error'
                                         : undefined
                                 }
@@ -329,9 +319,11 @@ export default function ResidentDialogue({
                                     )
                                 }
                                 autoComplete="tel"
-                                aria-invalid={hasPhoneError}
+                                aria-invalid={Boolean(
+                                    residentForm.errors.phone,
+                                )}
                                 aria-describedby={
-                                    hasPhoneError
+                                    residentForm.errors.phone
                                         ? 'resident-phone-error'
                                         : undefined
                                 }
@@ -364,9 +356,11 @@ export default function ResidentDialogue({
                             <SelectTrigger
                                 id="resident-property"
                                 className="w-full"
-                                aria-invalid={hasPropertyError}
+                                aria-invalid={Boolean(
+                                    residentForm.errors.property_id,
+                                )}
                                 aria-describedby={
-                                    hasPropertyError
+                                    residentForm.errors.property_id
                                         ? 'resident-property-error'
                                         : undefined
                                 }
@@ -427,9 +421,11 @@ export default function ResidentDialogue({
                             <SelectTrigger
                                 id="resident-unit"
                                 className="w-full"
-                                aria-invalid={hasUnitError}
+                                aria-invalid={Boolean(
+                                    residentForm.errors.unit_id,
+                                )}
                                 aria-describedby={
-                                    hasUnitError
+                                    residentForm.errors.unit_id
                                         ? 'resident-unit-error'
                                         : undefined
                                 }

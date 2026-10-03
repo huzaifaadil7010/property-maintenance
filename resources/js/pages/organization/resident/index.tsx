@@ -37,11 +37,8 @@ export default function Index(props: GeneratedPageProps) {
     const [residentBeingEdited, setResidentBeingEdited] =
         useState<EditableResident | null>(null);
     const shouldSkipInitialSearchReload = useRef(true);
-    const hasRequestedPerPage = Boolean(requestedPerPage);
-    const displayedPerPage = hasRequestedPerPage
-        ? requestedPerPage
-        : paginatedResidents.meta.per_page;
-    const isResidentEditorOpen = residentBeingEdited !== null;
+    const displayedPerPage =
+        requestedPerPage || paginatedResidents.meta.per_page;
 
     useEffect(() => {
         if (shouldSkipInitialSearchReload.current) {
@@ -91,18 +88,13 @@ export default function Index(props: GeneratedPageProps) {
         {
             accessorKey: 'move_in_date',
             header: 'Move-in Date',
-            cell: ({ row: residentRow }) => {
-                const hasMoveInDate = Boolean(
-                    residentRow.original.move_in_date,
-                );
-
-                return hasMoveInDate
+            cell: ({ row: residentRow }) =>
+                residentRow.original.move_in_date
                     ? format(
                           String(residentRow.original.move_in_date),
                           'yyyy-MM-dd',
                       )
-                    : '—';
-            },
+                    : '—',
         },
         {
             id: 'actions',
@@ -241,7 +233,7 @@ export default function Index(props: GeneratedPageProps) {
                 </div>
             </div>
 
-            {isResidentEditorOpen && (
+            {residentBeingEdited && (
                 <Deferred
                     data="residentCreateOptions"
                     fallback={
@@ -260,9 +252,7 @@ export default function Index(props: GeneratedPageProps) {
                         propsToRefresh={['residents', 'residentCreateOptions']}
                         isOpen
                         onOpenChange={(shouldOpenEditor) => {
-                            const isClosingEditor = !shouldOpenEditor;
-
-                            if (isClosingEditor) {
+                            if (!shouldOpenEditor) {
                                 setResidentBeingEdited(null);
                             }
                         }}

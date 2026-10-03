@@ -14,18 +14,14 @@ class UpdateResidentRequest extends FormRequest
 {
     public function authorize(#[RouteParameter('resident')] User $residentToUpdate): bool
     {
-        $hasResidentRole = $residentToUpdate->hasRole(UserRole::RESIDENT);
-
-        if (! $hasResidentRole) {
+        if (! $residentToUpdate->hasRole(UserRole::RESIDENT)) {
             return false;
         }
 
-        $hasActiveOrganizationMembership = $residentToUpdate->organizations()
+        return $residentToUpdate->organizations()
             ->whereKey($this->user()?->current_organization_id)
             ->wherePivot('is_active', true)
             ->exists();
-
-        return $hasActiveOrganizationMembership;
     }
 
     public function rules(#[RouteParameter('resident')] User $residentToUpdate): array
@@ -41,9 +37,7 @@ class UpdateResidentRequest extends FormRequest
     {
         return [
             function (Validator $inputValidator) use ($residentToUpdate): void {
-                $hasInvalidResidenceInput = $inputValidator->errors()->hasAny(['property_id', 'unit_id']);
-
-                if ($hasInvalidResidenceInput) {
+                if ($inputValidator->errors()->hasAny(['property_id', 'unit_id'])) {
                     return;
                 }
 
@@ -52,7 +46,7 @@ class UpdateResidentRequest extends FormRequest
                     ->where('property_id', $this->integer('property_id'))
                     ->first();
 
-                $selectedUnitIsUnavailable = $selectedUnit === null
+                $selectedUnitIsUnavailable = blank($selectedUnit)
                     || $selectedUnit->occupancies()->active()->where('resident_id', '!=', $residentToUpdate->id)->exists();
 
                 if ($selectedUnitIsUnavailable) {

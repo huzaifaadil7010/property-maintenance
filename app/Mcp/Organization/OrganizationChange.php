@@ -201,24 +201,16 @@ class OrganizationChange
             }
         }
 
-        $isUpdatingResident = $operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT;
-
-        if ($isUpdatingResident) {
+        if ($operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT) {
             $residentToUpdate = self::resident($input->id, $organization);
             $selectedUnit = self::unit($input->unit_id, $organization);
             $activeResidentOccupancies = $residentToUpdate->occupancies()->active()->get();
-            $hasMultipleActiveOccupancies = $activeResidentOccupancies->count() > 1;
-
-            if ($hasMultipleActiveOccupancies) {
+            if ($activeResidentOccupancies->count() > 1) {
                 throw ValidationException::withMessages(['cannot_submit' => 'This resident has multiple active occupancies. Resolve them before editing.']);
             }
 
-            $selectedUnitBelongsToAnotherProperty = $selectedUnit->property_id !== $input->property_id;
-            $selectedUnitHasAnotherResident = $selectedUnit->occupancies()->active()
-                ->where('resident_id', '!=', $residentToUpdate->id)->exists();
-            $selectedUnitIsUnavailable = $selectedUnitBelongsToAnotherProperty || $selectedUnitHasAnotherResident;
-
-            if ($selectedUnitIsUnavailable) {
+            if ($selectedUnit->property_id !== $input->property_id
+                || $selectedUnit->occupancies()->active()->where('resident_id', '!=', $residentToUpdate->id)->exists()) {
                 throw ValidationException::withMessages(['unit_id' => 'Selected unit is not available for this property.']);
             }
         }
@@ -226,9 +218,7 @@ class OrganizationChange
 
     private static function impact(OrganizationChangeOperationEnum $operation, OrganizationChangeInputData $input, Organization $organization): array
     {
-        $isUpdatingResident = $operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT;
-
-        if ($isUpdatingResident) {
+        if ($operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT) {
             $residentToUpdate = self::resident($input->id, $organization);
             $currentOccupancy = $residentToUpdate->occupancies()->active()->with('unit')->first();
             $destinationUnit = self::unit($input->unit_id, $organization);
