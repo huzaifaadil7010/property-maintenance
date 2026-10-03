@@ -21,6 +21,7 @@ use App\Data\PropertyData;
 use App\Data\ResidentData;
 use App\Data\TechnicianData;
 use App\Data\UnitData;
+use App\Data\UpdateResidentChangeData;
 use App\Enums\MaintenanceRequestStatus;
 use App\Enums\OrganizationChangeOperationEnum;
 use App\Models\MaintenanceRequest;
@@ -200,17 +201,24 @@ class OrganizationChange
             }
         }
 
-        if ($operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT) {
-            $resident = self::resident($input->id, $organization);
-            $unit = self::unit($input->unit_id, $organization);
-            $currentOccupancies = $resident->occupancies()->active()->get();
+        $isUpdatingResident = $operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT;
 
-            if ($currentOccupancies->count() > 1) {
+        if ($isUpdatingResident) {
+            $residentToUpdate = self::resident($input->id, $organization);
+            $selectedUnit = self::unit($input->unit_id, $organization);
+            $activeResidentOccupancies = $residentToUpdate->occupancies()->active()->get();
+            $hasMultipleActiveOccupancies = $activeResidentOccupancies->count() > 1;
+
+            if ($hasMultipleActiveOccupancies) {
                 throw ValidationException::withMessages(['cannot_submit' => 'This resident has multiple active occupancies. Resolve them before editing.']);
             }
 
-            if ($unit->property_id !== $input->property_id
-                || $unit->occupancies()->active()->where('resident_id', '!=', $resident->id)->exists()) {
+            $selectedUnitBelongsToAnotherProperty = $selectedUnit->property_id !== $input->property_id;
+            $selectedUnitHasAnotherResident = $selectedUnit->occupancies()->active()
+                ->where('resident_id', '!=', $residentToUpdate->id)->exists();
+            $selectedUnitIsUnavailable = $selectedUnitBelongsToAnotherProperty || $selectedUnitHasAnotherResident;
+
+            if ($selectedUnitIsUnavailable) {
                 throw ValidationException::withMessages(['unit_id' => 'Selected unit is not available for this property.']);
             }
         }
@@ -218,28 +226,30 @@ class OrganizationChange
 
     private static function impact(OrganizationChangeOperationEnum $operation, OrganizationChangeInputData $input, Organization $organization): array
     {
-        if ($operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT) {
-            $resident = self::resident($input->id, $organization);
-            $occupancy = $resident->occupancies()->active()->with('unit')->first();
-            $unit = self::unit($input->unit_id, $organization);
+        $isUpdatingResident = $operation === OrganizationChangeOperationEnum::UPDATE_RESIDENT;
+
+        if ($isUpdatingResident) {
+            $residentToUpdate = self::resident($input->id, $organization);
+            $currentOccupancy = $residentToUpdate->occupancies()->active()->with('unit')->first();
+            $destinationUnit = self::unit($input->unit_id, $organization);
 
             return [
-                'resident_id' => $resident->id,
-                'from_name' => $resident->name,
-                'from_email' => $resident->email,
-                'from_phone' => $resident->phone,
-                'resident_updated_at' => (string) $resident->updated_at,
-                'current_occupancy_id' => $occupancy?->id,
-                'current_occupancy_updated_at' => $occupancy?->updated_at?->toIso8601String(),
-                'from_property_id' => $occupancy?->unit?->property_id,
-                'from_unit_id' => $occupancy?->unit_id,
+                'resident_id' => $residentToUpdate->id,
+                'from_name' => $residentToUpdate->name,
+                'from_email' => $residentToUpdate->email,
+                'from_phone' => $residentToUpdate->phone,
+                'resident_updated_at' => (string) $residentToUpdate->updated_at,
+                'current_occupancy_id' => $currentOccupancy?->id,
+                'current_occupancy_updated_at' => $currentOccupancy?->updated_at?->toIso8601String(),
+                'from_property_id' => $currentOccupancy?->unit?->property_id,
+                'from_unit_id' => $currentOccupancy?->unit_id,
                 'to_name' => $input->name,
                 'to_email' => $input->email,
                 'to_phone' => $input->phone,
                 'to_property_id' => $input->property_id,
-                'to_unit_id' => $unit->id,
-                'target_unit_status' => $unit->status->value,
-                'target_unit_updated_at' => (string) $unit->updated_at,
+                'to_unit_id' => $destinationUnit->id,
+                'target_unit_status' => $destinationUnit->status->value,
+                'target_unit_updated_at' => (string) $destinationUnit->updated_at,
             ];
         }
 
@@ -313,7 +323,7 @@ class OrganizationChange
             OrganizationChangeOperationEnum::UPDATE_UNIT => UpdateUnit::handle(self::unit($input->id, $organization), new UnitData($input->property_id, $input->name, $input->floor, $input->status), $owner, $organization),
             OrganizationChangeOperationEnum::DELETE_UNIT => DeleteUnit::handle(self::unit($input->id, $organization), $owner, $organization),
             OrganizationChangeOperationEnum::CREATE_RESIDENT => CreateResident::handle(new ResidentData($input->name, $input->email, $input->property_id, $input->unit_id, $input->phone), $organization, $owner),
-            OrganizationChangeOperationEnum::UPDATE_RESIDENT => UpdateResident::handle(new ResidentData($input->name, $input->email, $input->property_id, $input->unit_id, $input->phone), self::resident($input->id, $organization), $owner, $organization),
+            OrganizationChangeOperationEnum::UPDATE_RESIDENT => self::executeResidentUpdate($input, $owner, $organization),
             OrganizationChangeOperationEnum::CREATE_TECHNICIAN => CreateTechnician::handle(new TechnicianData($input->name, $input->email, $input->specialty, $input->is_available, $input->phone), $organization, $owner),
             OrganizationChangeOperationEnum::ASSIGN_TECHNICIAN => AssignMaintenanceRequestTechnician::handle(
                 self::maintenanceRequest($input->id, $organization),
@@ -350,6 +360,20 @@ class OrganizationChange
         return ['success' => (bool) $result, 'id' => $resultId];
     }
 
+    private static function executeResidentUpdate(UpdateResidentChangeData $residentChange, User $owner, Organization $organization): User
+    {
+        $residentToUpdate = self::resident($residentChange->id, $organization);
+        $residentData = new ResidentData(
+            $residentChange->name,
+            $residentChange->email,
+            $residentChange->property_id,
+            $residentChange->unit_id,
+            $residentChange->phone,
+        );
+
+        return UpdateResident::handle($residentData, $residentToUpdate, $owner, $organization);
+    }
+
     private static function property(int $id, Organization $organization): Property
     {
         return Property::query()->where('organization_id', $organization->id)->findOrFail($id);
@@ -360,13 +384,13 @@ class OrganizationChange
         return Unit::query()->where('organization_id', $organization->id)->findOrFail($id);
     }
 
-    private static function resident(int $id, Organization $organization): User
+    private static function resident(int $residentId, Organization $organization): User
     {
         return User::query()->resident()
-            ->whereHas('organizations', fn ($query) => $query
+            ->whereHas('organizations', fn ($organizationMembershipQuery) => $organizationMembershipQuery
                 ->where('organizations.id', $organization->id)
                 ->where('organization_user.is_active', true))
-            ->findOrFail($id);
+            ->findOrFail($residentId);
     }
 
     private static function maintenanceRequest(int $id, Organization $organization): MaintenanceRequest

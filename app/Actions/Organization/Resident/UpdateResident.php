@@ -18,83 +18,104 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateResident
 {
-    public static function handle(ResidentData $data, User $resident, User $actor, Organization $organization): User
+    public static function handle(ResidentData $residentData, User $residentToEdit, User $actor, Organization $organization): User
     {
-        $updatedResident = DB::transaction(function () use ($data, $resident, $organization): User {
-            $resident = User::query()->resident()
-                ->whereHas('organizations', fn ($query) => $query
+        $updatedResident = DB::transaction(function () use ($residentData, $residentToEdit, $organization): User {
+            $lockedResident = User::query()->resident()
+                ->whereHas('organizations', fn ($organizationMembershipQuery) => $organizationMembershipQuery
                     ->where('organizations.id', $organization->id)
                     ->where('organization_user.is_active', true))
-                ->whereKey($resident->id)
+                ->whereKey($residentToEdit->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $activeOccupancies = $resident->occupancies()->active()->get();
+            $activeOccupanciesBeforeLock = $lockedResident->occupancies()->active()->get();
+            $hasMultipleActiveOccupancies = $activeOccupanciesBeforeLock->count() > 1;
 
-            if ($activeOccupancies->count() > 1) {
+            if ($hasMultipleActiveOccupancies) {
                 throw ValidationException::withMessages(['cannot_submit' => __('This resident has multiple active occupancies. Resolve them before editing.')]);
             }
 
-            $currentOccupancy = $activeOccupancies->first();
-            $unitIds = array_unique(array_filter([$currentOccupancy?->unit_id, $data->unit_id]));
-            sort($unitIds);
+            $occupancyBeforeLock = $activeOccupanciesBeforeLock->first();
+            $unitIdsToLock = array_unique(array_filter([$occupancyBeforeLock?->unit_id, $residentData->unit_id]));
+            sort($unitIdsToLock);
 
-            $units = Unit::query()->whereIn('id', $unitIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-            $activeOccupancies = $resident->occupancies()->active()->lockForUpdate()->get();
+            $lockedUnitsById = Unit::query()->whereIn('id', $unitIdsToLock)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $lockedActiveOccupancies = $lockedResident->occupancies()->active()->lockForUpdate()->get();
+            $occupancyChangedWhileLocking = $lockedActiveOccupancies->count() > 1
+                || $lockedActiveOccupancies->first()?->id !== $occupancyBeforeLock?->id;
 
-            if ($activeOccupancies->count() > 1 || $activeOccupancies->first()?->id !== $currentOccupancy?->id) {
+            if ($occupancyChangedWhileLocking) {
                 throw ValidationException::withMessages(['cannot_submit' => __('The resident occupancy changed. Please try again.')]);
             }
 
-            $currentOccupancy = $activeOccupancies->first();
-            $newUnit = $units->get($data->unit_id);
+            $currentOccupancy = $lockedActiveOccupancies->first();
+            $destinationUnit = $lockedUnitsById->get($residentData->unit_id);
+            $destinationUnitIsInvalid = $destinationUnit === null
+                || $destinationUnit->organization_id !== $organization->id
+                || $destinationUnit->property_id !== $residentData->property_id;
 
-            if ($newUnit === null || $newUnit->organization_id !== $organization->id || $newUnit->property_id !== $data->property_id) {
+            if ($destinationUnitIsInvalid) {
                 throw ValidationException::withMessages(['unit_id' => __('Selected unit does not belong to the chosen property.')]);
             }
 
-            if ($newUnit->occupancies()->active()->where('resident_id', '!=', $resident->id)->lockForUpdate()->exists()) {
+            $destinationUnitHasAnotherResident = $destinationUnit->occupancies()
+                ->active()
+                ->where('resident_id', '!=', $lockedResident->id)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($destinationUnitHasAnotherResident) {
                 throw ValidationException::withMessages(['unit_id' => __('Selected unit is already occupied.')]);
             }
 
-            if ($currentOccupancy?->unit_id !== $newUnit->id) {
-                if ($newUnit->occupancies()->active()->lockForUpdate()->exists()) {
+            $residenceIsChanging = $currentOccupancy?->unit_id !== $destinationUnit->id;
+
+            if ($residenceIsChanging) {
+                $destinationUnitHasAnyActiveOccupancy = $destinationUnit->occupancies()->active()->lockForUpdate()->exists();
+
+                if ($destinationUnitHasAnyActiveOccupancy) {
                     throw ValidationException::withMessages(['unit_id' => __('Selected unit is already occupied.')]);
                 }
 
-                if ($currentOccupancy !== null) {
+                $hasCurrentOccupancy = $currentOccupancy !== null;
+
+                if ($hasCurrentOccupancy) {
                     $currentOccupancy->update([
                         'status' => OccupancyStatus::ENDED,
                         'ends_at' => now()->toDateString(),
                     ]);
 
-                    $oldUnit = $units->get($currentOccupancy->unit_id);
+                    $previousUnit = $lockedUnitsById->get($currentOccupancy->unit_id);
+                    $previousUnitCanBecomeVacant = $previousUnit !== null && ! $previousUnit->isUnderMaintenance();
 
-                    if ($oldUnit !== null && ! $oldUnit->isUnderMaintenance()) {
-                        $oldUnit->update(['status' => UnitStatus::VACANT]);
+                    if ($previousUnitCanBecomeVacant) {
+                        $previousUnit->update(['status' => UnitStatus::VACANT]);
                     }
                 }
 
                 CreateOccupancy::handle(new OccupancyData(
                     organization_id: $organization->id,
-                    unit_id: $newUnit->id,
-                    resident_id: $resident->id,
+                    unit_id: $destinationUnit->id,
+                    resident_id: $lockedResident->id,
                     starts_at: now()->toDateString(),
                     status: OccupancyStatus::ACTIVE,
                 ));
 
-                if (! $newUnit->isUnderMaintenance()) {
-                    $newUnit->update(['status' => UnitStatus::OCCUPIED]);
+                $destinationUnitCanBecomeOccupied = ! $destinationUnit->isUnderMaintenance();
+
+                if ($destinationUnitCanBecomeOccupied) {
+                    $destinationUnit->update(['status' => UnitStatus::OCCUPIED]);
                 }
             }
 
-            $resident->update([
-                'name' => $data->name,
-                'email' => $data->email,
-                'phone' => $data->phone,
+            $lockedResident->update([
+                'name' => $residentData->name,
+                'email' => $residentData->email,
+                'phone' => $residentData->phone,
             ]);
 
-            return $resident;
+            return $lockedResident;
         });
 
         LogActivity::handle(ActivityLogData::from([

@@ -78,129 +78,178 @@ export type EditableResident = {
 };
 
 type ResidentDialogueProps = {
-    only: Array<'residents' | 'residentCreateOptions'>;
-    resident?: EditableResident;
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
+    propsToRefresh: Array<'residents' | 'residentCreateOptions'>;
+    residentToEdit?: EditableResident;
+    isOpen?: boolean;
+    onOpenChange?: (isOpen: boolean) => void;
 };
 
 export default function ResidentDialogue({
-    only,
-    resident,
-    open: controlledOpen,
+    propsToRefresh,
+    residentToEdit,
+    isOpen: controlledOpen,
     onOpenChange,
 }: ResidentDialogueProps) {
     const [internalOpen, setInternalOpen] = useState(false);
-    const open = controlledOpen ?? internalOpen;
+    const isDialogOpen = controlledOpen ?? internalOpen;
+    const isEditingResident = residentToEdit !== undefined;
     const { currentOrganization, residentCreateOptions } = usePage<{
         currentOrganization: { uuid: string; name: string } | null;
         residentCreateOptions: ResidentCreateOptions;
     }>().props;
     const residentProperties = residentCreateOptions.properties.data;
-    const residentUnits = useMemo(() => {
-        const units = residentCreateOptions.availableUnits.data;
+    const selectableResidentUnits = useMemo(() => {
+        const availableUnitOptions = residentCreateOptions.availableUnits.data;
+        const hasCurrentUnit =
+            residentToEdit !== undefined && Boolean(residentToEdit.unit_id);
+        const currentUnitAlreadySelectable = availableUnitOptions.some(
+            (unitOption) => unitOption.id === residentToEdit?.unit_id,
+        );
 
-        if (
-            !resident?.unit_id ||
-            units.some((unit) => unit.id === resident.unit_id)
-        ) {
-            return units;
+        if (!hasCurrentUnit || currentUnitAlreadySelectable) {
+            return availableUnitOptions;
         }
 
         return [
-            ...units,
+            ...availableUnitOptions,
             {
-                id: resident.unit_id,
-                name: resident.unit_name ?? String(resident.unit_id),
+                id: residentToEdit.unit_id,
+                name:
+                    residentToEdit.unit_name ?? String(residentToEdit.unit_id),
                 floor: null,
-                property_id: resident.property_id ?? 0,
+                property_id: residentToEdit.property_id ?? 0,
                 property: {
-                    id: resident.property_id ?? 0,
-                    name: resident.property_name ?? '',
+                    id: residentToEdit.property_id ?? 0,
+                    name: residentToEdit.property_name ?? '',
                 },
             },
         ];
-    }, [resident, residentCreateOptions.availableUnits.data]);
-    const form = useForm<ResidentFormData>({
-        name: resident?.name ?? '',
-        email: resident?.email ?? '',
-        phone: resident?.phone ?? '',
-        property_id: resident?.property_id ?? '',
-        unit_id: resident?.unit_id ?? '',
+    }, [residentToEdit, residentCreateOptions.availableUnits.data]);
+    const residentForm = useForm<ResidentFormData>({
+        name: residentToEdit?.name ?? '',
+        email: residentToEdit?.email ?? '',
+        phone: residentToEdit?.phone ?? '',
+        property_id: residentToEdit?.property_id ?? '',
+        unit_id: residentToEdit?.unit_id ?? '',
     });
 
-    const selectedProperty = useMemo(() => {
+    const selectedResidentProperty = useMemo(() => {
         return (
             residentProperties.find(
-                (property) => property.id === form.data.property_id,
+                (propertyOption) =>
+                    propertyOption.id === residentForm.data.property_id,
             ) ?? null
         );
-    }, [form.data.property_id, residentProperties]);
+    }, [residentForm.data.property_id, residentProperties]);
 
-    const availableUnits = useMemo(() => {
-        if (!selectedProperty) {
+    const selectableUnitsForProperty = useMemo(() => {
+        const hasSelectedProperty = selectedResidentProperty !== null;
+
+        if (!hasSelectedProperty) {
             return [];
         }
 
-        return residentUnits.filter(
-            (unit) => unit.property_id === selectedProperty.id,
+        return selectableResidentUnits.filter(
+            (unitOption) =>
+                unitOption.property_id === selectedResidentProperty.id,
         );
-    }, [residentUnits, selectedProperty]);
+    }, [selectableResidentUnits, selectedResidentProperty]);
 
-    const propertyMessage = selectedProperty
-        ? selectedProperty.available_units_count === 0 && !availableUnits.length
+    const hasSelectedProperty = selectedResidentProperty !== null;
+    const hasNoSelectableUnits = selectableUnitsForProperty.length === 0;
+    const selectedPropertyHasNoAvailableUnits =
+        hasSelectedProperty &&
+        selectedResidentProperty.available_units_count === 0 &&
+        hasNoSelectableUnits;
+    const propertyAvailabilityMessage = hasSelectedProperty
+        ? selectedPropertyHasNoAvailableUnits
             ? 'No available units are left for this property.'
-            : `${selectedProperty.available_units_count ?? 0} of ${
-                  selectedProperty.units_count ?? 0
+            : `${selectedResidentProperty.available_units_count ?? 0} of ${
+                  selectedResidentProperty.units_count ?? 0
               } units available in this property.`
         : 'Choose a property to view the available units.';
 
-    function submit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    const hasCurrentOrganization = currentOrganization !== null;
+    const hasPropertyOptions = residentProperties.length > 0;
+    const hasSelectedPropertyId = residentForm.data.property_id !== '';
+    const hasSelectedUnitId = residentForm.data.unit_id !== '';
+    const hasNameError = Boolean(residentForm.errors.name);
+    const hasEmailError = Boolean(residentForm.errors.email);
+    const hasPhoneError = Boolean(residentForm.errors.phone);
+    const hasPropertyError = Boolean(residentForm.errors.property_id);
+    const hasUnitError = Boolean(residentForm.errors.unit_id);
+    const isSavingResident = residentForm.processing;
+    const canSubmitResident =
+        !isSavingResident &&
+        hasCurrentOrganization &&
+        hasSelectedPropertyId &&
+        hasSelectedUnitId;
+    const dialogTitle = isEditingResident ? 'Edit resident' : 'Create resident';
+    const dialogDescription = isEditingResident
+        ? 'Update this resident and their current residence.'
+        : 'Add a resident user and assign them to an available unit.';
+    const unitPlaceholder = !hasSelectedProperty
+        ? 'Select a property first'
+        : hasNoSelectableUnits
+          ? 'No available units'
+          : 'Select a unit';
+    const submitButtonLabel = isSavingResident
+        ? isEditingResident
+            ? 'Saving resident'
+            : 'Creating resident'
+        : isEditingResident
+          ? 'Save resident'
+          : 'Create resident';
 
-        if (!currentOrganization) {
+    function submitResident(residentSubmitEvent: FormEvent<HTMLFormElement>) {
+        residentSubmitEvent.preventDefault();
+
+        if (!hasCurrentOrganization) {
             return;
         }
 
-        form.submit(
-            resident
+        residentForm.submit(
+            isEditingResident
                 ? update({
                       organization: currentOrganization.uuid,
-                      resident: resident.id,
+                      resident: residentToEdit.id,
                   })
                 : store(currentOrganization.uuid),
             {
-                only,
+                only: propsToRefresh,
                 preserveScroll: true,
                 onSuccess: () => {
-                    form.resetAndClearErrors();
+                    residentForm.resetAndClearErrors();
                     handleOpenChange(false);
                 },
             },
         );
     }
 
-    function handleOpenChange(nextOpen: boolean) {
-        if (onOpenChange) {
-            onOpenChange(nextOpen);
+    function handleOpenChange(shouldOpenDialog: boolean) {
+        const isExternallyControlled = onOpenChange !== undefined;
+
+        if (isExternallyControlled) {
+            onOpenChange(shouldOpenDialog);
         } else {
-            setInternalOpen(nextOpen);
+            setInternalOpen(shouldOpenDialog);
         }
 
-        if (!nextOpen) {
-            form.resetAndClearErrors();
+        const isClosingDialog = !shouldOpenDialog;
+
+        if (isClosingDialog) {
+            residentForm.resetAndClearErrors();
         }
     }
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            {!resident && (
+        <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+            {!isEditingResident && (
                 <DialogTrigger asChild>
                     <Button
                         className="w-full sm:w-auto"
                         disabled={
-                            currentOrganization === null ||
-                            residentProperties.length === 0
+                            !hasCurrentOrganization || !hasPropertyOptions
                         }
                     >
                         <Plus />
@@ -211,37 +260,32 @@ export default function ResidentDialogue({
 
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>
-                        {resident ? 'Edit resident' : 'Create resident'}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {resident
-                            ? 'Update this resident and their current residence.'
-                            : 'Add a resident user and assign them to an available unit.'}
-                    </DialogDescription>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
+                    <DialogDescription>{dialogDescription}</DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={submit} className="grid gap-6">
+                <form onSubmit={submitResident} className="grid gap-6">
                     <div className="grid gap-2">
                         <Label htmlFor="resident-name">Name</Label>
                         <Input
                             id="resident-name"
-                            value={form.data.name}
-                            onChange={(event) =>
-                                form.setData('name', event.target.value)
+                            value={residentForm.data.name}
+                            onChange={(nameChangeEvent) =>
+                                residentForm.setData(
+                                    'name',
+                                    nameChangeEvent.target.value,
+                                )
                             }
                             autoComplete="name"
-                            aria-invalid={Boolean(form.errors.name)}
+                            aria-invalid={hasNameError}
                             aria-describedby={
-                                form.errors.name
-                                    ? 'resident-name-error'
-                                    : undefined
+                                hasNameError ? 'resident-name-error' : undefined
                             }
                             required
                         />
                         <InputError
                             id="resident-name-error"
-                            message={form.errors.name}
+                            message={residentForm.errors.name}
                         />
                     </div>
 
@@ -251,14 +295,17 @@ export default function ResidentDialogue({
                             <Input
                                 id="resident-email"
                                 type="email"
-                                value={form.data.email}
-                                onChange={(event) =>
-                                    form.setData('email', event.target.value)
+                                value={residentForm.data.email}
+                                onChange={(emailChangeEvent) =>
+                                    residentForm.setData(
+                                        'email',
+                                        emailChangeEvent.target.value,
+                                    )
                                 }
                                 autoComplete="email"
-                                aria-invalid={Boolean(form.errors.email)}
+                                aria-invalid={hasEmailError}
                                 aria-describedby={
-                                    form.errors.email
+                                    hasEmailError
                                         ? 'resident-email-error'
                                         : undefined
                                 }
@@ -266,7 +313,7 @@ export default function ResidentDialogue({
                             />
                             <InputError
                                 id="resident-email-error"
-                                message={form.errors.email}
+                                message={residentForm.errors.email}
                             />
                         </div>
 
@@ -274,21 +321,24 @@ export default function ResidentDialogue({
                             <Label htmlFor="resident-phone">Phone</Label>
                             <Input
                                 id="resident-phone"
-                                value={form.data.phone}
-                                onChange={(event) =>
-                                    form.setData('phone', event.target.value)
+                                value={residentForm.data.phone}
+                                onChange={(phoneChangeEvent) =>
+                                    residentForm.setData(
+                                        'phone',
+                                        phoneChangeEvent.target.value,
+                                    )
                                 }
                                 autoComplete="tel"
-                                aria-invalid={Boolean(form.errors.phone)}
+                                aria-invalid={hasPhoneError}
                                 aria-describedby={
-                                    form.errors.phone
+                                    hasPhoneError
                                         ? 'resident-phone-error'
                                         : undefined
                                 }
                             />
                             <InputError
                                 id="resident-phone-error"
-                                message={form.errors.phone}
+                                message={residentForm.errors.phone}
                             />
                         </div>
                     </div>
@@ -297,23 +347,26 @@ export default function ResidentDialogue({
                         <Label htmlFor="resident-property">Property</Label>
                         <Select
                             value={
-                                form.data.property_id === ''
+                                !hasSelectedPropertyId
                                     ? ''
-                                    : String(form.data.property_id)
+                                    : String(residentForm.data.property_id)
                             }
-                            onValueChange={(value) => {
-                                form.setData('property_id', Number(value));
-                                form.setData('unit_id', '');
-                                form.clearErrors('unit_id');
+                            onValueChange={(selectedPropertyId) => {
+                                residentForm.setData(
+                                    'property_id',
+                                    Number(selectedPropertyId),
+                                );
+                                residentForm.setData('unit_id', '');
+                                residentForm.clearErrors('unit_id');
                             }}
                             required
                         >
                             <SelectTrigger
                                 id="resident-property"
                                 className="w-full"
-                                aria-invalid={Boolean(form.errors.property_id)}
+                                aria-invalid={hasPropertyError}
                                 aria-describedby={
-                                    form.errors.property_id
+                                    hasPropertyError
                                         ? 'resident-property-error'
                                         : undefined
                                 }
@@ -321,17 +374,17 @@ export default function ResidentDialogue({
                                 <SelectValue placeholder="Select a property" />
                             </SelectTrigger>
                             <SelectContent>
-                                {residentProperties.map((property) => (
+                                {residentProperties.map((propertyOption) => (
                                     <SelectItem
-                                        key={property.id}
-                                        value={String(property.id)}
+                                        key={propertyOption.id}
+                                        value={String(propertyOption.id)}
                                     >
-                                        {property.name}{' '}
+                                        {propertyOption.name}{' '}
                                         <span className="text-muted-foreground">
                                             (
-                                            {property.available_units_count ??
+                                            {propertyOption.available_units_count ??
                                                 0}
-                                            /{property.units_count ?? 0})
+                                            /{propertyOption.units_count ?? 0})
                                         </span>
                                     </SelectItem>
                                 ))}
@@ -339,17 +392,16 @@ export default function ResidentDialogue({
                         </Select>
                         <InputError
                             id="resident-property-error"
-                            message={form.errors.property_id}
+                            message={residentForm.errors.property_id}
                         />
                         <p
                             className={
-                                selectedProperty?.available_units_count === 0 &&
-                                !availableUnits.length
+                                selectedPropertyHasNoAvailableUnits
                                     ? 'text-sm text-destructive'
                                     : 'text-sm text-muted-foreground'
                             }
                         >
-                            {propertyMessage}
+                            {propertyAvailabilityMessage}
                         </p>
                     </div>
 
@@ -357,56 +409,52 @@ export default function ResidentDialogue({
                         <Label htmlFor="resident-unit">Unit</Label>
                         <Select
                             value={
-                                form.data.unit_id === ''
+                                !hasSelectedUnitId
                                     ? ''
-                                    : String(form.data.unit_id)
+                                    : String(residentForm.data.unit_id)
                             }
-                            onValueChange={(value) =>
-                                form.setData('unit_id', Number(value))
+                            onValueChange={(selectedUnitId) =>
+                                residentForm.setData(
+                                    'unit_id',
+                                    Number(selectedUnitId),
+                                )
                             }
                             required
                             disabled={
-                                selectedProperty === null ||
-                                availableUnits.length === 0
+                                !hasSelectedProperty || hasNoSelectableUnits
                             }
                         >
                             <SelectTrigger
                                 id="resident-unit"
                                 className="w-full"
-                                aria-invalid={Boolean(form.errors.unit_id)}
+                                aria-invalid={hasUnitError}
                                 aria-describedby={
-                                    form.errors.unit_id
+                                    hasUnitError
                                         ? 'resident-unit-error'
                                         : undefined
                                 }
                             >
-                                <SelectValue
-                                    placeholder={
-                                        selectedProperty === null
-                                            ? 'Select a property first'
-                                            : availableUnits.length === 0
-                                              ? 'No available units'
-                                              : 'Select a unit'
-                                    }
-                                />
+                                <SelectValue placeholder={unitPlaceholder} />
                             </SelectTrigger>
                             <SelectContent>
-                                {availableUnits.map((unit) => (
-                                    <SelectItem
-                                        key={unit.id}
-                                        value={String(unit.id)}
-                                    >
-                                        {unit.name}
-                                        {unit.floor
-                                            ? ` · Floor ${unit.floor}`
-                                            : ''}
-                                    </SelectItem>
-                                ))}
+                                {selectableUnitsForProperty.map(
+                                    (unitOption) => (
+                                        <SelectItem
+                                            key={unitOption.id}
+                                            value={String(unitOption.id)}
+                                        >
+                                            {unitOption.name}
+                                            {unitOption.floor
+                                                ? ` · Floor ${unitOption.floor}`
+                                                : ''}
+                                        </SelectItem>
+                                    ),
+                                )}
                             </SelectContent>
                         </Select>
                         <InputError
                             id="resident-unit-error"
-                            message={form.errors.unit_id}
+                            message={residentForm.errors.unit_id}
                         />
                     </div>
 
@@ -415,28 +463,14 @@ export default function ResidentDialogue({
                             <Button
                                 type="button"
                                 variant="secondary"
-                                disabled={form.processing}
+                                disabled={isSavingResident}
                             >
                                 Cancel
                             </Button>
                         </DialogClose>
-                        <Button
-                            type="submit"
-                            disabled={
-                                form.processing ||
-                                currentOrganization === null ||
-                                form.data.property_id === '' ||
-                                form.data.unit_id === ''
-                            }
-                        >
-                            {form.processing && <Spinner />}
-                            {form.processing
-                                ? resident
-                                    ? 'Saving resident'
-                                    : 'Creating resident'
-                                : resident
-                                  ? 'Save resident'
-                                  : 'Create resident'}
+                        <Button type="submit" disabled={!canSubmitResident}>
+                            {isSavingResident && <Spinner />}
+                            {submitButtonLabel}
                         </Button>
                     </DialogFooter>
                 </form>
