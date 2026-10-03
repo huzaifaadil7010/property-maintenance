@@ -11,6 +11,7 @@ enum ActivityEventEnum: string
     case UNIT_UPDATED = 'unit-updated';
     case UNIT_DELETED = 'unit-deleted';
     case RESIDENT_CREATED = 'resident-created';
+    case RESIDENT_UPDATED = 'resident-updated';
     case TECHNICIAN_CREATED = 'technician-created';
     case MAINTENANCE_REQUEST_CREATED = 'maintenance-request-created';
     case MAINTENANCE_REQUEST_TECHNICIAN_ASSIGNED = 'maintenance-request-technician-assigned';
@@ -30,6 +31,7 @@ enum ActivityEventEnum: string
             self::UNIT_UPDATED => 'DoorOpen',
             self::UNIT_DELETED => 'Trash2',
             self::RESIDENT_CREATED => 'UserRoundPlus',
+            self::RESIDENT_UPDATED => 'UserRoundCog',
             self::TECHNICIAN_CREATED => 'Wrench',
             self::MAINTENANCE_REQUEST_CREATED => 'ClipboardPlus',
             self::MAINTENANCE_REQUEST_TECHNICIAN_ASSIGNED => 'UserRoundCog',
@@ -51,6 +53,7 @@ enum ActivityEventEnum: string
             self::UNIT_UPDATED,
             self::UNIT_DELETED => 'text-violet-700',
             self::RESIDENT_CREATED,
+            self::RESIDENT_UPDATED,
             self::MAINTENANCE_REQUEST_RESOLUTION_CONFIRMED => 'text-emerald-700',
             self::TECHNICIAN_CREATED,
             self::MAINTENANCE_REQUEST_TECHNICIAN_ASSIGNED => 'text-amber-700',
@@ -72,6 +75,7 @@ enum ActivityEventEnum: string
             self::UNIT_UPDATED,
             self::UNIT_DELETED => 'bg-violet-100',
             self::RESIDENT_CREATED,
+            self::RESIDENT_UPDATED,
             self::MAINTENANCE_REQUEST_RESOLUTION_CONFIRMED => 'bg-emerald-100',
             self::TECHNICIAN_CREATED,
             self::MAINTENANCE_REQUEST_TECHNICIAN_ASSIGNED => 'bg-amber-100',

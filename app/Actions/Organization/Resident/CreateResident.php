@@ -9,6 +9,7 @@ use App\Data\ResidentData;
 use App\Data\ResidentUserData;
 use App\Enums\ActivityEventEnum;
 use App\Enums\OccupancyStatus;
+use App\Enums\UnitStatus;
 use App\Enums\UserRole;
 use App\Models\Occupancy;
 use App\Models\Organization;
@@ -41,6 +42,9 @@ class CreateResident
 
                 self::configureResident($resident, $organization);
                 self::createResidentOccupancy($resident, $unit, $organization);
+                if (! $unit->isUnderMaintenance()) {
+                    $unit->update(['status' => UnitStatus::OCCUPIED]);
+                }
                 self::registerAccountNotification($resident, $temporaryPassword);
 
                 return $resident;

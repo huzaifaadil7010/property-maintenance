@@ -717,6 +717,10 @@ Notes:
 
 ### Readable condition checks
 
+- Name variables for the value they hold and its role in the operation; avoid
+  vague names when the context does not make their meaning clear.
+- Keep an already readable condition inline. Name a boolean only when it
+  clarifies a complex rule or is meaningfully reused.
 - Use boolean truthiness for boolean checks: `if ($value)` and `if (! $value)`.
 - Use Laravel's `blank($value)` when checking whether a string, array, nullable value,
   or general value has no usable content.

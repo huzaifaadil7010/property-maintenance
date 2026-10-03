@@ -16,6 +16,7 @@ use App\Mcp\Tools\PrepareDeleteProperty;
 use App\Mcp\Tools\PrepareDeleteUnit;
 use App\Mcp\Tools\PrepareUpdateMaintenanceStatus;
 use App\Mcp\Tools\PrepareUpdateProperty;
+use App\Mcp\Tools\PrepareUpdateResident;
 use App\Mcp\Tools\PrepareUpdateUnit;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
@@ -41,6 +42,7 @@ class OrganizationServer extends Server
             PrepareUpdateUnit::class,
             PrepareDeleteUnit::class,
             PrepareCreateResident::class,
+            PrepareUpdateResident::class,
             PrepareCreateTechnician::class,
             PrepareAssignTechnician::class,
             PrepareUpdateMaintenanceStatus::class,

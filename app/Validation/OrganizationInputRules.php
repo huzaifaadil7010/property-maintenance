@@ -36,11 +36,11 @@ class OrganizationInputRules
         ];
     }
 
-    public static function resident(int $organizationId, int $propertyId): array
+    public static function resident(int $organizationId, int $propertyId, ?User $resident = null): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)->ignore($resident)],
             'phone' => ['nullable', 'string', 'max:255'],
             'property_id' => ['required', 'integer', Rule::exists(Property::class, 'id')->where('organization_id', $organizationId)],
             'unit_id' => ['required', 'integer', Rule::exists(Unit::class, 'id')->where('organization_id', $organizationId)->where('property_id', $propertyId)],

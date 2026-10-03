@@ -2,21 +2,28 @@ import { Deferred, Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
+import { Pencil } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import CreateResidentDialogue from '@/components/organization/resident/create-resident-dialogue';
+import ResidentDialogue from '@/components/organization/resident/resident-dialogue';
+import type { EditableResident } from '@/components/organization/resident/resident-dialogue';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { Inertia } from '@/wayfinder/types';
 
 type GeneratedPageProps = Inertia.Pages.Organization.Resident.Index;
 
 export default function Index(props: GeneratedPageProps) {
     const { url } = usePage();
-    const residents = props.residents as unknown as {
-        data: GeneratedPageProps['residents'];
+    const paginatedResidents = props.residents as unknown as {
+        data: EditableResident[];
         meta: Record<
             'current_page' | 'last_page' | 'per_page' | 'total',
             number
@@ -24,29 +31,35 @@ export default function Index(props: GeneratedPageProps) {
     };
     const queryParameters = new URLSearchParams(url.split('?')[1] ?? '');
     const requestedPerPage = Number(queryParameters.get('perPage'));
-    const [search, setSearch] = useState(queryParameters.get('search') ?? '');
-    const isInitialRender = useRef(true);
+    const [residentSearch, setResidentSearch] = useState(
+        queryParameters.get('search') ?? '',
+    );
+    const [residentBeingEdited, setResidentBeingEdited] =
+        useState<EditableResident | null>(null);
+    const shouldSkipInitialSearchReload = useRef(true);
+    const displayedPerPage =
+        requestedPerPage || paginatedResidents.meta.per_page;
 
     useEffect(() => {
-        if (isInitialRender.current) {
-            isInitialRender.current = false;
+        if (shouldSkipInitialSearchReload.current) {
+            shouldSkipInitialSearchReload.current = false;
 
             return;
         }
 
-        const reloadResidents = debounce(() => {
+        const reloadResidentsAfterSearch = debounce(() => {
             router.reload({
-                data: { search, page: 1 },
+                data: { search: residentSearch, page: 1 },
                 only: ['residents'],
             });
         }, 300);
 
-        reloadResidents();
+        reloadResidentsAfterSearch();
 
-        return () => reloadResidents.cancel();
-    }, [search]);
+        return () => reloadResidentsAfterSearch.cancel();
+    }, [residentSearch]);
 
-    const columns: ColumnDef<GeneratedPageProps['residents'][number]>[] = [
+    const residentColumns: ColumnDef<EditableResident>[] = [
         {
             accessorKey: 'name',
             header: 'Name',
@@ -58,25 +71,55 @@ export default function Index(props: GeneratedPageProps) {
         {
             accessorKey: 'phone',
             header: 'Phone',
-            cell: ({ row }) => row.original.phone ?? '—',
+            cell: ({ row: residentRow }) => residentRow.original.phone ?? '—',
         },
         {
             accessorKey: 'property_name',
             header: 'Property',
-            cell: ({ row }) => row.original.property_name ?? '—',
+            cell: ({ row: residentRow }) =>
+                residentRow.original.property_name ?? '—',
         },
         {
             accessorKey: 'unit_name',
             header: 'Unit',
-            cell: ({ row }) => row.original.unit_name ?? '—',
+            cell: ({ row: residentRow }) =>
+                residentRow.original.unit_name ?? '—',
         },
         {
             accessorKey: 'move_in_date',
             header: 'Move-in Date',
-            cell: ({ row }) =>
-                row.original.move_in_date
-                    ? format(String(row.original.move_in_date), 'yyyy-MM-dd')
+            cell: ({ row: residentRow }) =>
+                residentRow.original.move_in_date
+                    ? format(
+                          String(residentRow.original.move_in_date),
+                          'yyyy-MM-dd',
+                      )
                     : '—',
+        },
+        {
+            id: 'actions',
+            header: () => <span className="sr-only">Actions</span>,
+            cell: ({ row: residentRow }) => (
+                <div className="flex justify-end">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                aria-label={`Edit ${residentRow.original.name}`}
+                                onClick={() =>
+                                    setResidentBeingEdited(residentRow.original)
+                                }
+                            >
+                                <Pencil />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit resident</TooltipContent>
+                    </Tooltip>
+                </div>
+            ),
         },
     ];
 
@@ -99,8 +142,11 @@ export default function Index(props: GeneratedPageProps) {
                                 </Button>
                             }
                         >
-                            <CreateResidentDialogue
-                                only={['residents', 'residentCreateOptions']}
+                            <ResidentDialogue
+                                propsToRefresh={[
+                                    'residents',
+                                    'residentCreateOptions',
+                                ]}
                             />
                         </Deferred>
                     }
@@ -110,8 +156,12 @@ export default function Index(props: GeneratedPageProps) {
                     <div className="flex w-full justify-end border-b border-border/70 bg-muted/20 p-3 sm:p-4">
                         <Input
                             type="search"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            value={residentSearch}
+                            onChange={(searchChangeEvent) =>
+                                setResidentSearch(
+                                    searchChangeEvent.target.value,
+                                )
+                            }
                             placeholder="Search residents..."
                             aria-label="Search residents"
                             className="w-full sm:max-w-sm"
@@ -119,8 +169,8 @@ export default function Index(props: GeneratedPageProps) {
                     </div>
 
                     <DataTable
-                        columns={columns}
-                        data={residents.data}
+                        columns={residentColumns}
+                        data={paginatedResidents.data}
                         renderMobileCard={(resident) => (
                             <div className="interactive-card grid gap-3 rounded-2xl border bg-card p-4">
                                 <div>
@@ -151,14 +201,27 @@ export default function Index(props: GeneratedPageProps) {
                                         </p>
                                     </div>
                                 </div>
+                                <div className="flex justify-end border-t border-border/70 pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8"
+                                        aria-label={`Edit ${resident.name}`}
+                                        onClick={() =>
+                                            setResidentBeingEdited(resident)
+                                        }
+                                    >
+                                        <Pencil />
+                                    </Button>
+                                </div>
                             </div>
                         )}
                         pagination={{
-                            currentPage: residents.meta.current_page,
-                            lastPage: residents.meta.last_page,
-                            perPage:
-                                requestedPerPage || residents.meta.per_page,
-                            total: residents.meta.total,
+                            currentPage: paginatedResidents.meta.current_page,
+                            lastPage: paginatedResidents.meta.last_page,
+                            perPage: displayedPerPage,
+                            total: paginatedResidents.meta.total,
                             onChange: (page, perPage) => {
                                 router.reload({
                                     data: { page, perPage },
@@ -169,6 +232,33 @@ export default function Index(props: GeneratedPageProps) {
                     />
                 </div>
             </div>
+
+            {residentBeingEdited && (
+                <Deferred
+                    data="residentCreateOptions"
+                    fallback={
+                        <div
+                            className="flex justify-center p-4"
+                            role="status"
+                            aria-label="Loading resident editor"
+                        >
+                            <Spinner />
+                        </div>
+                    }
+                >
+                    <ResidentDialogue
+                        key={residentBeingEdited.id}
+                        residentToEdit={residentBeingEdited}
+                        propsToRefresh={['residents', 'residentCreateOptions']}
+                        isOpen
+                        onOpenChange={(shouldOpenEditor) => {
+                            if (!shouldOpenEditor) {
+                                setResidentBeingEdited(null);
+                            }
+                        }}
+                    />
+                </Deferred>
+            )}
         </>
     );
 }
