@@ -23,7 +23,6 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Spinner } from '@/components/ui/spinner';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { dashboard, maintenanceRequests } from '@/wayfinder/routes/resident';
 
@@ -77,27 +76,11 @@ export default function Dashboard({
                     description="Everything you need to track your residence and maintenance activity."
                     actions={
                         residenceData && (
-                            <Deferred
-                                data={[
-                                    'maintenanceCategories',
-                                    'maintenancePriorities',
-                                ]}
-                                fallback={
-                                    <Button
-                                        className="w-full sm:w-auto"
-                                        disabled
-                                    >
-                                        <Spinner />
-                                        Report an issue
-                                    </Button>
-                                }
-                            >
-                                <CreateMaintenanceRequestDialogue
-                                    categories={maintenanceCategories ?? []}
-                                    priorities={maintenancePriorities ?? []}
-                                    only={dashboardPropsToRefresh}
-                                />
-                            </Deferred>
+                            <CreateMaintenanceRequestDialogue
+                                categories={maintenanceCategories}
+                                priorities={maintenancePriorities}
+                                only={dashboardPropsToRefresh}
+                            />
                         )
                     }
                 />

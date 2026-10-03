@@ -1,4 +1,4 @@
-import { Deferred, Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
-import { Spinner } from '@/components/ui/spinner';
 import {
     Tooltip,
     TooltipContent,
@@ -133,22 +132,12 @@ export default function Index(props: GeneratedPageProps) {
                     title="Residents"
                     description="View and manage the residents in your organization."
                     actions={
-                        <Deferred
-                            data="residentCreateOptions"
-                            fallback={
-                                <Button className="w-full sm:w-auto" disabled>
-                                    <Spinner />
-                                    Create resident
-                                </Button>
-                            }
-                        >
-                            <ResidentDialogue
-                                propsToRefresh={[
-                                    'residents',
-                                    'residentCreateOptions',
-                                ]}
-                            />
-                        </Deferred>
+                        <ResidentDialogue
+                            propsToRefresh={[
+                                'residents',
+                                'residentCreateOptions',
+                            ]}
+                        />
                     }
                 />
 
@@ -234,30 +223,17 @@ export default function Index(props: GeneratedPageProps) {
             </div>
 
             {residentBeingEdited && (
-                <Deferred
-                    data="residentCreateOptions"
-                    fallback={
-                        <div
-                            className="flex justify-center p-4"
-                            role="status"
-                            aria-label="Loading resident editor"
-                        >
-                            <Spinner />
-                        </div>
-                    }
-                >
-                    <ResidentDialogue
-                        key={residentBeingEdited.id}
-                        residentToEdit={residentBeingEdited}
-                        propsToRefresh={['residents', 'residentCreateOptions']}
-                        isOpen
-                        onOpenChange={(shouldOpenEditor) => {
-                            if (!shouldOpenEditor) {
-                                setResidentBeingEdited(null);
-                            }
-                        }}
-                    />
-                </Deferred>
+                <ResidentDialogue
+                    key={residentBeingEdited.id}
+                    residentToEdit={residentBeingEdited}
+                    propsToRefresh={['residents', 'residentCreateOptions']}
+                    isOpen
+                    onOpenChange={(shouldOpenEditor) => {
+                        if (!shouldOpenEditor) {
+                            setResidentBeingEdited(null);
+                        }
+                    }}
+                />
             )}
         </>
     );

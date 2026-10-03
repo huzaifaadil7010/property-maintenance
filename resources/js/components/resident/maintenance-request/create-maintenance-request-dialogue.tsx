@@ -25,12 +25,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { SelectOptionsLoading } from '@/components/ui/select-options-loading';
 import { Spinner } from '@/components/ui/spinner';
 import MaintenanceCategory from '@/wayfinder/App/Enums/MaintenanceCategory';
 import MaintenancePriority from '@/wayfinder/App/Enums/MaintenancePriority';
 import DeleteTempFileController from '@/wayfinder/App/Http/Controllers/DeleteTempFileController';
-import StoreTempFileController from '@/wayfinder/App/Http/Controllers/StoreTempFileController';
 import { store } from '@/wayfinder/App/Http/Controllers/Resident/MaintenanceRequestsController';
+import StoreTempFileController from '@/wayfinder/App/Http/Controllers/StoreTempFileController';
 
 type EnumOption = {
     label: string;
@@ -81,8 +82,8 @@ type CleanupQueue = {
 };
 
 type CreateMaintenanceRequestDialogueProps = {
-    categories: EnumOption[];
-    priorities: EnumOption[];
+    categories?: EnumOption[];
+    priorities?: EnumOption[];
     only: string[];
 };
 
@@ -112,6 +113,10 @@ export default function CreateMaintenanceRequestDialogue({
     const cleanupQueue = useRef<CleanupQueue | null>(null);
     const isFileProcessing =
         pendingUploads > 0 || deleteHttp.processing || isCleaningUp;
+    const areCategoriesLoading = !categories;
+    const arePrioritiesLoading = !priorities;
+    const categoryOptions = categories ?? [];
+    const priorityOptions = priorities ?? [];
     const cannotSubmitError = (
         form.errors as Record<string, string | undefined>
     ).cannot_submit;
@@ -403,6 +408,9 @@ export default function CreateMaintenanceRequestDialogue({
                             <Label htmlFor="maintenance-request-category">
                                 Category
                             </Label>
+                            {areCategoriesLoading && (
+                                <SelectOptionsLoading label="Loading categories" />
+                            )}
                             <Select
                                 value={form.data.category}
                                 onValueChange={(value) =>
@@ -411,12 +419,16 @@ export default function CreateMaintenanceRequestDialogue({
                                         value as FormData['category'],
                                     )
                                 }
+                                disabled={
+                                    areCategoriesLoading ||
+                                    categoryOptions.length === 0
+                                }
                             >
                                 <SelectTrigger id="maintenance-request-category">
                                     <SelectValue placeholder="Select a category" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {categories.map((option) => (
+                                    {categoryOptions.map((option) => (
                                         <SelectItem
                                             key={option.value}
                                             value={option.value}
@@ -433,6 +445,9 @@ export default function CreateMaintenanceRequestDialogue({
                             <Label htmlFor="maintenance-request-priority">
                                 Priority
                             </Label>
+                            {arePrioritiesLoading && (
+                                <SelectOptionsLoading label="Loading priorities" />
+                            )}
                             <Select
                                 value={form.data.priority}
                                 onValueChange={(value) =>
@@ -441,12 +456,16 @@ export default function CreateMaintenanceRequestDialogue({
                                         value as FormData['priority'],
                                     )
                                 }
+                                disabled={
+                                    arePrioritiesLoading ||
+                                    priorityOptions.length === 0
+                                }
                             >
                                 <SelectTrigger id="maintenance-request-priority">
                                     <SelectValue placeholder="Select a priority" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {priorities.map((option) => (
+                                    {priorityOptions.map((option) => (
                                         <SelectItem
                                             key={option.value}
                                             value={option.value}
@@ -509,7 +528,12 @@ export default function CreateMaintenanceRequestDialogue({
                         </DialogClose>
                         <Button
                             type="submit"
-                            disabled={form.processing || isFileProcessing}
+                            disabled={
+                                form.processing ||
+                                isFileProcessing ||
+                                categoryOptions.length === 0 ||
+                                priorityOptions.length === 0
+                            }
                         >
                             {(form.processing || isFileProcessing) && (
                                 <Spinner />
