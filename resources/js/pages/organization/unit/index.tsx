@@ -1,4 +1,4 @@
-import { Deferred, Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import debounce from 'lodash.debounce';
@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
-import { Spinner } from '@/components/ui/spinner';
 import { StatusBadge } from '@/components/ui/status-badge';
 import {
     Tooltip,
@@ -182,21 +181,11 @@ export default function Index(props: GeneratedPageProps) {
                     title="Units"
                     description="View and manage the units in your organization."
                     actions={
-                        <Deferred
-                            data="properties"
-                            fallback={
-                                <Button className="w-full sm:w-auto" disabled>
-                                    <Spinner />
-                                    Create unit
-                                </Button>
-                            }
-                        >
-                            <CreateUnitDialogue
-                                properties={properties ?? []}
-                                unitStatuses={unitStatuses}
-                                only={['units']}
-                            />
-                        </Deferred>
+                        <CreateUnitDialogue
+                            properties={properties}
+                            unitStatuses={unitStatuses}
+                            only={['units']}
+                        />
                     }
                 />
 

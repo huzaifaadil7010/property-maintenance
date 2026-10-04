@@ -36,7 +36,6 @@ import {
 } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
-import { Spinner } from '@/components/ui/spinner';
 import { index as activityLogsIndex } from '@/wayfinder/App/Http/Controllers/Organization/ActivityLogsController';
 import { dashboard } from '@/wayfinder/routes';
 import { maintenanceRequests } from '@/wayfinder/routes/organization';
@@ -111,29 +110,16 @@ export default function Dashboard({
                                     'recentActivityLogs',
                                 ]}
                             />
-                            <Deferred
-                                data="properties"
-                                fallback={
-                                    <Button
-                                        className="w-full sm:w-auto"
-                                        disabled
-                                    >
-                                        <Spinner />
-                                        Create unit
-                                    </Button>
-                                }
-                            >
-                                <CreateUnitDialogue
-                                    properties={properties ?? []}
-                                    unitStatuses={unitStatuses}
-                                    only={[
-                                        'totalUnits',
-                                        'totalVacantUnits',
-                                        'totalOccupiedUnits',
-                                        'recentActivityLogs',
-                                    ]}
-                                />
-                            </Deferred>
+                            <CreateUnitDialogue
+                                properties={properties}
+                                unitStatuses={unitStatuses}
+                                only={[
+                                    'totalUnits',
+                                    'totalVacantUnits',
+                                    'totalOccupiedUnits',
+                                    'recentActivityLogs',
+                                ]}
+                            />
                         </div>
                     }
                 />

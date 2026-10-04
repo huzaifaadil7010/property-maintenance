@@ -24,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { SelectOptionsLoading } from '@/components/ui/select-options-loading';
 import { Spinner } from '@/components/ui/spinner';
 import {
     store,
@@ -56,6 +57,9 @@ type ResidentCreateOptions = {
         data: ResidentCreateUnitOption[];
     };
 };
+
+const emptyPropertyOptions: ResidentCreatePropertyOption[] = [];
+const emptyUnitOptions: ResidentCreateUnitOption[] = [];
 
 type ResidentFormData = {
     name: string;
@@ -95,11 +99,14 @@ export default function ResidentDialogue({
     const isEditingResident = !!residentToEdit;
     const { currentOrganization, residentCreateOptions } = usePage<{
         currentOrganization: { uuid: string; name: string } | null;
-        residentCreateOptions: ResidentCreateOptions;
+        residentCreateOptions?: ResidentCreateOptions;
     }>().props;
-    const residentProperties = residentCreateOptions.properties.data;
+    const areResidenceOptionsLoading = !residentCreateOptions;
+    const residentProperties =
+        residentCreateOptions?.properties.data ?? emptyPropertyOptions;
     const selectableResidentUnits = useMemo(() => {
-        const availableUnitOptions = residentCreateOptions.availableUnits.data;
+        const availableUnitOptions =
+            residentCreateOptions?.availableUnits.data ?? emptyUnitOptions;
         const currentUnitAlreadySelectable = availableUnitOptions.some(
             (unitOption) => unitOption.id === residentToEdit?.unit_id,
         );
@@ -122,7 +129,7 @@ export default function ResidentDialogue({
                 },
             },
         ];
-    }, [residentToEdit, residentCreateOptions.availableUnits.data]);
+    }, [residentToEdit, residentCreateOptions?.availableUnits.data]);
     const residentForm = useForm<ResidentFormData>({
         name: residentToEdit?.name ?? '',
         email: residentToEdit?.email ?? '',
@@ -157,13 +164,29 @@ export default function ResidentDialogue({
         hasSelectedProperty &&
         selectedResidentProperty.available_units_count === 0 &&
         hasNoSelectableUnits;
-    const propertyAvailabilityMessage = hasSelectedProperty
-        ? selectedPropertyHasNoAvailableUnits
-            ? 'No available units are left for this property.'
-            : `${selectedResidentProperty.available_units_count ?? 0} of ${
-                  selectedResidentProperty.units_count ?? 0
-              } units available in this property.`
-        : 'Choose a property to view the available units.';
+    function getPropertyAvailabilityMessage(): string | null {
+        if (areResidenceOptionsLoading) {
+            return null;
+        }
+
+        if (residentProperties.length === 0) {
+            return 'No properties available. Create a property first.';
+        }
+
+        if (!selectedResidentProperty) {
+            return 'Choose a property to view the available units.';
+        }
+
+        if (selectedPropertyHasNoAvailableUnits) {
+            return 'No available units are left for this property.';
+        }
+
+        return `${selectedResidentProperty.available_units_count ?? 0} of ${
+            selectedResidentProperty.units_count ?? 0
+        } units available in this property.`;
+    }
+
+    const propertyAvailabilityMessage = getPropertyAvailabilityMessage();
 
     const hasSelectedPropertyId = residentForm.data.property_id !== '';
     const hasSelectedUnitId = residentForm.data.unit_id !== '';
@@ -171,6 +194,7 @@ export default function ResidentDialogue({
     const canSubmitResident =
         !isSavingResident &&
         Boolean(currentOrganization) &&
+        !areResidenceOptionsLoading &&
         hasSelectedPropertyId &&
         hasSelectedUnitId;
     const dialogTitle = isEditingResident ? 'Edit resident' : 'Create resident';
@@ -231,13 +255,7 @@ export default function ResidentDialogue({
         <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
             {!isEditingResident && (
                 <DialogTrigger asChild>
-                    <Button
-                        className="w-full sm:w-auto"
-                        disabled={
-                            !currentOrganization ||
-                            residentProperties.length === 0
-                        }
-                    >
+                    <Button className="w-full sm:w-auto">
                         <Plus />
                         Create resident
                     </Button>
@@ -337,6 +355,9 @@ export default function ResidentDialogue({
 
                     <div className="grid gap-2">
                         <Label htmlFor="resident-property">Property</Label>
+                        {areResidenceOptionsLoading && (
+                            <SelectOptionsLoading label="Loading properties" />
+                        )}
                         <Select
                             value={
                                 !hasSelectedPropertyId
@@ -351,6 +372,10 @@ export default function ResidentDialogue({
                                 residentForm.setData('unit_id', '');
                                 residentForm.clearErrors('unit_id');
                             }}
+                            disabled={
+                                areResidenceOptionsLoading ||
+                                residentProperties.length === 0
+                            }
                             required
                         >
                             <SelectTrigger
@@ -388,19 +413,24 @@ export default function ResidentDialogue({
                             id="resident-property-error"
                             message={residentForm.errors.property_id}
                         />
-                        <p
-                            className={
-                                selectedPropertyHasNoAvailableUnits
-                                    ? 'text-sm text-destructive'
-                                    : 'text-sm text-muted-foreground'
-                            }
-                        >
-                            {propertyAvailabilityMessage}
-                        </p>
+                        {propertyAvailabilityMessage && (
+                            <p
+                                className={
+                                    selectedPropertyHasNoAvailableUnits
+                                        ? 'text-sm text-destructive'
+                                        : 'text-sm text-muted-foreground'
+                                }
+                            >
+                                {propertyAvailabilityMessage}
+                            </p>
+                        )}
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="resident-unit">Unit</Label>
+                        {areResidenceOptionsLoading && (
+                            <SelectOptionsLoading label="Loading units" />
+                        )}
                         <Select
                             value={
                                 !hasSelectedUnitId
@@ -415,7 +445,9 @@ export default function ResidentDialogue({
                             }
                             required
                             disabled={
-                                !hasSelectedProperty || hasNoSelectableUnits
+                                areResidenceOptionsLoading ||
+                                !hasSelectedProperty ||
+                                hasNoSelectableUnits
                             }
                         >
                             <SelectTrigger
